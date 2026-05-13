@@ -31,6 +31,7 @@ function logAuthEvent(sicilNo: string, eventType: 'login_success' | 'login_faile
 
 interface AuthState {
   user: AuthUser | null
+  token: string | null
   isAuthenticated: boolean
   redirectUrl: string | null
   login: (sicilNo: string, password: string) => Promise<{ success: boolean; error?: string }>
@@ -42,6 +43,7 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       user: null,
+      token: null,
       isAuthenticated: false,
       redirectUrl: null,
 
@@ -72,7 +74,7 @@ export const useAuthStore = create<AuthState>()(
             initials: `${data.user.ad.charAt(0)}${data.user.soyad.charAt(0)}`.toUpperCase()
           }
 
-          set({ user: userObj, isAuthenticated: true })
+          set({ user: userObj, token: data.token, isAuthenticated: true })
           return { success: true }
         } catch (err: any) {
           console.error('[AuthStore] Login hatası:', err)
@@ -91,7 +93,7 @@ export const useAuthStore = create<AuthState>()(
         }
 
         logAuthEvent(sicilNo, 'logout', currentUser ? `${currentUser.ad} ${currentUser.soyad} çıkış yaptı` : 'Bilinmeyen')
-        set({ user: null, isAuthenticated: false, redirectUrl: null })
+        set({ user: null, token: null, isAuthenticated: false, redirectUrl: null })
       },
 
       setRedirectUrl: (url) => set({ redirectUrl: url }),
@@ -100,6 +102,7 @@ export const useAuthStore = create<AuthState>()(
       name: "sivas-itfaiye-auth",
       partialize: (state) => ({
         user: state.user,
+        token: state.token,
         isAuthenticated: state.isAuthenticated,
       }),
     }

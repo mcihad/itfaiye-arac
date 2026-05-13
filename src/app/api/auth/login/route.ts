@@ -94,9 +94,10 @@ export async function POST(request: NextRequest) {
       [key, 'login_success', ip, ua, `${person.ad} ${person.soyad} (${person.unvan})`]
     );
 
-    // Cookie set et
+    // Cookie set et (ve JSON olarak da dön ki fallback mekanizması çalışabilsin)
     const response = NextResponse.json({
       success: true,
+      token: token,
       user: {
         sicilNo: person.sicil_no,
         ad: person.ad,

@@ -37,6 +37,22 @@ interface QueryBuilder<T = any> {
   then(resolve: (value: { data: T | T[] | null; error: any; count?: number }) => void, reject?: (reason?: any) => void): void;
 }
 
+function getAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {};
+  if (typeof window !== 'undefined') {
+    try {
+      const authData = localStorage.getItem('sivas-itfaiye-auth');
+      if (authData) {
+        const parsed = JSON.parse(authData);
+        if (parsed.state?.token) {
+          headers['Authorization'] = `Bearer ${parsed.state.token}`;
+        }
+      }
+    } catch (e) {}
+  }
+  return headers;
+}
+
 function createQueryBuilder<T = any>(table: string): QueryBuilder<T> {
   const builder: QueryBuilder<T> = {
     _table: table,
@@ -90,7 +106,9 @@ function createQueryBuilder<T = any>(table: string): QueryBuilder<T> {
         params.set('limit', String(this._limitVal));
       }
 
-      fetch(`/api/db/${this._table}?${params.toString()}`)
+      fetch(`/api/db/${this._table}?${params.toString()}`, {
+        headers: getAuthHeaders()
+      })
         .then(res => res.json())
         .then(json => {
           if (json.error) {
@@ -118,7 +136,7 @@ export const api = {
   async insert(table: string, data: any | any[]) {
     const res = await fetch(`/api/db/${table}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
       body: JSON.stringify({ data }),
     });
     return res.json();
@@ -127,7 +145,7 @@ export const api = {
   async update(table: string, data: Record<string, any>, filters: Record<string, any>) {
     const res = await fetch(`/api/db/${table}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
       body: JSON.stringify({ data, filters }),
     });
     return res.json();
@@ -136,7 +154,7 @@ export const api = {
   async upsert(table: string, data: any | any[], conflictColumn: string) {
     const res = await fetch(`/api/db/${table}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
       body: JSON.stringify({ data, upsert: true, conflictColumn }),
     });
     return res.json();
@@ -149,6 +167,7 @@ export const api = {
     });
     const res = await fetch(`/api/db/${table}?${params.toString()}`, {
       method: 'DELETE',
+      headers: getAuthHeaders(),
     });
     return res.json();
   },
@@ -160,6 +179,7 @@ export const api = {
     
     const res = await fetch('/api/upload', {
       method: 'POST',
+      headers: getAuthHeaders(),
       body: formData,
     });
     const json = await res.json();

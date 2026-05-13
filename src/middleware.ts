@@ -31,14 +31,7 @@ export async function middleware(request: NextRequest) {
 
 
   if (!session) {
-    // API routes → 401
-    if (pathname.startsWith('/api')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    // Page routes → login redirect
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("redirect", pathname);
-    return NextResponse.redirect(loginUrl);
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
   // RBAC: Admin-only paths
@@ -56,6 +49,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|icons|models|uploads|manifest\\.json|sw\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|login|icons|models|uploads|manifest\\.json|sw\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"
   ],
 };
