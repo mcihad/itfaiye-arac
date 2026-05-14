@@ -5,12 +5,13 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card"
 import { Input } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
 import { Badge } from "@/components/ui/Badge"
-import { Search, Plus, UserPlus, Shield, ShieldAlert, Key, Loader2, Star, CheckCircle2, SlidersHorizontal, Settings2, AlertTriangle, RefreshCcw } from "lucide-react"
+import { Search, Plus, UserPlus, Shield, ShieldAlert, Key, Loader2, Star, CheckCircle2, SlidersHorizontal, Settings2, AlertTriangle, RefreshCcw, ShieldCheck } from "lucide-react"
 import { api } from "@/lib/api"
 import { type Personnel } from "@/types"
 import { cn } from "@/lib/utils"
 import { useAuthStore } from "@/lib/authStore"
 import Link from 'next/link'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/Dialog"
 
 export default function PersonelYonetimPage() {
   const { user: currentUser } = useAuthStore()
@@ -29,6 +30,18 @@ export default function PersonelYonetimPage() {
   
   // Permissions state synced with DB
   const [permissions, setPermissions] = useState<Record<string, { view_only: boolean, can_approve: boolean, can_print: boolean }>>({})
+  
+  // Certifications
+  const [certifications, setCertifications] = useState<any[]>([])
+
+  // Edit Modal State
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [selectedPerson, setSelectedPerson] = useState<Personnel | null>(null)
+  const [editRole, setEditRole] = useState("User")
+  const [editPostaNo, setEditPostaNo] = useState("1")
+  const [ehliyetDate, setEhliyetDate] = useState("")
+  const [ilkyardimDate, setIlkyardimDate] = useState("")
+  const [isSavingEdit, setIsSavingEdit] = useState(false)
 
   // Fetch personnel from Supabase
   const fetchPersonnel = useCallback(async () => {
@@ -42,6 +55,11 @@ export default function PersonelYonetimPage() {
         .order('sicil_no', { ascending: true })
 
       if (fetchErr) throw fetchErr
+
+      const { data: certData, error: certErr } = await api.from('staff_certifications').select('*')
+      if (!certErr && certData) {
+        setCertifications(certData)
+      }
 
       if (data && data.length > 0) {
         const mapped: Personnel[] = data.map((p: any) => ({
@@ -209,6 +227,65 @@ export default function PersonelYonetimPage() {
     }
   }
 
+  // EDIT MODAL HANDLERS
+  const openEditModal = (person: Personnel) => {
+    setSelectedPerson(person)
+    setEditRole(person.rol || "User")
+    setEditPostaNo(person.posta_no?.toString() || "1")
+
+    const personCerts = certifications.filter(c => c.sicil_no === person.sicil_no)
+    const ehliyet = personCerts.find(c => c.tip === "Ehliyet")
+    const ilkyardim = personCerts.find(c => c.tip === "İlkyardım")
+    
+    setEhliyetDate(ehliyet?.gecerlilik_tarihi || "")
+    setIlkyardimDate(ilkyardim?.gecerlilik_tarihi || "")
+
+    setIsEditModalOpen(true)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!selectedPerson) return
+    setIsSavingEdit(true)
+    
+    try {
+      // 1. Update Role and Posta
+      await api.update('personnel', {
+        rol: editRole,
+        posta_no: parseInt(editPostaNo, 10),
+        posta: `${editPostaNo}. Posta`
+      }, { sicil_no: selectedPerson.sicil_no })
+
+      // 2. Delete existing certifications sequentially
+      await api.remove('staff_certifications', { sicil_no: selectedPerson.sicil_no, tip: 'Ehliyet' })
+      await api.remove('staff_certifications', { sicil_no: selectedPerson.sicil_no, tip: 'İlkyardım' })
+
+      // 3. Insert new certifications if dates are provided
+      if (ehliyetDate) {
+        await api.insert('staff_certifications', {
+          sicil_no: selectedPerson.sicil_no,
+          tip: 'Ehliyet',
+          gecerlilik_tarihi: ehliyetDate
+        })
+      }
+      
+      if (ilkyardimDate) {
+        await api.insert('staff_certifications', {
+          sicil_no: selectedPerson.sicil_no,
+          tip: 'İlkyardım',
+          gecerlilik_tarihi: ilkyardimDate
+        })
+      }
+
+      await fetchPersonnel() // Refresh all data
+      setIsEditModalOpen(false)
+    } catch (err) {
+      console.error("Personel güncelleme hatası:", err)
+      setError("Güncelleme sırasında hata oluştu.")
+    } finally {
+      setIsSavingEdit(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
@@ -343,8 +420,11 @@ export default function PersonelYonetimPage() {
               return (
                 <div key={person.sicil_no} className="p-3 sm:p-4 hover:bg-muted/30 transition-colors flex flex-col xl:flex-row xl:items-center justify-between gap-4">
                   
-                  {/* Info Section - Now clickable Link */}
-                  <Link href={`/yonetim/personel/${person.sicil_no}`} className="flex items-center gap-3 w-full xl:w-2/5 shrink-0 group">
+                  {/* Info Section - Clickable for Edit Modal */}
+                  <div 
+                    onClick={() => openEditModal(person)} 
+                    className="flex items-center gap-3 w-full xl:w-2/5 shrink-0 group cursor-pointer"
+                  >
                     <div className={cn(
                       "w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 border-2 transition-transform group-hover:scale-105",
                       isAdmin ? "bg-primary/10 text-primary border-primary/20" : 
@@ -393,7 +473,7 @@ export default function PersonelYonetimPage() {
                         </span>
                       </div>
                     </div>
-                  </Link>
+                  </div>
 
                   {/* Toggle Permissions */}
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5 ml-12 xl:ml-0 overflow-x-auto pb-1 xl:pb-0 hide-scrollbar">
@@ -464,6 +544,104 @@ export default function PersonelYonetimPage() {
         </p>
       </div>
 
+      </div>
+
+      {/* Edit Modal */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader className="p-6 pb-0">
+            <DialogTitle className="flex items-center gap-2 text-xl text-primary">
+              <Settings2 className="w-5 h-5" />
+              Personel Düzenle
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedPerson && (
+            <div className="p-6 space-y-6">
+              <div className="bg-muted/50 p-4 rounded-xl border border-border/50 flex flex-col items-center justify-center text-center">
+                <div className="w-12 h-12 rounded-full bg-primary/10 text-primary border-2 border-primary/20 flex items-center justify-center font-bold text-lg mb-2">
+                  {selectedPerson.ad.charAt(0)}{selectedPerson.soyad.charAt(0)}
+                </div>
+                <p className="text-base font-bold">{selectedPerson.ad} {selectedPerson.soyad}</p>
+                <p className="text-xs font-mono text-muted-foreground mt-0.5">{selectedPerson.sicil_no} • {selectedPerson.unvan}</p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase text-muted-foreground">Görev / Rol</label>
+                  <select 
+                    className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                    value={editRole}
+                    onChange={(e) => setEditRole(e.target.value)}
+                  >
+                    <option value="Admin">Sistem Yöneticisi (Admin)</option>
+                    <option value="Editor">Amir (Editor)</option>
+                    <option value="Shift_Leader">Çavuş (Shift_Leader)</option>
+                    <option value="User">İtfaiye Eri (User)</option>
+                    <option value="Er">Er (Er)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase text-muted-foreground">Posta Numarası</label>
+                  <select 
+                    className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                    value={editPostaNo}
+                    onChange={(e) => setEditPostaNo(e.target.value)}
+                  >
+                    <option value="1">1. Posta</option>
+                    <option value="2">2. Posta</option>
+                    <option value="3">3. Posta</option>
+                  </select>
+                </div>
+
+                <div className="pt-4 border-t border-border space-y-4">
+                  <h4 className="text-sm font-semibold flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                    Sertifika Bilgileri
+                  </h4>
+                  
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold uppercase text-muted-foreground">Ehliyet Geçerlilik Tarihi</label>
+                    <Input 
+                      type="date" 
+                      className="h-11"
+                      value={ehliyetDate}
+                      onChange={(e) => setEhliyetDate(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold uppercase text-muted-foreground">İlkyardım Sertifikası Geçerlilik Tarihi</label>
+                    <Input 
+                      type="date" 
+                      className="h-11"
+                      value={ilkyardimDate}
+                      onChange={(e) => setIlkyardimDate(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter className="p-6 pt-0 mt-2 gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsEditModalOpen(false)} disabled={isSavingEdit}>
+              İptal
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={isSavingEdit} className="min-w-[140px]">
+              {isSavingEdit ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Kaydediliyor...
+                </span>
+              ) : (
+                "Değişiklikleri Kaydet"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
