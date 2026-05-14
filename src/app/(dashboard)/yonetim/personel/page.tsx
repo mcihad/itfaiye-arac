@@ -544,8 +544,6 @@ export default function PersonelYonetimPage() {
         </p>
       </div>
 
-      </div>
-
       {/* Edit Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
         <DialogContent className="sm:max-w-[425px]">
