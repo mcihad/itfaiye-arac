@@ -9,6 +9,8 @@ import { Check, X, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react"
 
 import { api } from "@/lib/api"
 import { useAuthStore } from "@/lib/authStore"
+import { cn } from "@/lib/utils"
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/Alert"
 
 export interface InventoryCheckModalProps {
   isOpen: boolean
@@ -42,6 +44,34 @@ export function InventoryCheckModal({ isOpen, vehiclePlaka, compartmentKey, onCl
       }
     }
     fetchInventory()
+  }, [isOpen, vehiclePlaka, compartmentKey])
+
+  const [lastCheckGroup, setLastCheckGroup] = useState<any[]>([])
+  const [loadingLast, setLoadingLast] = useState(true)
+
+  useEffect(() => {
+    if (isOpen && vehiclePlaka && compartmentKey) {
+      setLoadingLast(true)
+      api.from("inventory_checks")
+        .select("*")
+        .eq("plaka", vehiclePlaka)
+        .eq("compartment_key", compartmentKey)
+        .order("created_at", { ascending: false })
+        .limit(100)
+        .then(({ data }) => {
+          if (data && data.length > 0) {
+            // Check session by looking at the exact created_at of the first item
+            const latestTimestamp = data[0].created_at
+            // Alternatively, allow a 5-second window for items inserted individually
+            const latestDate = new Date(latestTimestamp).getTime()
+            const sessionData = data.filter((d: any) => Math.abs(new Date(d.created_at).getTime() - latestDate) < 5000)
+            setLastCheckGroup(sessionData)
+          } else {
+            setLastCheckGroup([])
+          }
+          setLoadingLast(false)
+        })
+    }
   }, [isOpen, vehiclePlaka, compartmentKey])
 
   const handleStatusChange = (index: number, status: string) => {
@@ -124,6 +154,39 @@ export function InventoryCheckModal({ isOpen, vehiclePlaka, compartmentKey, onCl
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          
+          {/* Devir Teslim / Last Check Card */}
+          {!loadingLast && lastCheckGroup.length > 0 && (
+            <Alert className={cn(
+              "border-2",
+              lastCheckGroup.some(item => item.yeni_durum === 'Eksik' || item.yeni_durum === 'Arızalı')
+              ? "bg-danger/5 border-danger/20 text-danger" 
+              : "bg-success/5 border-success/20 text-success-foreground"
+            )}>
+              <AlertTitle className="flex items-center gap-2 font-bold text-sm">
+                Devir Teslim / Son Durum
+              </AlertTitle>
+              <AlertDescription className="mt-2 text-xs space-y-2">
+                <p className="text-muted-foreground">
+                  Son Kontrol: <strong>{new Date(lastCheckGroup[0].created_at).toLocaleString("tr-TR")}</strong> - {lastCheckGroup[0].kontrol_eden}
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {lastCheckGroup.filter(item => item.yeni_durum === 'Eksik' || item.yeni_durum === 'Arızalı').map((issue, idx) => (
+                    <span key={idx} className="px-2 py-0.5 rounded-md bg-danger text-white font-semibold flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" />
+                      {issue.malzeme}: {issue.yeni_durum}
+                    </span>
+                  ))}
+                  
+                  {!lastCheckGroup.some(item => item.yeni_durum === 'Eksik' || item.yeni_durum === 'Arızalı') && (
+                    <span className="text-success font-semibold flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Tüm malzemeler eksiksiz.
+                    </span>
+                  )}
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm text-muted-foreground font-medium">{items.length} Malzeme Listelendi</span>
             <Button variant="outline" size="sm" onClick={markAllComplete} className="h-8 text-xs bg-success/10 text-success border-success/30 hover:bg-success/20">

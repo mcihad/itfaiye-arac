@@ -1,11 +1,12 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/Dialog"
 import { Button } from "@/components/ui/Button"
 import { Loader2, CheckCircle2, Fuel, Droplets, FlaskConical, Cog, CircleDot, Lightbulb, Sparkles } from "lucide-react"
 import { api } from "@/lib/api"
 import { useAuthStore } from "@/lib/authStore"
 import { cn } from "@/lib/utils"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/Alert"
 
 interface DailyVehicleCheckModalProps {
   isOpen: boolean
@@ -60,6 +61,27 @@ export function DailyVehicleCheckModal({ isOpen, vehiclePlaka, vehicleType, onCl
   const { user } = useAuthStore()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
+  const [lastCheck, setLastCheck] = useState<any>(null)
+  const [loadingLast, setLoadingLast] = useState(true)
+
+  useEffect(() => {
+    if (isOpen && vehiclePlaka) {
+      setLoadingLast(true)
+      api.from("daily_vehicle_checks")
+        .select("*")
+        .eq("plaka", vehiclePlaka)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .then(({ data, error }) => {
+          if (!error && data && data.length > 0) {
+            setLastCheck(data[0])
+          } else {
+            setLastCheck(null)
+          }
+          setLoadingLast(false)
+        })
+    }
+  }, [isOpen, vehiclePlaka])
 
   const [form, setForm] = useState<Record<string, string>>({
     yakit_durumu: "",
@@ -119,6 +141,37 @@ export function DailyVehicleCheckModal({ isOpen, vehiclePlaka, vehicleType, onCl
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          {/* Devir Teslim / Last Check Card */}
+          {!loadingLast && lastCheck && (
+            <Alert className={cn(
+              "border-2",
+              (lastCheck.yakit_durumu === 'Boş' || lastCheck.yakit_durumu === 'Az' || lastCheck.su_durumu === 'Boş' || lastCheck.su_durumu === 'Az' || lastCheck.kopuk_durumu === 'Boş' || lastCheck.kopuk_durumu === 'Az' || lastCheck.pompa_durumu === 'Arızalı' || lastCheck.lastik_durumu === 'Kötü' || lastCheck.far_durumu === 'Arızalı' || lastCheck.genel_temizlik === 'Kötü') 
+              ? "bg-danger/5 border-danger/20 text-danger" 
+              : "bg-success/5 border-success/20 text-success-foreground"
+            )}>
+              <AlertTitle className="flex items-center gap-2 font-bold text-sm">
+                Devir Teslim / Son Durum
+              </AlertTitle>
+              <AlertDescription className="mt-2 text-xs space-y-2">
+                <p className="text-muted-foreground">
+                  Son Kontrol: <strong>{new Date(lastCheck.created_at).toLocaleString("tr-TR")}</strong> - {lastCheck.kontrol_eden_ad} ({lastCheck.kontrol_eden_sicil})
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {lastCheck.yakit_durumu === 'Boş' || lastCheck.yakit_durumu === 'Az' ? <span className="px-2 py-0.5 rounded-md bg-danger text-white font-semibold">Yakıt: {lastCheck.yakit_durumu}</span> : null}
+                  {lastCheck.su_durumu === 'Boş' || lastCheck.su_durumu === 'Az' ? <span className="px-2 py-0.5 rounded-md bg-danger text-white font-semibold">Su: {lastCheck.su_durumu}</span> : null}
+                  {lastCheck.kopuk_durumu === 'Boş' || lastCheck.kopuk_durumu === 'Az' ? <span className="px-2 py-0.5 rounded-md bg-danger text-white font-semibold">Köpük: {lastCheck.kopuk_durumu}</span> : null}
+                  {lastCheck.pompa_durumu === 'Arızalı' ? <span className="px-2 py-0.5 rounded-md bg-danger text-white font-semibold">Pompa: Arızalı</span> : null}
+                  {lastCheck.lastik_durumu === 'Kötü' ? <span className="px-2 py-0.5 rounded-md bg-danger text-white font-semibold">Lastikler: Kötü</span> : null}
+                  {lastCheck.far_durumu === 'Arızalı' ? <span className="px-2 py-0.5 rounded-md bg-danger text-white font-semibold">Farlar: Arızalı</span> : null}
+                  {lastCheck.genel_temizlik === 'Kötü' ? <span className="px-2 py-0.5 rounded-md bg-warning text-white font-semibold">Temizlik: Kötü</span> : null}
+                  
+                  {!(lastCheck.yakit_durumu === 'Boş' || lastCheck.yakit_durumu === 'Az' || lastCheck.su_durumu === 'Boş' || lastCheck.su_durumu === 'Az' || lastCheck.kopuk_durumu === 'Boş' || lastCheck.kopuk_durumu === 'Az' || lastCheck.pompa_durumu === 'Arızalı' || lastCheck.lastik_durumu === 'Kötü' || lastCheck.far_durumu === 'Arızalı' || lastCheck.genel_temizlik === 'Kötü') && (
+                    <span className="text-success font-semibold flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Tüm kontroller kusursuz.</span>
+                  )}
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
           {error && (
             <div className="p-3 rounded-lg bg-danger/10 border border-danger/20 text-danger text-sm animate-in fade-in">
               {error}

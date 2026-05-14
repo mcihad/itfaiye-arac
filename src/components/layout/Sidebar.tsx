@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { Home, Truck, Users, Wrench, FileText, ScanLine, Wind, ListChecks, BarChart3, GraduationCap, Map, Camera } from 'lucide-react'
+import { Home, Truck, Users, Wrench, FileText, ScanLine, Wind, ListChecks, BarChart3, GraduationCap, Map, Camera, History } from 'lucide-react'
 import { ThemeToggle } from '@/components/theme/ThemeToggle'
 
 export function Sidebar() {
@@ -73,6 +73,10 @@ export function Sidebar() {
           <Link href="/yonetim/personel" className="flex items-center space-x-3 rounded-md px-3 py-2 hover:bg-muted text-muted-foreground hover:text-foreground">
             <Users size={20} />
             <span>Personel Yönetimi</span>
+          </Link>
+          <Link href="/yonetim/raporlar" className="flex items-center space-x-3 rounded-md px-3 py-2 hover:bg-muted text-muted-foreground hover:text-foreground">
+            <History size={20} />
+            <span>Raporlar & Loglar</span>
           </Link>
           <Link href="/yonetim/sablonlar" className="flex items-center space-x-3 rounded-md px-3 py-2 hover:bg-muted text-muted-foreground hover:text-foreground">
             <ListChecks size={20} />

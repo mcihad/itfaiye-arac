@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Truck, ScanLine, Menu, X, Users, ListChecks, Wrench, Wind, FileText, Camera } from 'lucide-react'
+import { Home, Truck, ScanLine, Menu, X, Users, ListChecks, Wrench, Wind, FileText, Camera, History } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
 
@@ -50,8 +50,11 @@ export function MobileNav() {
             <Link href="/bakim" onClick={() => setMenuOpen(false)} className={cn("flex items-center gap-3 p-3 rounded-xl transition-colors min-h-[52px]", isActive('/bakim') ? "bg-primary/10 text-primary" : "hover:bg-muted")}>
               <Wrench className="w-5 h-5" /> <span className="font-medium">Bakım & Yakıt</span>
             </Link>
-            <Link href="/yonetim/personel" onClick={() => setMenuOpen(false)} className={cn("flex items-center gap-3 p-3 rounded-xl transition-colors min-h-[52px]", isActive('/yonetim') ? "bg-primary/10 text-primary" : "hover:bg-muted")}>
+            <Link href="/yonetim/personel" onClick={() => setMenuOpen(false)} className={cn("flex items-center gap-3 p-3 rounded-xl transition-colors min-h-[52px]", isActive('/yonetim/personel') ? "bg-primary/10 text-primary" : "hover:bg-muted")}>
               <Users className="w-5 h-5" /> <span className="font-medium">Personel Yönetimi</span>
+            </Link>
+            <Link href="/yonetim/raporlar" onClick={() => setMenuOpen(false)} className={cn("flex items-center gap-3 p-3 rounded-xl transition-colors min-h-[52px]", isActive('/yonetim/raporlar') ? "bg-primary/10 text-primary" : "hover:bg-muted")}>
+              <History className="w-5 h-5" /> <span className="font-medium">Raporlar & Loglar</span>
             </Link>
             <Link href="/yonetim/sablonlar" onClick={() => setMenuOpen(false)} className={cn("flex items-center gap-3 p-3 rounded-xl transition-colors min-h-[52px]", isActive('/yonetim/sablonlar') ? "bg-primary/10 text-primary" : "hover:bg-muted")}>
               <ListChecks className="w-5 h-5" /> <span className="font-medium">Görev Şablonları</span>
