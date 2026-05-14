@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Truck, ScanLine, Menu, X, Users, ListChecks, Wrench, Wind, FileText } from 'lucide-react'
+import { Home, Truck, ScanLine, Menu, X, Users, ListChecks, Wrench, Wind, FileText, Camera } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
 
@@ -55,6 +55,9 @@ export function MobileNav() {
             </Link>
             <Link href="/yonetim/sablonlar" onClick={() => setMenuOpen(false)} className={cn("flex items-center gap-3 p-3 rounded-xl transition-colors min-h-[52px]", isActive('/yonetim/sablonlar') ? "bg-primary/10 text-primary" : "hover:bg-muted")}>
               <ListChecks className="w-5 h-5" /> <span className="font-medium">Görev Şablonları</span>
+            </Link>
+            <Link href="/yonetim/tarayici" onClick={() => setMenuOpen(false)} className={cn("flex items-center gap-3 p-3 rounded-xl transition-colors min-h-[52px] border border-orange-500/20", isActive('/yonetim/tarayici') ? "bg-orange-500/10 text-orange-500" : "hover:bg-orange-500/5 text-orange-500")}>
+              <Camera className="w-5 h-5" /> <span className="font-medium">📷 QR Araç Tara</span>
             </Link>
           </div>
         </div>

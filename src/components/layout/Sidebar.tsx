@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { Home, Truck, Users, Wrench, FileText, ScanLine, Wind, ListChecks, BarChart3, GraduationCap, Map } from 'lucide-react'
+import { Home, Truck, Users, Wrench, FileText, ScanLine, Wind, ListChecks, BarChart3, GraduationCap, Map, Camera } from 'lucide-react'
 import { ThemeToggle } from '@/components/theme/ThemeToggle'
 
 export function Sidebar() {
@@ -22,6 +22,10 @@ export function Sidebar() {
         <Link href="/barkod" className="flex items-center space-x-3 rounded-md px-3 py-2 bg-primary/10 text-primary font-bold shadow-sm">
           <ScanLine size={20} />
           <span>Barkod Oku</span>
+        </Link>
+        <Link href="/yonetim/tarayici" className="flex items-center space-x-3 rounded-md px-3 py-2 bg-orange-500/10 text-orange-500 font-bold shadow-sm">
+          <Camera size={20} />
+          <span>📷 QR Araç Tara</span>
         </Link>
         <Link href="/envanter-yonetimi" className="flex items-center space-x-3 rounded-md px-3 py-2 hover:bg-muted text-muted-foreground hover:text-foreground">
           <ScanLine size={20} className="opacity-0" /> {/* Just for spacing if needed, but let's use a proper icon like PackageSearch or keep it aligned */}
