@@ -420,9 +420,9 @@ export default function PersonelYonetimPage() {
               return (
                 <div key={person.sicil_no} className="p-3 sm:p-4 hover:bg-muted/30 transition-colors flex flex-col xl:flex-row xl:items-center justify-between gap-4">
                   
-                  {/* Info Section - Clickable for Edit Modal */}
-                  <div 
-                    onClick={() => openEditModal(person)} 
+                  {/* Info Section - Clickable Link to Profile */}
+                  <Link 
+                    href={`/yonetim/personel/${person.sicil_no}`} 
                     className="flex items-center gap-3 w-full xl:w-2/5 shrink-0 group cursor-pointer"
                   >
                     <div className={cn(
@@ -473,10 +473,17 @@ export default function PersonelYonetimPage() {
                         </span>
                       </div>
                     </div>
-                  </div>
+                  </Link>
 
-                  {/* Toggle Permissions */}
+                  {/* Toggle Permissions & Edit Button */}
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5 ml-12 xl:ml-0 overflow-x-auto pb-1 xl:pb-0 hide-scrollbar">
+                    <button 
+                      onClick={() => openEditModal(person)} 
+                      className="flex items-center justify-center gap-2 cursor-pointer bg-primary/10 text-primary p-2 px-3 rounded-xl hover:bg-primary/20 transition-colors min-h-[44px]"
+                    >
+                      <Settings2 className="w-4 h-4" />
+                      <span className="text-sm font-medium">Düzenle</span>
+                    </button>
                     <button onClick={() => togglePermission(person.sicil_no, 'view_only')} className="flex items-center gap-3 cursor-pointer group whitespace-nowrap p-2 rounded-xl hover:bg-muted/50 transition-colors min-h-[44px]">
                       <div className="relative inline-flex h-7 w-12 shrink-0 items-center rounded-full bg-border transition-colors">
                          {perms.view_only ? (
@@ -576,7 +583,6 @@ export default function PersonelYonetimPage() {
                     <option value="Editor">Amir (Editor)</option>
                     <option value="Shift_Leader">Çavuş (Shift_Leader)</option>
                     <option value="User">İtfaiye Eri (User)</option>
-                    <option value="Er">Er (Er)</option>
                   </select>
                 </div>
 
