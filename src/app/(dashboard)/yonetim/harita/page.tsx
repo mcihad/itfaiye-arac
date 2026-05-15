@@ -128,10 +128,22 @@ export default function HaritaPage() {
   }
 
   // Map Click Handler
-  const handleMapClick = (lat: number, lng: number) => {
+  const handleMapClick = async (lat: number, lng: number) => {
     setClickedCoords({ lat, lng })
     
+    let fetchedAddress = ""
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+      const data = await res.json()
+      if (data && data.display_name) {
+        fetchedAddress = data.display_name
+      }
+    } catch (e) {
+      console.error("Reverse geocoding error:", e)
+    }
+
     if (mode === 'add_incident') {
+      setIncidentForm(prev => ({ ...prev, adres: fetchedAddress || "" }))
       setShowModal('incident')
     } else if (mode === 'add_hydrant') {
       setShowModal('hydrant')

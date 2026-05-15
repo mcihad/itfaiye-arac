@@ -103,7 +103,7 @@ export function RouteAnalysisPanel({ incidentLocation, stationLocation }: RouteA
             </div>
             <div className="flex items-center gap-1">
               <Badge variant="outline" className="text-[10px] border-violet-500/30 text-violet-500">
-                gemini-2.0-flash
+                gemini-2.5-flash
               </Badge>
               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setIsOpen(false)}>
                 <X className="w-4 h-4" />

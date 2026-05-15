@@ -1,15 +1,16 @@
 import { Card, CardContent } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
-import { Truck, Printer } from "lucide-react"
+import { Truck, Printer, Edit2 } from "lucide-react"
 import Link from "next/link"
 import { Vehicle } from "@/types"
 
 interface VehicleCardProps {
   vehicle: Vehicle
   onPrintQR?: (plaka: string, aracTipi: string, marka?: string) => void
+  onEdit?: (vehicle: Vehicle) => void
 }
 
-export function VehicleCard({ vehicle, onPrintQR }: VehicleCardProps) {
+export function VehicleCard({ vehicle, onPrintQR, onEdit }: VehicleCardProps) {
   const idStr = vehicle.plaka.replace(/\s+/g, '-').toLowerCase()
   
   return (
@@ -26,6 +27,19 @@ export function VehicleCard({ vehicle, onPrintQR }: VehicleCardProps) {
             </div>
           </Link>
           <div className="flex items-center gap-2 shrink-0">
+            {onEdit && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  onEdit(vehicle)
+                }}
+                className="p-2 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition-colors cursor-pointer"
+                title="Aracı Düzenle"
+              >
+                <Edit2 className="w-4 h-4" />
+              </button>
+            )}
             {onPrintQR && (
               <button
                 onClick={(e) => {

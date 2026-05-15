@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 
     // ─── 3. Gemini Model Başlatma ───────────────────────────
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     // ─── 4. Taktiksel Prompt Oluşturma ──────────────────────
     const systemPrompt = `Sen Sivas İtfaiyesi Komuta Kontrol Merkezindeki uzman bir taktiksel yapay zekasın.
@@ -71,7 +71,7 @@ Lütfen rotayı ve riskleri analiz et.`;
     // ─── 6. Başarılı Yanıt ──────────────────────────────────
     return NextResponse.json({
       analysis: responseText,
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.5-flash',
       timestamp: new Date().toISOString(),
     });
 

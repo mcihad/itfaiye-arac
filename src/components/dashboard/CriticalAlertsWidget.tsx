@@ -26,9 +26,18 @@ interface InventoryAlert {
   tarih: string
 }
 
+interface VehicleAlert {
+  plaka: string
+  arac_tipi: string
+  alertType: 'Sigorta' | 'Muayene'
+  tarih: string
+  kalan_gun: number
+}
+
 export function CriticalAlertsWidget() {
   const [certAlerts, setCertAlerts] = useState<CertAlert[]>([])
   const [inventoryAlerts, setInventoryAlerts] = useState<InventoryAlert[]>([])
+  const [vehicleAlerts, setVehicleAlerts] = useState<VehicleAlert[]>([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(true)
 
@@ -57,6 +66,35 @@ export function CriticalAlertsWidget() {
           .limit(10)
 
         setInventoryAlerts((issues || []) as InventoryAlert[])
+
+        // 3. Vehicles (Sigorta / Muayene)
+        const { data: vehData } = await api.from("vehicles").select("*")
+        const vAlerts: VehicleAlert[] = []
+        if (vehData) {
+          const now = new Date()
+          vehData.forEach((v: any) => {
+            if (v.sigortaBitis) {
+              const diffTime = new Date(v.sigortaBitis).getTime() - now.getTime()
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+              if (diffDays <= 15) {
+                vAlerts.push({
+                  plaka: v.plaka, arac_tipi: v.arac_tipi, alertType: 'Sigorta', tarih: v.sigortaBitis, kalan_gun: diffDays
+                })
+              }
+            }
+            if (v.muayeneBitis) {
+              const diffTime = new Date(v.muayeneBitis).getTime() - now.getTime()
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+              if (diffDays <= 15) {
+                vAlerts.push({
+                  plaka: v.plaka, arac_tipi: v.arac_tipi, alertType: 'Muayene', tarih: v.muayeneBitis, kalan_gun: diffDays
+                })
+              }
+            }
+          })
+          vAlerts.sort((a, b) => a.kalan_gun - b.kalan_gun)
+          setVehicleAlerts(vAlerts)
+        }
       } catch (err) {
         console.error("[CriticalAlerts] Error:", err)
       } finally {
@@ -66,7 +104,7 @@ export function CriticalAlertsWidget() {
     fetchAlerts()
   }, [])
 
-  const totalAlerts = certAlerts.length + inventoryAlerts.length
+  const totalAlerts = certAlerts.length + inventoryAlerts.length + vehicleAlerts.length
 
   if (loading) {
     return (
@@ -84,7 +122,7 @@ export function CriticalAlertsWidget() {
   return (
     <Card className={cn(
       "border-2 overflow-hidden transition-all",
-      certAlerts.some(c => c.kalan_gun < 0) 
+      certAlerts.some(c => c.kalan_gun < 0) || vehicleAlerts.some(v => v.kalan_gun < 0)
         ? "border-danger/30 bg-danger/[0.02]" 
         : "border-warning/30 bg-warning/[0.02]"
     )}>
@@ -96,11 +134,11 @@ export function CriticalAlertsWidget() {
         <div className="flex items-center gap-3">
           <div className={cn(
             "p-2 rounded-xl",
-            certAlerts.some(c => c.kalan_gun < 0) ? "bg-danger/10" : "bg-warning/10"
+            (certAlerts.some(c => c.kalan_gun < 0) || vehicleAlerts.some(v => v.kalan_gun < 0)) ? "bg-danger/10" : "bg-warning/10"
           )}>
             <ShieldAlert className={cn(
               "w-5 h-5",
-              certAlerts.some(c => c.kalan_gun < 0) ? "text-danger" : "text-warning"
+              (certAlerts.some(c => c.kalan_gun < 0) || vehicleAlerts.some(v => v.kalan_gun < 0)) ? "text-danger" : "text-warning"
             )} />
           </div>
           <div className="text-left">
@@ -153,6 +191,45 @@ export function CriticalAlertsWidget() {
               </div>
               <Link href="/yonetim/personel" className="text-xs text-primary font-medium hover:underline">
                 Personel Yönetimi →
+              </Link>
+            </div>
+          )}
+
+          {/* Vehicle Alerts */}
+          {vehicleAlerts.length > 0 && (
+            <div className="p-4 space-y-2">
+              <p className="text-xs font-bold uppercase tracking-wider text-danger flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" />
+                Süresi Dolan / Dolmak Üzere Olan Araç Belgeleri
+              </p>
+              <div className="space-y-1.5">
+                {vehicleAlerts.map((v, i) => (
+                  <div key={`${v.plaka}-${v.alertType}-${i}`} className="flex items-center justify-between p-2.5 rounded-lg bg-surface/50 border border-border/50">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold truncate">{v.plaka}</p>
+                      <p className="text-xs text-muted-foreground">{v.arac_tipi} — {v.alertType}</p>
+                    </div>
+                    <Badge 
+                      variant={v.kalan_gun < 0 ? "danger" : "outline"}
+                      className={cn(
+                        "shrink-0 text-xs",
+                        v.kalan_gun < 0 
+                          ? "" 
+                          : v.kalan_gun <= 7 
+                            ? "border-danger/50 text-danger bg-danger/5" 
+                            : "border-warning/50 text-warning bg-warning/5"
+                      )}
+                    >
+                      {v.kalan_gun < 0 
+                        ? `${Math.abs(v.kalan_gun)} gün GEÇMİŞ` 
+                        : `${v.kalan_gun} gün kaldı`
+                      }
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+              <Link href="/araclar" className="text-xs text-primary font-medium hover:underline">
+                Araçlar Yönetimi →
               </Link>
             </div>
           )}

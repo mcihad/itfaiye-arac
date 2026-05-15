@@ -5,10 +5,13 @@ import { usePathname } from 'next/navigation'
 import { Home, Truck, ScanLine, Menu, X, Users, ListChecks, Wrench, Wind, FileText, Camera, History } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
+import { useAuthStore } from '@/lib/authStore'
 
 export function MobileNav() {
   const pathname = usePathname()
   const [menuOpen, setMenuOpen] = useState(false)
+  const { user } = useAuthStore()
+  const isEr = user?.rol === 'User'
 
   const isActive = (path: string) => {
     if (path === '/' && pathname !== '/') return false
@@ -41,24 +44,34 @@ export function MobileNav() {
               <h3 className="font-bold text-sm">Tüm Modüller</h3>
               <button onClick={() => setMenuOpen(false)} className="p-2 rounded-lg hover:bg-muted"><X className="w-5 h-5" /></button>
             </div>
-            <Link href="/scba" onClick={() => setMenuOpen(false)} className={cn("flex items-center gap-3 p-3 rounded-xl transition-colors min-h-[52px]", isActive('/scba') ? "bg-primary/10 text-primary" : "hover:bg-muted")}>
-              <Wind className="w-5 h-5" /> <span className="font-medium">SCBA Tüp Takibi</span>
-            </Link>
+            
+            {!isEr && (
+              <Link href="/scba" onClick={() => setMenuOpen(false)} className={cn("flex items-center gap-3 p-3 rounded-xl transition-colors min-h-[52px]", isActive('/scba') ? "bg-primary/10 text-primary" : "hover:bg-muted")}>
+                <Wind className="w-5 h-5" /> <span className="font-medium">SCBA Tüp Takibi</span>
+              </Link>
+            )}
+            
             <Link href="/gorevler" onClick={() => setMenuOpen(false)} className={cn("flex items-center gap-3 p-3 rounded-xl transition-colors min-h-[52px]", isActive('/gorevler') ? "bg-primary/10 text-primary" : "hover:bg-muted")}>
               <FileText className="w-5 h-5" /> <span className="font-medium">Görevler & Teslim</span>
             </Link>
-            <Link href="/bakim" onClick={() => setMenuOpen(false)} className={cn("flex items-center gap-3 p-3 rounded-xl transition-colors min-h-[52px]", isActive('/bakim') ? "bg-primary/10 text-primary" : "hover:bg-muted")}>
-              <Wrench className="w-5 h-5" /> <span className="font-medium">Bakım & Yakıt</span>
-            </Link>
-            <Link href="/yonetim/personel" onClick={() => setMenuOpen(false)} className={cn("flex items-center gap-3 p-3 rounded-xl transition-colors min-h-[52px]", isActive('/yonetim/personel') ? "bg-primary/10 text-primary" : "hover:bg-muted")}>
-              <Users className="w-5 h-5" /> <span className="font-medium">Personel Yönetimi</span>
-            </Link>
-            <Link href="/yonetim/raporlar" onClick={() => setMenuOpen(false)} className={cn("flex items-center gap-3 p-3 rounded-xl transition-colors min-h-[52px]", isActive('/yonetim/raporlar') ? "bg-primary/10 text-primary" : "hover:bg-muted")}>
-              <History className="w-5 h-5" /> <span className="font-medium">Raporlar & Loglar</span>
-            </Link>
-            <Link href="/yonetim/sablonlar" onClick={() => setMenuOpen(false)} className={cn("flex items-center gap-3 p-3 rounded-xl transition-colors min-h-[52px]", isActive('/yonetim/sablonlar') ? "bg-primary/10 text-primary" : "hover:bg-muted")}>
-              <ListChecks className="w-5 h-5" /> <span className="font-medium">Görev Şablonları</span>
-            </Link>
+
+            {!isEr && (
+              <>
+                <Link href="/bakim" onClick={() => setMenuOpen(false)} className={cn("flex items-center gap-3 p-3 rounded-xl transition-colors min-h-[52px]", isActive('/bakim') ? "bg-primary/10 text-primary" : "hover:bg-muted")}>
+                  <Wrench className="w-5 h-5" /> <span className="font-medium">Bakım & Yakıt</span>
+                </Link>
+                <Link href="/yonetim/personel" onClick={() => setMenuOpen(false)} className={cn("flex items-center gap-3 p-3 rounded-xl transition-colors min-h-[52px]", isActive('/yonetim/personel') ? "bg-primary/10 text-primary" : "hover:bg-muted")}>
+                  <Users className="w-5 h-5" /> <span className="font-medium">Personel Yönetimi</span>
+                </Link>
+                <Link href="/yonetim/raporlar" onClick={() => setMenuOpen(false)} className={cn("flex items-center gap-3 p-3 rounded-xl transition-colors min-h-[52px]", isActive('/yonetim/raporlar') ? "bg-primary/10 text-primary" : "hover:bg-muted")}>
+                  <History className="w-5 h-5" /> <span className="font-medium">Raporlar & Loglar</span>
+                </Link>
+                <Link href="/yonetim/sablonlar" onClick={() => setMenuOpen(false)} className={cn("flex items-center gap-3 p-3 rounded-xl transition-colors min-h-[52px]", isActive('/yonetim/sablonlar') ? "bg-primary/10 text-primary" : "hover:bg-muted")}>
+                  <ListChecks className="w-5 h-5" /> <span className="font-medium">Görev Şablonları</span>
+                </Link>
+              </>
+            )}
+
             <Link href="/yonetim/tarayici" onClick={() => setMenuOpen(false)} className={cn("flex items-center gap-3 p-3 rounded-xl transition-colors min-h-[52px] border border-orange-500/20", isActive('/yonetim/tarayici') ? "bg-orange-500/10 text-orange-500" : "hover:bg-orange-500/5 text-orange-500")}>
               <Camera className="w-5 h-5" /> <span className="font-medium">📷 QR Araç Tara</span>
             </Link>
@@ -70,7 +83,7 @@ export function MobileNav() {
       <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t border-border bg-surface/95 backdrop-blur-md flex items-center justify-around z-50 shadow-[0_-4px_12px_rgba(0,0,0,0.12)]"
            style={{ height: 'calc(72px + env(safe-area-inset-bottom, 0px))', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         {navLink("/", <Home size={22} />, "Ana Sayfa")}
-        {navLink("/araclar", <Truck size={22} />, "Araçlar")}
+        {!isEr && navLink("/araclar", <Truck size={22} />, "Araçlar")}
         
         {/* ★ Barkod Tarayıcı — Ortada Belirgin Yüzen Buton */}
         <Link
@@ -92,7 +105,7 @@ export function MobileNav() {
           )}>Barkod</span>
         </Link>
 
-        {navLink("/envanter-yonetimi", <Truck size={22} />, "Envanter")}
+        {!isEr && navLink("/envanter-yonetimi", <Truck size={22} />, "Envanter")}
         
         <button 
           onClick={() => setMenuOpen(!menuOpen)}

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { ShieldAlert, Loader2 } from "lucide-react"
 
 const ALLOWED_ROLES = ["Admin", "Editor", "Shift_Leader"]
@@ -10,6 +10,7 @@ type AuthStatus = 'loading' | 'authenticated' | 'unauthorized' | 'unauthenticate
 
 export default function YonetimLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
+  const pathname = usePathname()
   const [authStatus, setAuthStatus] = useState<AuthStatus>('loading')
 
   useEffect(() => {
@@ -29,7 +30,14 @@ export default function YonetimLayout({ children }: { children: React.ReactNode 
         const parsed = JSON.parse(authData)
         const state = parsed?.state
         if (state?.isAuthenticated && state?.user) {
-          if (!ALLOWED_ROLES.includes(state.user.rol)) {
+          const role = state.user.rol;
+          const isAllowedPath = pathname === '/yonetim/tarayici';
+          
+          if (!ALLOWED_ROLES.includes(role)) {
+            if (role === 'User' && isAllowedPath) {
+              setAuthStatus('authenticated')
+              return
+            }
             setAuthStatus('unauthorized')
             router.replace("/?unauthorized=1")
             return
@@ -43,7 +51,7 @@ export default function YonetimLayout({ children }: { children: React.ReactNode 
     // Token exists but can't verify role from store — allow access
     // (Zustand will hydrate eventually and the component will re-check)
     setAuthStatus('authenticated')
-  }, [router])
+  }, [router, pathname])
 
   if (authStatus === 'loading') {
     return (

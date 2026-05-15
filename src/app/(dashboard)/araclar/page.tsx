@@ -3,10 +3,13 @@ import { useEffect, useState } from "react"
 import { api } from "@/lib/api"
 import { VehicleCard } from "@/components/vehicle/VehicleCard"
 import { QRLabelModal } from "@/components/vehicle/QRLabelModal"
+import { VehicleEditModal } from "@/components/vehicle/VehicleEditModal"
+import { useAuthStore } from "@/lib/authStore"
 
 export default function VehiclesPage() {
   const [vehicles, setVehicles] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const { user } = useAuthStore()
 
   // QR Label Modal state
   const [qrModal, setQrModal] = useState<{ open: boolean; plaka: string; aracTipi: string; marka: string }>({
@@ -16,14 +19,24 @@ export default function VehiclesPage() {
     marka: "",
   })
 
+  // Edit Modal state
+  const [editModal, setEditModal] = useState<{ open: boolean; vehicle: any | null }>({
+    open: false,
+    vehicle: null,
+  })
+
+  const fetchVehicles = async () => {
+    setLoading(true)
+    const { data } = await api.from('vehicles').select('*')
+    setVehicles(data || [])
+    setLoading(false)
+  }
+
   useEffect(() => {
-    async function fetchVehicles() {
-      const { data } = await api.from('vehicles').select('*')
-      setVehicles(data || [])
-      setLoading(false)
-    }
     fetchVehicles()
   }, [])
+
+  const canEdit = user?.rol !== 'User'
 
   return (
     <div className="space-y-6">
@@ -41,6 +54,7 @@ export default function VehiclesPage() {
               key={v.plaka}
               vehicle={v}
               onPrintQR={(plaka, aracTipi, marka) => setQrModal({ open: true, plaka, aracTipi, marka: marka || "" })}
+              onEdit={canEdit ? (vehicle) => setEditModal({ open: true, vehicle }) : undefined}
             />
           ))}
         </div>
@@ -54,6 +68,18 @@ export default function VehiclesPage() {
         aracTipi={qrModal.aracTipi}
         marka={qrModal.marka}
       />
+
+      {/* Edit Modal */}
+      <VehicleEditModal
+        isOpen={editModal.open}
+        vehicle={editModal.vehicle}
+        onClose={() => setEditModal({ open: false, vehicle: null })}
+        onSuccess={() => {
+          setEditModal({ open: false, vehicle: null })
+          fetchVehicles()
+        }}
+      />
     </div>
   )
 }
+
