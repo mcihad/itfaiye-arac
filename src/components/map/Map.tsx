@@ -8,6 +8,16 @@ import * as turf from '@turf/turf'
 // ─── Sivas Merkez İtfaiye İstasyonu (Yenişehir) ────────────
 const STATION_COORDS: [number, number] = [37.0209312, 39.7339522] // [lng, lat]
 
+// ─── Neon Renk Paleti (Karanlık Tema) ───────────────────────
+const NEON = {
+  route: '#ff6b2b',        // parlak turuncu rota
+  routeGlow: 'rgba(255,107,43,0.35)',
+  buffer: '#00e5ff',       // neon cyan buffer
+  bufferFill: 'rgba(0,229,255,0.12)',
+  hydrantActive: '#39ff14', // neon yeşil (buffer içi)
+  hydrantGlow: 'rgba(57,255,20,0.8)',
+}
+
 interface Incident {
   id: string
   olay_turu: string
@@ -76,7 +86,7 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
 
   // ─── Helper: draw buffer + highlight hydrants + route ─────
   const drawAnalysisLayers = useCallback((map: maplibregl.Map, targetLngLat: [number, number]) => {
-    // 1. Draw 300m Buffer
+    // 1. Draw 300m Buffer (neon cyan)
     const buffer = turf.circle(targetLngLat, 0.3, { steps: 64, units: 'kilometers' })
     if (map.getSource('buffer-source')) {
       (map.getSource('buffer-source') as maplibregl.GeoJSONSource).setData(buffer)
@@ -87,8 +97,8 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
         type: 'fill',
         source: 'buffer-source',
         paint: {
-          'fill-color': '#3b82f6',
-          'fill-opacity': 0.15
+          'fill-color': NEON.buffer,
+          'fill-opacity': 0.12
         }
       })
       map.addLayer({
@@ -96,8 +106,8 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
         type: 'line',
         source: 'buffer-source',
         paint: {
-          'line-color': '#3b82f6',
-          'line-width': 2,
+          'line-color': NEON.buffer,
+          'line-width': 2.5,
           'line-dasharray': [2, 2]
         }
       })
@@ -107,10 +117,10 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
     hydrantElementsRef.current.forEach(({ el, coords }) => {
       const pt = turf.point(coords)
       if (turf.booleanPointInPolygon(pt, buffer)) {
-        el.style.background = '#22c55e'
-        el.style.boxShadow = '0 0 15px 5px rgba(34,197,94,0.8)'
-        el.style.transform = 'scale(1.2)'
-        el.style.transition = 'all 0.3s'
+        el.style.background = NEON.hydrantActive
+        el.style.boxShadow = `0 0 18px 6px ${NEON.hydrantGlow}`
+        el.style.transform = 'scale(1.25)'
+        el.style.transition = 'all 0.3s ease'
       } else {
         el.style.background = '#3b82f6'
         el.style.boxShadow = '0 4px 12px rgba(59,130,246,0.5)'
@@ -118,8 +128,7 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
       }
     })
 
-    // 3. Animated OSRM Route from Station
-    // Cancel any previous animation
+    // 3. Animated OSRM Route from Station (neon orange)
     if (routeAnimFrameRef.current) {
       cancelAnimationFrame(routeAnimFrameRef.current)
       routeAnimFrameRef.current = null
@@ -136,15 +145,28 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
           } else {
             map.addSource('route-source', { type: 'geojson', data: routeGeojson })
 
-            // Background line
+            // Glow background line
+            map.addLayer({
+              id: 'route-line-glow',
+              type: 'line',
+              source: 'route-source',
+              paint: {
+                'line-color': NEON.route,
+                'line-width': 12,
+                'line-opacity': 0.2,
+                'line-blur': 8
+              }
+            })
+
+            // Solid background line
             map.addLayer({
               id: 'route-line-bg',
               type: 'line',
               source: 'route-source',
               paint: {
-                'line-color': '#ef4444',
+                'line-color': NEON.route,
                 'line-width': 5,
-                'line-opacity': 0.3
+                'line-opacity': 0.4
               }
             })
 
@@ -154,8 +176,8 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
               type: 'line',
               source: 'route-source',
               paint: {
-                'line-color': '#ef4444',
-                'line-width': 5,
+                'line-color': '#ffffff',
+                'line-width': 3,
                 'line-dasharray': [0, 4, 3]
               }
             })
@@ -195,38 +217,17 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
       .catch(err => console.error("OSRM Route Error:", err))
   }, [])
 
-  // ─── Initialize MapLibre GL (3D Tactical View) ────────────
+  // ─── Initialize MapLibre GL (3D Dark Tactical View) ───────
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return
 
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
-      style: {
-        version: 8 as const,
-        name: 'Sivas İtfaiye CBS',
-        glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
-        sources: {
-          'osm-raster': {
-            type: 'raster',
-            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-            tileSize: 256,
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          }
-        },
-        layers: [
-          {
-            id: 'osm-base',
-            type: 'raster',
-            source: 'osm-raster',
-            minzoom: 0,
-            maxzoom: 19
-          }
-        ]
-      },
+      style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
       center: STATION_COORDS,
       zoom: 14,
-      pitch: 60,       // 3D eğim
-      bearing: -15,     // hafif rotasyon
+      pitch: 60,
+      bearing: -15,
       maxZoom: 19,
       maxPitch: 85,
       attributionControl: {}
@@ -243,38 +244,36 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
       'top-right'
     )
 
-    // ─── 3D Bina Katmanı (OpenFreeMap vector tiles) ─────────
+    // ─── 3D Bina Katmanı (CartoDB vektör kaynağından) ───────
     map.on('load', () => {
-      // Add OpenFreeMap vector source for buildings
-      if (!map.getSource('openmaptiles')) {
-        map.addSource('openmaptiles', {
-          type: 'vector',
-          url: 'https://tiles.openfreemap.org/planet'
+      // CartoDB dark-matter uses 'carto' source with OpenMapTiles schema
+      const sourceId = Object.keys(map.getStyle().sources).find(
+        s => map.getSource(s)?.type === 'vector'
+      )
+
+      if (sourceId) {
+        map.addLayer({
+          id: '3d-buildings',
+          source: sourceId,
+          'source-layer': 'building',
+          type: 'fill-extrusion',
+          minzoom: 13,
+          paint: {
+            'fill-extrusion-color': '#1e293b',
+            'fill-extrusion-height': [
+              'interpolate', ['linear'], ['zoom'],
+              13, 0,
+              15.05, ['coalesce', ['get', 'render_height'], 12]
+            ],
+            'fill-extrusion-base': [
+              'interpolate', ['linear'], ['zoom'],
+              13, 0,
+              15.05, ['coalesce', ['get', 'render_min_height'], 0]
+            ],
+            'fill-extrusion-opacity': 0.7
+          }
         })
       }
-
-      // 3D Buildings extrusion layer
-      map.addLayer({
-        id: '3d-buildings',
-        source: 'openmaptiles',
-        'source-layer': 'building',
-        type: 'fill-extrusion',
-        minzoom: 13,
-        paint: {
-          'fill-extrusion-color': '#94a3b8',
-          'fill-extrusion-height': [
-            'interpolate', ['linear'], ['zoom'],
-            13, 0,
-            15.05, ['coalesce', ['get', 'render_height'], 12]
-          ],
-          'fill-extrusion-base': [
-            'interpolate', ['linear'], ['zoom'],
-            13, 0,
-            15.05, ['coalesce', ['get', 'render_min_height'], 0]
-          ],
-          'fill-extrusion-opacity': 0.55
-        }
-      })
     })
 
     // ─── Error handler for tile/source loading problems ─────
@@ -287,7 +286,6 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
     })
 
     // Map click handler — uses modeRef so it always reads latest mode
-    // When mode is active, this places the marker + triggers analysis
     map.on('click', (e) => {
       if (modeRef.current !== 'idle') {
         const clickedLngLat: [number, number] = [e.lngLat.lng, e.lngLat.lat]
@@ -321,7 +319,7 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
     markersRef.current.forEach(m => m.remove())
     markersRef.current = []
 
-    // Incident markers (red)
+    // Incident markers (red pulse — all incidents from DB)
     incidents.forEach(inc => {
       const coords = parseLocation(inc.location)
       if (!coords) return
@@ -436,8 +434,8 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
 
   }, [incidents, hydrants])
 
-  // ─── FlyTo on search result (NO auto-analysis) ────────────
-  // Search bar only pans the camera; user must click to place marker
+  // ─── Sinematik Drone FlyTo on search ──────────────────────
+  // Search bar only pans the camera cinematically; user must click to target
   useEffect(() => {
     if (!mapRef.current || !focusLocation) return
     const map = mapRef.current
@@ -446,9 +444,12 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
     map.flyTo({
       center,
       zoom: 16,
-      pitch: 60,
-      bearing: -15,
-      duration: 2000
+      pitch: 65,
+      bearing: 30,
+      speed: 0.8,
+      curve: 1.5,
+      duration: 3500,
+      essential: true
     })
   }, [focusLocation])
 
