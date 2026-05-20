@@ -325,7 +325,7 @@ export default function HaritaPage() {
           {/* AI Rota Analizi Paneli */}
           <RouteAnalysisPanel stationLocation="Sivas İtfaiye Müdürlüğü, Merkez" />
 
-          <div className="absolute bottom-6 right-4 z-[400] flex-col gap-2 pointer-events-none hidden sm:flex">
+          <div className="absolute bottom-20 right-4 z-[400] flex-col gap-2 pointer-events-none hidden sm:flex">
             <div className="bg-background/90 backdrop-blur-md border shadow-lg rounded-xl p-3 space-y-2 w-48 pointer-events-auto">
               <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground border-b pb-1 mb-2">Canlı Katmanlar</h3>
               

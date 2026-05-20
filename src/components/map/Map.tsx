@@ -22,6 +22,8 @@ interface Incident {
   cikis_saati: string
   location?: any
   aciliyet_seviyesi?: number
+  durum?: string
+  status?: string
 }
 
 interface Hydrant {
@@ -131,6 +133,7 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
   const [showMahalleler, setShowMahalleler] = useState(false)
   const [showSokaklar, setShowSokaklar] = useState(false)
   const [showHidrantlar, setShowHidrantlar] = useState(true)
+  const [showPasifVakalar, setShowPasifVakalar] = useState(false)
   const [binalarOpacity, setBinalarOpacity] = useState(0.3)
   const [mahallelerOpacity, setMahallelerOpacity] = useState(1.0)
 
@@ -300,7 +303,7 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
       attributionControl: {}
     })
 
-    map.addControl(new maplibregl.NavigationControl(), 'bottom-right')
+    map.addControl(new maplibregl.NavigationControl(), 'top-right')
 
     // ─── Canlı GPS Konum Bulucu (Geolocation) ───────────────
     map.addControl(
@@ -476,38 +479,48 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
     incidents.forEach(inc => {
       const coords = parseLocation(inc.location)
       if (!coords) return
+
+      // Biten / Pasif Vakaların Yönetimi (State & Filtre)
+      const isPasif = inc.durum === 'BİTTİ' || inc.durum === 'KONTROL ALTINDA' || inc.durum === 'PASİF' || inc.status === 'closed';
+      if (isPasif && !showPasifVakalar) return;
       
       const triage = getTriageInfo(inc.olay_turu)
       
       const el = document.createElement('div')
       el.style.width = '34px'
       el.style.height = '34px'
+      if (isPasif) {
+        el.style.opacity = '0.4'
+      }
       
       const innerEl = document.createElement('div')
-      innerEl.className = `map-marker-incident ${triage.glowClass}`
+      innerEl.className = `map-marker-incident${isPasif ? '' : ` ${triage.glowClass}`}`
       innerEl.style.cssText = `
         width: 100%; height: 100%;
-        background: ${triage.color};
-        border: 2px solid #fff;
+        background: ${isPasif ? '#ffffff' : triage.color};
+        border: 2px solid ${isPasif ? '#94a3b8' : '#fff'};
         border-radius: 50%;
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
-        color: white;
+        color: ${isPasif ? '#64748b' : 'white'};
       `
       innerEl.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="filter: ${isPasif ? 'none' : 'drop-shadow(0 0 2px rgba(0,0,0,0.5))'};">
           <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c-2.2 0-4-1.8-4-4a8 8 0 0 1 15 2.5A8 8 0 0 1 12 22a8 8 0 0 1-7-1.5"/>
         </svg>
       `
       el.appendChild(innerEl)
 
+      const statusLabel = isPasif ? (inc.durum || 'PASİF / BİTTİ') : triage.label;
+      const statusColor = isPasif ? '#94a3b8' : triage.color;
+
       const popup = new maplibregl.Popup({ offset: 18, maxWidth: '280px' }).setHTML(`
         <div style="font-family:system-ui;padding:4px 0;color:#e2e8f0;">
           <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:6px;margin-bottom:6px;gap:8px">
-            <h3 style="font-weight:700;color:${triage.color};font-size:13.5px;margin:0">${inc.olay_turu}</h3>
-            <span style="font-size:9.5px;font-weight:800;padding:2px 6px;border-radius:9999px;background:${triage.color}20;color:${triage.color};border:1px solid ${triage.color}40">${triage.label}</span>
+            <h3 style="font-weight:700;color:${isPasif ? '#cbd5e1' : triage.color};font-size:13.5px;margin:0">${inc.olay_turu}</h3>
+            <span style="font-size:9.5px;font-weight:800;padding:2px 6px;border-radius:9999px;background:${statusColor}20;color:${statusColor};border:1px solid ${statusColor}40">${statusLabel}</span>
           </div>
           <p style="font-size:12px;margin:3px 0;color:#cbd5e1;"><strong style="color:#94a3b8;font-weight:500;">Mahalle:</strong> ${inc.mahalle || '-'}</p>
           <p style="font-size:12px;margin:3px 0;color:#cbd5e1;"><strong style="color:#94a3b8;font-weight:500;">Adres:</strong> ${inc.adres || '-'}</p>
@@ -664,7 +677,7 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
       }
     }
 
-  }, [incidents, hydrants, showHidrantlar, mapReady])
+  }, [incidents, hydrants, showHidrantlar, showPasifVakalar, mapReady])
 
   // ─── Sync visibility of binalar & numarataj layers ───
   useEffect(() => {
@@ -792,6 +805,75 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
         ref={mapContainerRef}
         style={{ width: '100%', height: '100%' }}
       />
+
+      {/* Taktiksel Harita Lejantı Panel */}
+      <div className="absolute bottom-4 left-4 z-10 bg-slate-950/85 backdrop-blur-md border border-white/10 rounded-xl p-4 w-60 shadow-2xl transition-all duration-300 text-xs text-slate-200">
+        <div className="font-semibold text-slate-100 mb-3 flex items-center gap-2 border-b border-white/10 pb-2">
+          <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+          <span>Taktiksel Harita Lejantı</span>
+        </div>
+        <div className="space-y-2.5">
+          {/* Kritik */}
+          <div className="flex items-center gap-3">
+            <div className="w-5 h-5 rounded-full bg-[#ef4444] border border-white flex items-center justify-center text-white relative shadow-[0_0_8px_rgba(239,68,68,0.8)]">
+              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1.5">
+                <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c-2.2 0-4-1.8-4-4a8 8 0 0 1 15 2.5A8 8 0 0 1 12 22a8 8 0 0 1-7-1.5"/>
+              </svg>
+            </div>
+            <span>Kritik Müdahale (Ev/Bina)</span>
+          </div>
+
+          {/* Orta */}
+          <div className="flex items-center gap-3">
+            <div className="w-5 h-5 rounded-full bg-[#eab308] border border-white flex items-center justify-center text-white relative shadow-[0_0_6px_rgba(234,179,8,0.8)]">
+              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1.5">
+                <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c-2.2 0-4-1.8-4-4a8 8 0 0 1 15 2.5A8 8 0 0 1 12 22a8 8 0 0 1-7-1.5"/>
+              </svg>
+            </div>
+            <span>Orta Seviye (Araç/Kurtarma)</span>
+          </div>
+
+          {/* Düşük */}
+          <div className="flex items-center gap-3">
+            <div className="w-5 h-5 rounded-full bg-[#22c55e] border border-white flex items-center justify-center text-white relative shadow-[0_0_6px_rgba(34,197,94,0.8)]">
+              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1.5">
+                <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c-2.2 0-4-1.8-4-4a8 8 0 0 1 15 2.5A8 8 0 0 1 12 22a8 8 0 0 1-7-1.5"/>
+              </svg>
+            </div>
+            <span>Düşük Seviye (Çöp/Ot)</span>
+          </div>
+
+          {/* Çalışır Hidrant */}
+          <div className="flex items-center gap-3">
+            <div className="w-5 h-5 flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_4px_rgba(34,197,94,0.8)]">
+                <path d="M50 5 C50 5 82 45 82 68 A32 32 0 1 1 18 68 C18 45 50 5 50 5 Z" fill="#22c55e" stroke="#ffffff" strokeWidth="6"/>
+              </svg>
+            </div>
+            <span>Çalışır Hidrant (MEVCUT)</span>
+          </div>
+
+          {/* Arızalı Hidrant */}
+          <div className="flex items-center gap-3">
+            <div className="w-5 h-5 flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_4px_rgba(239,68,68,0.8)]">
+                <path d="M50 5 C50 5 82 45 82 68 A32 32 0 1 1 18 68 C18 45 50 5 50 5 Z" fill="#ef4444" stroke="#ffffff" strokeWidth="6"/>
+              </svg>
+            </div>
+            <span>Arızalı Hidrant (DEVRE_DIŞI)</span>
+          </div>
+
+          {/* Pasif Vakalar */}
+          <div className="flex items-center gap-3">
+            <div className="w-5 h-5 rounded-full bg-white border border-slate-400 flex items-center justify-center text-slate-500 relative opacity-40">
+              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1.5">
+                <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c-2.2 0-4-1.8-4-4a8 8 0 0 1 15 2.5A8 8 0 0 1 12 22a8 8 0 0 1-7-1.5"/>
+              </svg>
+            </div>
+            <span className="opacity-60">Biten / Pasif Vakalar (Opak)</span>
+          </div>
+        </div>
+      </div>
       
       {/* Sleek Floating Control Panel for Sivas Kent Rehberi */}
       <div className="absolute top-4 left-4 z-10 bg-slate-950/80 backdrop-blur-md border border-slate-800/80 rounded-xl p-4 w-64 shadow-2xl transition-all duration-300">
@@ -937,6 +1019,27 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
               <span
                 className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
                   showHidrantlar ? 'translate-x-4' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Biten/Pasif Vakalar Toggle */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 select-none">
+              <span className="w-4 h-4 rounded-full bg-slate-400/20 flex items-center justify-center text-[10px] text-slate-300 font-bold border border-slate-500/30">✓</span>
+              <span className="text-xs font-medium text-slate-200">Biten/Pasif Vakalar</span>
+            </div>
+            <button
+              onClick={() => setShowPasifVakalar(!showPasifVakalar)}
+              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                showPasifVakalar ? 'bg-blue-500' : 'bg-slate-700'
+              }`}
+              type="button"
+            >
+              <span
+                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                  showPasifVakalar ? 'translate-x-4' : 'translate-x-0'
                 }`}
               />
             </button>
