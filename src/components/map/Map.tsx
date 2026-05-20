@@ -480,8 +480,13 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
       const triage = getTriageInfo(inc.olay_turu)
       
       const el = document.createElement('div')
-      el.className = `map-marker-incident ${triage.glowClass}`
-      el.style.cssText = `
+      // Outer element is styled to be relative so maplibre-gl marker engine centers it correctly,
+      // and we avoid applying any CSS animations directly on this positioned element.
+      el.style.position = 'relative'
+      
+      const innerEl = document.createElement('div')
+      innerEl.className = `map-marker-incident ${triage.glowClass}`
+      innerEl.style.cssText = `
         width: 34px; height: 34px;
         background: ${triage.color};
         border: 2px solid #fff;
@@ -492,11 +497,12 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
         justify-content: center;
         color: white;
       `
-      el.innerHTML = `
+      innerEl.innerHTML = `
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 3px rgba(255,255,255,0.8));">
           <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c-2.2 0-4-1.8-4-4a8 8 0 0 1 15 2.5A8 8 0 0 1 12 22a8 8 0 0 1-7-1.5"/>
         </svg>
       `
+      el.appendChild(innerEl)
 
       const popup = new maplibregl.Popup({ offset: 18, maxWidth: '280px' }).setHTML(`
         <div style="font-family:system-ui;padding:4px 0">
@@ -529,8 +535,11 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
         const isMevcut = hyd.durum === 'MEVCUT'
         
         const el = document.createElement('div')
-        el.className = `map-marker-hydrant ${isMevcut ? 'map-marker-hydrant-pulse-green' : 'map-marker-hydrant-pulse-red'}`
-        el.style.cssText = `
+        el.style.position = 'relative'
+        
+        const innerEl = document.createElement('div')
+        innerEl.className = `map-marker-hydrant ${isMevcut ? 'map-marker-hydrant-pulse-green' : 'map-marker-hydrant-pulse-red'}`
+        innerEl.style.cssText = `
           width: 32px; height: 32px;
           cursor: pointer;
           display: flex;
@@ -540,7 +549,7 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
         
         const gradientId = `hydrant-grad-${hyd.id}`
         
-        el.innerHTML = `
+        innerEl.innerHTML = `
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" style="width: 100%; height: 100%; filter: ${isMevcut ? 'drop-shadow(0 0 8px #22c55e)' : 'drop-shadow(0 0 10px #ef4444)'};">
             <circle cx="50" cy="50" r="42" fill="url(#${gradientId})" stroke="#ffffff" stroke-width="3"/>
             <path d="M35 42 L35 70 C35 76 65 76 65 70 L65 42 Z" fill="#ffffff" opacity="0.95"/>
@@ -555,6 +564,7 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
             </defs>
           </svg>
         `
+        el.appendChild(innerEl)
 
         const popup = new maplibregl.Popup({ offset: 16, maxWidth: '280px' }).setHTML(`
           <div style="font-family:system-ui;padding:4px;color:#1e293b;line-height:1.5;">
@@ -586,7 +596,7 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
           .addTo(map)
 
         markersRef.current.push(marker)
-        hydrantElementsRef.current.push({ el, coords })
+        hydrantElementsRef.current.push({ el: innerEl, coords })
       })
     }
 
