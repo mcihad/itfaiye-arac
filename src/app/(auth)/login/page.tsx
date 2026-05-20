@@ -200,31 +200,34 @@ function LoginForm() {
                 )}
               </Button>
 
-              {/* Akıllı Şehir Geliştirici Bilgisi */}
-              <div className="flex flex-col items-center justify-center gap-2 pt-4 mt-2 border-t border-slate-800/40">
-                <div className="relative w-40 h-14">
-                  <Image 
-                    src="/logo-akilli-sehir.png" 
-                    alt="Akıllı Şehir Logosu" 
-                    fill 
-                    className="object-contain filter brightness-110 contrast-105"
-                  />
-                </div>
-                <p className="text-[11px] text-slate-400 text-center font-medium leading-relaxed max-w-[280px]">
-                  Bu alan Sivas Belediyesi Akıllı Şehir ve Kent Bilgi Sistemleri Müdürlüğü tarafından geliştirilmiştir.
-                </p>
-              </div>
             </form>
           </div>
 
-          {/* Kurumsal Alt Bilgi */}
-          <div className="text-center space-y-1 pt-4">
-            <p className="text-[11px] text-slate-600 font-bold tracking-wider uppercase">
-              SİVAS BELEDİYESİ İTFAİYE MÜDÜRLÜĞÜ © 2026
-            </p>
-            <p className="text-[9px] text-slate-700 font-medium">
-              Tüm hakları saklıdır. Yetkisiz erişimler loglanmaktadır.
-            </p>
+          {/* Kurumsal Alt Bilgi ve Akıllı Şehir Geliştirici Bilgisi */}
+          <div className="text-center space-y-4 pt-4">
+            {/* Akıllı Şehir Geliştirici Bilgisi */}
+            <div className="flex flex-col items-center justify-center gap-2">
+              <div className="relative w-36 h-12">
+                <Image 
+                  src="/logo-akilli-sehir.png" 
+                  alt="Akıllı Şehir Logosu" 
+                  fill 
+                  className="object-contain filter brightness-95 contrast-105"
+                />
+              </div>
+              <p className="text-[11px] text-slate-500 text-center font-medium leading-relaxed max-w-[300px]">
+                Bu alan Sivas Belediyesi Akıllı Şehir ve Kent Bilgi Sistemleri Müdürlüğü tarafından geliştirilmiştir.
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-[11px] text-slate-600 font-bold tracking-wider uppercase">
+                SİVAS BELEDİYESİ İTFAİYE MÜDÜRLÜĞÜ © 2026
+              </p>
+              <p className="text-[9px] text-slate-700 font-medium">
+                Tüm hakları saklıdır. Yetkisiz erişimler loglanmaktadır.
+              </p>
+            </div>
           </div>
         </div>
 
