@@ -49,7 +49,7 @@ export function IncidentWizard({
 
   // Pre-fill formData
   const [formData, setFormData] = useState({
-    olay_turu: initialData?.olay_turu || "Yangın",
+    olay_turu: initialData?.olay_turu || "Ev Yangını",
     ihbar_saati: initialData?.ihbar_saati ? new Date(initialData.ihbar_saati).toISOString().slice(0, 16) : "",
     cikis_saati: initialData?.cikis_saati ? new Date(initialData.cikis_saati).toISOString().slice(0, 16) : "",
     varis_saati: initialData?.varis_saati ? new Date(initialData.varis_saati).toISOString().slice(0, 16) : "",
@@ -301,14 +301,26 @@ export function IncidentWizard({
                   <div className="space-y-2">
                     <label className="text-sm font-semibold">Olay Türü *</label>
                     <select name="olay_turu" value={formData.olay_turu} onChange={handleInputChange} required className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-                      <option value="Yangın">Yangın</option>
-                      <option value="Trafik Kazası">Trafik Kazası</option>
-                      <option value="Kurtarma">Kurtarma</option>
-                      <option value="Hayvan Kurtarma">Hayvan Kurtarma</option>
-                      <option value="Su Baskını">Su Baskını</option>
-                      <option value="Asılsız İhbar">Asılsız İhbar</option>
-                      <option value="Eğitim/Tatbikat">Eğitim/Tatbikat</option>
-                      <option value="Diğer">Diğer</option>
+                      <optgroup label="🔴 Kritik (Seviye 3)">
+                        <option value="Ev Yangını">Ev Yangını</option>
+                        <option value="Bina/Fabrika Yangını">Bina/Fabrika Yangını</option>
+                        <option value="Sıkışmalı Trafik Kazası">Sıkışmalı Trafik Kazası</option>
+                        <option value="KBRN Sızıntısı">KBRN Sızıntısı</option>
+                      </optgroup>
+                      <optgroup label="🟡 Orta (Seviye 2)">
+                        <option value="Araç Yangını">Araç Yangını</option>
+                        <option value="İşyeri Yangını">İşyeri Yangını</option>
+                        <option value="Kurtarma Operasyonları">Kurtarma Operasyonları</option>
+                      </optgroup>
+                      <optgroup label="🟢 Düşük (Seviye 1)">
+                        <option value="Çöp Yangını">Çöp Yangını</option>
+                        <option value="Ot/Anız Yangını">Ot/Anız Yangını</option>
+                        <option value="Kapı Açma">Kapı Açma</option>
+                        <option value="Hayvan Kurtarma">Hayvan Kurtarma</option>
+                        <option value="Asılsız İhbar">Asılsız İhbar</option>
+                        <option value="Eğitim/Tatbikat">Eğitim/Tatbikat</option>
+                        <option value="Diğer">Diğer</option>
+                      </optgroup>
                     </select>
                   </div>
                 </div>

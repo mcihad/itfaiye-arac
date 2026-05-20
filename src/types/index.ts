@@ -101,4 +101,5 @@ export interface Incident {
   ek16_araclar?: string;
   created_at?: string;
   location?: string | { coordinates: [number, number] };
+  aciliyet_seviyesi?: number;
 }

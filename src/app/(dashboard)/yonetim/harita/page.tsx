@@ -53,7 +53,7 @@ export default function HaritaPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Incident Form
-  const [incidentForm, setIncidentForm] = useState({ olay_turu: "Yangın", mahalle: "", adres: "" })
+  const [incidentForm, setIncidentForm] = useState({ olay_turu: "Ev Yangını", mahalle: "", adres: "" })
   
   // Hydrant Form
   const [hydrantForm, setHydrantForm] = useState({ no: "", tip: "Yer üstü", durum: "Aktif", mahalle: "" })
@@ -181,7 +181,7 @@ export default function HaritaPage() {
       if (error) throw error
 
       setShowModal('none')
-      setIncidentForm({ olay_turu: "Yangın", mahalle: "", adres: "" })
+      setIncidentForm({ olay_turu: "Ev Yangını", mahalle: "", adres: "" })
       fetchData() // Refresh map
     } catch (error) {
       console.error(error)
@@ -367,10 +367,23 @@ export default function HaritaPage() {
               <div className="space-y-2">
                 <label className="text-sm font-semibold">Olay Türü</label>
                 <select name="olay_turu" value={incidentForm.olay_turu} onChange={(e) => setIncidentForm({...incidentForm, olay_turu: e.target.value})} required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-                  <option value="Yangın">Yangın</option>
-                  <option value="Trafik Kazası">Trafik Kazası</option>
-                  <option value="Kurtarma">Kurtarma</option>
-                  <option value="Su Baskını">Su Baskını</option>
+                  <optgroup label="🔴 Kritik (Seviye 3)">
+                    <option value="Ev Yangını">Ev Yangını</option>
+                    <option value="Bina/Fabrika Yangını">Bina/Fabrika Yangını</option>
+                    <option value="Sıkışmalı Trafik Kazası">Sıkışmalı Trafik Kazası</option>
+                    <option value="KBRN Sızıntısı">KBRN Sızıntısı</option>
+                  </optgroup>
+                  <optgroup label="🟡 Orta (Seviye 2)">
+                    <option value="Araç Yangını">Araç Yangını</option>
+                    <option value="İşyeri Yangını">İşyeri Yangını</option>
+                    <option value="Kurtarma Operasyonları">Kurtarma Operasyonları</option>
+                  </optgroup>
+                  <optgroup label="🟢 Düşük (Seviye 1)">
+                    <option value="Çöp Yangını">Çöp Yangını</option>
+                    <option value="Ot/Anız Yangını">Ot/Anız Yangını</option>
+                    <option value="Kapı Açma">Kapı Açma</option>
+                    <option value="Hayvan Kurtarma">Hayvan Kurtarma</option>
+                  </optgroup>
                 </select>
               </div>
               <div className="space-y-2">

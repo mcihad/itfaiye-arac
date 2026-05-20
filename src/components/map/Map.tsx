@@ -5,6 +5,7 @@ import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import * as turf from '@turf/turf'
 import { Layers, Building2, Map as MapIcon, Milestone } from 'lucide-react'
+import { getTriageInfo } from '@/lib/utils'
 
 
 
@@ -20,6 +21,7 @@ interface Incident {
   adres: string
   cikis_saati: string
   location?: any
+  aciliyet_seviyesi?: number
 }
 
 interface Hydrant {
@@ -407,16 +409,18 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
     markersRef.current.forEach(m => m.remove())
     markersRef.current = []
 
-    // Incident markers (red pulse — all incidents from DB)
+    // Incident markers (dynamic triage pulse — all incidents from DB)
     incidents.forEach(inc => {
       const coords = parseLocation(inc.location)
       if (!coords) return
       
+      const triage = getTriageInfo(inc.olay_turu)
+      
       const el = document.createElement('div')
-      el.className = 'map-marker-incident'
+      el.className = `map-marker-incident ${triage.glowClass}`
       el.style.cssText = `
         width: 34px; height: 34px;
-        background: #ef4444;
+        background: ${triage.color};
         border: 2px solid #fff;
         border-radius: 50%;
         cursor: pointer;
@@ -431,10 +435,12 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
         </svg>
       `
 
-
       const popup = new maplibregl.Popup({ offset: 18, maxWidth: '280px' }).setHTML(`
         <div style="font-family:system-ui;padding:4px 0">
-          <h3 style="font-weight:700;color:#ef4444;font-size:13px;border-bottom:1px solid #eee;padding-bottom:4px;margin-bottom:4px">${inc.olay_turu}</h3>
+          <div style="display:flex;align-items:center;justify-content:between;border-bottom:1px solid #eee;padding-bottom:4px;margin-bottom:4px;gap:8px">
+            <h3 style="font-weight:700;color:${triage.color};font-size:13px;margin:0">${inc.olay_turu}</h3>
+            <span style="font-size:9px;font-weight:800;padding:2px 6px;border-radius:9999px;background:${triage.color}20;color:${triage.color};border:1px solid ${triage.color}30">${triage.label}</span>
+          </div>
           <p style="font-size:12px;margin:2px 0"><strong>Mahalle:</strong> ${inc.mahalle || '-'}</p>
           <p style="font-size:12px;margin:2px 0"><strong>Adres:</strong> ${inc.adres || '-'}</p>
           <p style="font-size:11px;color:#888;margin-top:4px">${inc.cikis_saati ? new Date(inc.cikis_saati).toLocaleString('tr-TR') : 'Zaman bilgisi yok'}</p>
@@ -799,25 +805,65 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
         </div>
       </div>
       <style>{`
-        @keyframes pulse-glow {
+        @keyframes pulse-glow-red {
           0% {
             transform: scale(1);
             box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.8);
-            filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.6));
+            filter: drop-shadow(0 0 4px #ef4444);
           }
           70% {
             transform: scale(1.08);
             box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
-            filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.9));
+            filter: drop-shadow(0 0 12px #ef4444);
           }
           100% {
             transform: scale(1);
             box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
-            filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.6));
+            filter: drop-shadow(0 0 4px #ef4444);
           }
         }
-        .map-marker-incident {
-          animation: pulse-glow 2s infinite ease-in-out;
+        @keyframes pulse-glow-yellow {
+          0% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.8);
+            filter: drop-shadow(0 0 3px #eab308);
+          }
+          70% {
+            transform: scale(1.06);
+            box-shadow: 0 0 0 8px rgba(234, 179, 8, 0);
+            filter: drop-shadow(0 0 10px #eab308);
+          }
+          100% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(234, 179, 8, 0);
+            filter: drop-shadow(0 0 3px #eab308);
+          }
+        }
+        @keyframes pulse-glow-green {
+          0% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.8);
+            filter: drop-shadow(0 0 3px #22c55e);
+          }
+          70% {
+            transform: scale(1.04);
+            box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
+            filter: drop-shadow(0 0 8px #22c55e);
+          }
+          100% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+            filter: drop-shadow(0 0 3px #22c55e);
+          }
+        }
+        .triage-critical-glow {
+          animation: pulse-glow-red 1s infinite ease-in-out;
+        }
+        .triage-medium-glow {
+          animation: pulse-glow-yellow 2s infinite ease-in-out;
+        }
+        .triage-low-glow {
+          animation: pulse-glow-green 2.5s infinite ease-in-out;
         }
         @keyframes pulse-hydrant {
           0% { transform: scale(1); filter: drop-shadow(0 0 3px rgba(59, 130, 246, 0.5)); }

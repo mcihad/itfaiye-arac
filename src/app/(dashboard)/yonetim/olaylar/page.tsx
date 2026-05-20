@@ -10,6 +10,7 @@ import {
 } from "lucide-react"
 import { IncidentWizard } from "@/components/incident/IncidentWizard"
 import { Incident } from "@/types"
+import { getTriageInfo } from "@/lib/utils"
 
 type Personnel = any;
 type Vehicle = any;
@@ -121,31 +122,39 @@ export default function OlaylarPage() {
               Henüz girilmiş bir vaka kaydı bulunmamaktadır.
             </div>
           ) : (
-            incidents.map(inc => (
-              <Card key={inc.id} className="hover:border-primary/50 transition-colors">
-                <CardContent className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex items-start gap-4">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
-                      inc.olay_turu === 'Yangın' ? 'bg-danger/10 text-danger' : 
-                      inc.olay_turu === 'Asılsız İhbar' ? 'bg-muted text-muted-foreground' : 
-                      'bg-warning/10 text-warning'
-                    }`}>
-                      <AlertCircle className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <Badge variant={inc.olay_turu === 'Asılsız İhbar' ? 'outline' : 'default'} className={inc.olay_turu === 'Yangın' ? 'bg-danger hover:bg-danger/90' : ''}>
-                          {inc.olay_turu}
-                        </Badge>
-                        <span className="font-semibold text-lg">{inc.mahalle}</span>
+            incidents.map(inc => {
+              const triage = getTriageInfo(inc.olay_turu)
+              return (
+                <Card key={inc.id} className="hover:border-primary/50 transition-colors">
+                  <CardContent className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-start gap-4">
+                      <div 
+                        className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border"
+                        style={{
+                          backgroundColor: `${triage.color}15`,
+                          color: triage.color,
+                          borderColor: `${triage.color}25`
+                        }}
+                      >
+                        <AlertCircle className="w-6 h-6" />
                       </div>
-                      <p className="text-sm text-muted-foreground line-clamp-1">{inc.adres}</p>
-                      <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground font-mono">
-                        <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> İhbar: {new Date(inc.ihbar_saati).toLocaleString('tr-TR', { dateStyle: 'short', timeStyle: 'short' })}</span>
-                        {inc.cikis_sebebi && <span className="opacity-50">| Sebep: {inc.cikis_sebebi}</span>}
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          <Badge variant={inc.olay_turu === 'Asılsız İhbar' ? 'outline' : 'default'} className={inc.olay_turu === 'Yangın' ? 'bg-danger hover:bg-danger/90' : ''}>
+                            {inc.olay_turu}
+                          </Badge>
+                          <Badge className={`${triage.bgClass} font-bold text-xs px-2.5 py-0.5 rounded-full border-none`}>
+                            {triage.badgeText}
+                          </Badge>
+                          <span className="font-semibold text-lg">{inc.mahalle}</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground line-clamp-1">{inc.adres}</p>
+                        <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground font-mono">
+                          <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> İhbar: {new Date(inc.ihbar_saati).toLocaleString('tr-TR', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                          {inc.cikis_sebebi && <span className="opacity-50">| Sebep: {inc.cikis_sebebi}</span>}
+                        </div>
                       </div>
                     </div>
-                  </div>
                   
                   <div className="flex flex-row sm:flex-col gap-2 items-end sm:min-w-[150px]">
                     {inc.status === 'closed' && (
@@ -163,7 +172,7 @@ export default function OlaylarPage() {
                   </div>
                 </CardContent>
               </Card>
-            ))
+            )})
           )}
         </div>
       )}
