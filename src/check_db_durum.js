@@ -15,16 +15,8 @@ envContent.split('\n').forEach(line => {
 async function main() {
   const pool = new Pool({ connectionString: env.DATABASE_URL });
   try {
-    const res = await pool.query('SELECT no, location, length(location::text) as len FROM fire_hydrants');
-    const lengths = {};
-    res.rows.forEach(row => {
-      const len = row.location ? row.location.length : 0;
-      lengths[len] = (lengths[len] || 0) + 1;
-      if (len !== 50) {
-        console.log(`Unexpected length for ${row.no}: ${len} (type of location: ${typeof row.location})`);
-      }
-    });
-    console.log("Length distribution:", lengths);
+    const res = await pool.query('SELECT durum, COUNT(*) FROM fire_hydrants GROUP BY durum');
+    console.log('Durum counts in DB:', res.rows);
   } catch (err) {
     console.error(err);
   } finally {

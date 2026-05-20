@@ -123,6 +123,9 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
   const onMapClickRef = useRef(onMapClick)
   const routeAnimFrameRef = useRef<number | null>(null)
 
+  const [mapReady, setMapReady] = useState(false)
+  const hasFitBoundsRef = useRef(false)
+
   const [showBinalar, setShowBinalar] = useState(true)
   const [showNumarataj, setShowNumarataj] = useState(true)
   const [showMahalleler, setShowMahalleler] = useState(false)
@@ -444,6 +447,7 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
     })
 
     mapRef.current = map
+    setMapReady(true)
 
     return () => {
       if (routeAnimFrameRef.current) {
@@ -451,6 +455,7 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
       }
       map.remove()
       mapRef.current = null
+      setMapReady(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -458,7 +463,10 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
   // ─── Sync markers for incidents & hydrants ────────────────
   useEffect(() => {
     const map = mapRef.current
-    if (!map) return
+    if (!map || !mapReady) return
+
+    console.log("Map: Syncing markers. Hydrants count:", hydrants.length, "Incidents count:", incidents.length);
+
 
     // Clear old markers
     markersRef.current.forEach(m => m.remove())
@@ -622,7 +630,24 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
 
     markersRef.current.push(stationMarker)
 
-  }, [incidents, hydrants, showHidrantlar])
+    // Otomatik Sivas hidrant kadrajına uydurma (fitBounds)
+    if (hydrants.length > 0 && !hasFitBoundsRef.current) {
+      const bounds = new maplibregl.LngLatBounds()
+      let hasValidCoords = false
+      hydrants.forEach(hyd => {
+        const coords = parseLocation(hyd.location)
+        if (coords) {
+          bounds.extend(coords)
+          hasValidCoords = true
+        }
+      })
+      if (hasValidCoords) {
+        map.fitBounds(bounds, { padding: 80, maxZoom: 15 })
+        hasFitBoundsRef.current = true
+      }
+    }
+
+  }, [incidents, hydrants, showHidrantlar, mapReady])
 
   // ─── Sync visibility of binalar & numarataj layers ───
   useEffect(() => {

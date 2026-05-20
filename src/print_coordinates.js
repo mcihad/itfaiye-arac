@@ -1,8 +1,7 @@
-const { Pool } = require('pg');
 const fs = require('fs');
 const path = require('path');
+const { Pool } = require('pg');
 
-// Manually parse .env.local
 const envPath = path.join(__dirname, '..', '.env.local');
 const envContent = fs.readFileSync(envPath, 'utf8');
 const env = {};
@@ -57,11 +56,22 @@ const parseWKBPoint = (wkbHex) => {
 async function main() {
   const pool = new Pool({ connectionString: env.DATABASE_URL });
   try {
-    const res = await pool.query('SELECT olay_turu, location FROM incidents');
-    console.log("Incidents:");
+    const res = await pool.query('SELECT no, durum, location, proje_adi FROM fire_hydrants');
+    const coordsList = [];
     res.rows.forEach(row => {
       const coords = parseWKBPoint(row.location);
-      console.log(`${row.olay_turu}:`, coords);
+      coordsList.push({ no: row.no, durum: row.durum, coords, proje: row.proje_adi });
+    });
+    
+    // Check uniqueness
+    const uniqueCoords = new Set(coordsList.map(c => JSON.stringify(c.coords)));
+    console.log(`Total hydrants: ${coordsList.length}`);
+    console.log(`Unique coordinates: ${uniqueCoords.size}`);
+    
+    // Sort by coordinate closeness
+    console.log('Coordinates sample:');
+    coordsList.slice(0, 10).forEach(c => {
+      console.log(`${c.no} (${c.durum}): ${c.coords} - ${c.proje}`);
     });
   } catch (err) {
     console.error(err);

@@ -1,8 +1,7 @@
-const { Pool } = require('pg');
 const fs = require('fs');
 const path = require('path');
+const { Pool } = require('pg');
 
-// Manually parse .env.local
 const envPath = path.join(__dirname, '..', '.env.local');
 const envContent = fs.readFileSync(envPath, 'utf8');
 const env = {};
@@ -57,12 +56,21 @@ const parseWKBPoint = (wkbHex) => {
 async function main() {
   const pool = new Pool({ connectionString: env.DATABASE_URL });
   try {
-    const res = await pool.query('SELECT olay_turu, location FROM incidents');
-    console.log("Incidents:");
+    const res = await pool.query('SELECT id, no, location FROM fire_hydrants');
+    console.log(`Fetched ${res.rows.length} hydrants from database.`);
+    let successCount = 0;
     res.rows.forEach(row => {
       const coords = parseWKBPoint(row.location);
-      console.log(`${row.olay_turu}:`, coords);
+      if (coords) {
+        successCount++;
+        if (successCount <= 5 || successCount >= 55) {
+          console.log(`${row.no}:`, coords);
+        }
+      } else {
+        console.log(`Failed to parse: ${row.no}`, row.location);
+      }
     });
+    console.log(`Successfully parsed ${successCount} out of ${res.rows.length}`);
   } catch (err) {
     console.error(err);
   } finally {
