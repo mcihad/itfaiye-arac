@@ -81,12 +81,8 @@ function LoginForm() {
           <span className="text-sm font-bold tracking-widest text-slate-200">SİVAS BELEDİYESİ</span>
         </div>
 
-        {/* Sol Panel Orta/Alt Bölüm: Tipografi ve Rozet */}
-        <div className="relative z-10 max-w-2xl space-y-6 mt-auto">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold uppercase tracking-widest shadow-[0_0_15px_rgba(239,68,68,0.15)] animate-pulse">
-            <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-            Akıllı Şehir Müdürlüğü
-          </div>
+        {/* Sol Panel Orta/Alt Bölüm: Tipografi */}
+        <div className="relative z-10 max-w-2xl mt-auto">
           <div className="space-y-4">
             <h1 className="text-4xl xl:text-5xl font-black tracking-tight leading-none text-white drop-shadow-md">
               Sivas İtfaiyesi<br />
@@ -203,6 +199,21 @@ function LoginForm() {
                   </>
                 )}
               </Button>
+
+              {/* Akıllı Şehir Geliştirici Bilgisi */}
+              <div className="flex flex-col items-center justify-center gap-2 pt-4 mt-2 border-t border-slate-800/40">
+                <div className="relative w-40 h-14">
+                  <Image 
+                    src="/logo-akilli-sehir.png" 
+                    alt="Akıllı Şehir Logosu" 
+                    fill 
+                    className="object-contain filter brightness-110 contrast-105"
+                  />
+                </div>
+                <p className="text-[11px] text-slate-400 text-center font-medium leading-relaxed max-w-[280px]">
+                  Bu alan Sivas Belediyesi Akıllı Şehir ve Kent Bilgi Sistemleri Müdürlüğü tarafından geliştirilmiştir.
+                </p>
+              </div>
             </form>
           </div>
 
