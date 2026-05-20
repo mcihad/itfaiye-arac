@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ScanLine, Camera, Check, ExternalLink } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/Card"
 import { InventoryCheckModal } from "@/components/inventory/InventoryCheckModal"
@@ -15,6 +15,34 @@ export default function BarkodPage() {
   const [selectedVehicle, setSelectedVehicle] = useState("")
   const [selectedCompartment, setSelectedCompartment] = useState("")
   const [successMessage, setSuccessMessage] = useState("")
+  const [cameraError, setCameraError] = useState(false)
+
+  // Intercept and suppress Next.js DevOverlay popup for missing cameras
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const originalError = console.error;
+      console.error = (...args: any[]) => {
+        const errorStr = args.map(a => {
+          if (a instanceof Error) return a.message + " " + a.stack;
+          return String(a);
+        }).join(" ");
+        
+        if (
+          errorStr.includes("Requested device not found") || 
+          errorStr.includes("NotFoundError") || 
+          errorStr.includes("Devices not found") ||
+          errorStr.includes("Permission denied")
+        ) {
+          console.warn("[Camera Interceptor] Camera error handled gracefully:", ...args);
+          return;
+        }
+        originalError.apply(console, args);
+      };
+      return () => {
+        console.error = originalError;
+      };
+    }
+  }, []);
 
   // Parse QR data - supports both URL format and legacy JSON format
   const handleRealScan = (dataStr: string) => {
@@ -106,31 +134,42 @@ export default function BarkodPage() {
           <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20 pointer-events-none" />
 
           {isScanning ? (
-            <div className="w-full h-full relative">
-              <Scanner 
-                onScan={(result: any[]) => {
-                  if (result && result.length > 0) handleRealScan(result[0].rawValue)
-                }} 
-                components={{
-                  finder: false
-                }}
-              />
-              
-              {/* Scan Area Frame Overlay */}
-              <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
-                <div className="w-3/4 h-3/4 border-2 border-primary/40 rounded-xl relative">
-                  {/* Corner Accents */}
-                  <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-primary rounded-tl-xl" />
-                  <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-primary rounded-tr-xl" />
-                  <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-primary rounded-bl-xl" />
-                  <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-primary rounded-br-xl" />
-  
-                  {/* Animated Laser Line */}
-                  <div className="absolute left-0 right-0 h-0.5 bg-primary shadow-[0_0_8px_2px_rgba(var(--primary),0.6)] animate-[scan_2s_ease-in-out_infinite]" />
-                </div>
+            cameraError ? (
+              <div className="flex flex-col items-center justify-center text-center p-6 space-y-4">
+                <Camera className="w-16 h-16 text-muted-foreground opacity-50" />
+                <p className="text-sm text-muted-foreground font-medium">
+                  Kamera erişimi sağlanamadı.<br />
+                  Kamera izinlerini kontrol edin veya aşağıdaki test butonlarını kullanın.
+                </p>
               </div>
-              <p className="absolute bottom-6 left-0 right-0 text-center text-xs font-semibold text-primary/80 animate-pulse z-20">Etiketi vizöre ortalayın</p>
-            </div>
+            ) : (
+              <div className="w-full h-full relative">
+                <Scanner 
+                  onScan={(result: any[]) => {
+                    if (result && result.length > 0) handleRealScan(result[0].rawValue)
+                  }} 
+                  onError={() => setCameraError(true)}
+                  components={{
+                    finder: false
+                  }}
+                />
+                
+                {/* Scan Area Frame Overlay */}
+                <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+                  <div className="w-3/4 h-3/4 border-2 border-primary/40 rounded-xl relative">
+                    {/* Corner Accents */}
+                    <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-primary rounded-tl-xl" />
+                    <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-primary rounded-tr-xl" />
+                    <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-primary rounded-bl-xl" />
+                    <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-primary rounded-br-xl" />
+    
+                    {/* Animated Laser Line */}
+                    <div className="absolute left-0 right-0 h-0.5 bg-primary shadow-[0_0_8px_2px_rgba(var(--primary),0.6)] animate-[scan_2s_ease-in-out_infinite]" />
+                  </div>
+                </div>
+                <p className="absolute bottom-6 left-0 right-0 text-center text-xs font-semibold text-primary/80 animate-pulse z-20">Etiketi vizöre ortalayın</p>
+              </div>
+            )
           ) : (
             <div className="flex flex-col items-center text-success animate-in zoom-in">
               <Check className="w-16 h-16 mb-2" />

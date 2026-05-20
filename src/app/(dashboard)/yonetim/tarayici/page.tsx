@@ -1,5 +1,5 @@
 "use client"
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { ScanLine, Camera, Check, AlertTriangle, Truck, ClipboardCheck, Search, X, ChevronDown, Loader2, Keyboard } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/Card"
 import { Input } from "@/components/ui/Input"
@@ -29,6 +29,33 @@ export default function TarayiciPage() {
   const [manualPlaka, setManualPlaka] = useState("")
   const [manualLoading, setManualLoading] = useState(false)
   const [cameraError, setCameraError] = useState(false)
+
+  // Intercept and suppress Next.js DevOverlay popup for missing cameras
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const originalError = console.error;
+      console.error = (...args: any[]) => {
+        const errorStr = args.map(a => {
+          if (a instanceof Error) return a.message + " " + a.stack;
+          return String(a);
+        }).join(" ");
+        
+        if (
+          errorStr.includes("Requested device not found") || 
+          errorStr.includes("NotFoundError") || 
+          errorStr.includes("Devices not found") ||
+          errorStr.includes("Permission denied")
+        ) {
+          console.warn("[Camera Interceptor] Camera error handled gracefully:", ...args);
+          return;
+        }
+        originalError.apply(console, args);
+      };
+      return () => {
+        console.error = originalError;
+      };
+    }
+  }, []);
 
   // ─── QR Parse Logic ────────────────────────────────────────
   const parseQRContent = (raw: string): { plaka: string; compartment?: string } | null => {

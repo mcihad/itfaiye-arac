@@ -233,7 +233,9 @@ export function Topbar() {
           </button>
 
           {isOpen && (
-            <div className="absolute right-[-4.5rem] sm:right-0 mt-3 w-[calc(100vw-2rem)] sm:w-96 max-w-sm bg-slate-950/95 backdrop-blur-xl border border-slate-800/80 shadow-2xl rounded-2xl overflow-hidden z-50 transition-all duration-300 animate-in fade-in slide-in-from-top-3">
+            <div className={`absolute mt-3 w-[calc(100vw-2rem)] sm:w-96 max-w-sm bg-slate-950/95 backdrop-blur-xl border border-slate-800/80 shadow-2xl rounded-2xl overflow-hidden z-50 transition-all duration-300 animate-in fade-in slide-in-from-top-3 ${
+              isAuthenticated ? 'right-[-4.5rem] sm:right-0' : 'right-[-6.5rem] sm:right-0'
+            }`}>
               {/* Dropdown Header */}
               <div className="flex items-center justify-between p-4 border-b border-slate-800/60 bg-slate-900/40">
                 <div className="flex items-center gap-2">
