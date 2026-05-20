@@ -339,41 +339,74 @@ export default function PersonelYonetimPage() {
     return personnel.filter(p => p.posta_no === activeShift)
   }, [personnel, activeShift])
 
-  // Find crew leaders in active shift
-  const shiftLeaders = useMemo(() => {
-    return activeShiftStaff.filter(p => 
-      p.rol === 'Admin' || 
-      p.rol === 'Editor' || 
-      p.rol === 'Shift_Leader' ||
-      p.unvan.includes('Çavuş') || 
-      p.unvan.includes('Amir')
-    )
-  }, [activeShiftStaff])
+  // Centralized Akıllı Araç & Rota Eşleştirme Dağıtımı (Faz 11.2)
+  const vehicleAllocations = useMemo(() => {
+    const assigned = new Set<string>()
 
-  // Find people with active Ehliyet in active shift
-  const drivers = useMemo(() => {
-    return activeShiftStaff.filter(p => {
+    // 1. Şoförleri Atama (Her araç için benzersiz şoför)
+    const activeDrivers = activeShiftStaff.filter(p => {
       const cert = certifications.find(c => c.sicil_no === p.sicil_no && c.tip === 'Ehliyet')
       if (!cert || !cert.gecerlilik_tarihi) return false
       return new Date(cert.gecerlilik_tarihi) >= new Date('2026-05-20')
     })
-  }, [activeShiftStaff, certifications])
+    
+    const arazozSofor = activeDrivers.find(d => !assigned.has(d.sicil_no))
+    if (arazozSofor) assigned.add(arazozSofor.sicil_no)
 
-  // Find people with SCBA or İlkyardım in active shift
-  const rescueSpecialists = useMemo(() => {
-    return activeShiftStaff.filter(p => {
+    const kurtarmaSofor = activeDrivers.find(d => !assigned.has(d.sicil_no))
+    if (kurtarmaSofor) assigned.add(kurtarmaSofor.sicil_no)
+
+    const merdivenliSofor = activeDrivers.find(d => !assigned.has(d.sicil_no))
+    if (merdivenliSofor) assigned.add(merdivenliSofor.sicil_no)
+
+    // 2. Ekip Amirlerini Atama (Shift Leader, Çavuş, Amir unvanları)
+    const leaders = activeShiftStaff.filter(p => 
+      !assigned.has(p.sicil_no) && (
+        p.rol === 'Admin' || 
+        p.rol === 'Editor' || 
+        p.rol === 'Shift_Leader' ||
+        p.unvan.includes('Çavuş') || 
+        p.unvan.includes('Amir')
+      )
+    )
+
+    const arazozAmir = leaders.find(l => !assigned.has(l.sicil_no))
+    if (arazozAmir) assigned.add(arazozAmir.sicil_no)
+
+    const kurtarmaAmir = leaders.find(l => !assigned.has(l.sicil_no))
+    if (kurtarmaAmir) assigned.add(kurtarmaAmir.sicil_no)
+
+    // 3. Kurtarma Uzmanı Atama (SCBA veya İlkyardım sertifikası olan)
+    const specialists = activeShiftStaff.filter(p => {
+      if (assigned.has(p.sicil_no)) return false
       const scba = certifications.find(c => c.sicil_no === p.sicil_no && c.tip === 'SCBA')
       const iy = certifications.find(c => c.sicil_no === p.sicil_no && c.tip === 'İlkyardım')
       const today = new Date('2026-05-20')
       return (scba?.gecerlilik_tarihi && new Date(scba.gecerlilik_tarihi) >= today) || 
              (iy?.gecerlilik_tarihi && new Date(iy.gecerlilik_tarihi) >= today)
     })
-  }, [activeShiftStaff, certifications])
 
-  // Find remaining firefighters
-  const generalStaff = useMemo(() => {
-    return activeShiftStaff.filter(p => !shiftLeaders.includes(p))
-  }, [activeShiftStaff, shiftLeaders])
+    const kurtarmaUzman = specialists.find(s => !assigned.has(s.sicil_no))
+    if (kurtarmaUzman) assigned.add(kurtarmaUzman.sicil_no)
+
+    // 4. Müdahale Eri, Erişim Personeli ve Kule Elemanı (Geriye kalan boşta personel)
+    const remainingStaff = activeShiftStaff.filter(p => !assigned.has(p.sicil_no))
+
+    const arazozEr = remainingStaff[0]
+    if (arazozEr) assigned.add(arazozEr.sicil_no)
+
+    const merdivenliErisim = remainingStaff.find(p => !assigned.has(p.sicil_no))
+    if (merdivenliErisim) assigned.add(merdivenliErisim.sicil_no)
+
+    const merdivenliKule = remainingStaff.find(p => !assigned.has(p.sicil_no))
+    if (merdivenliKule) assigned.add(merdivenliKule.sicil_no)
+
+    return {
+      arazoz: { amir: arazozAmir, sofor: arazozSofor, er: arazozEr },
+      kurtarma: { amir: kurtarmaAmir, sofor: kurtarmaSofor, uzman: kurtarmaUzman },
+      merdivenli: { erisim: merdivenliErisim, sofor: merdivenliSofor, kule: merdivenliKule }
+    }
+  }, [activeShiftStaff, certifications])
 
   if (loading) {
     return (
@@ -439,9 +472,7 @@ export default function PersonelYonetimPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Vehicle 1: Arazöz */}
             {(() => {
-              const amir = shiftLeaders[0]
-              const sofor = drivers[0]
-              const er = generalStaff.find(p => p.sicil_no !== sofor?.sicil_no && p.sicil_no !== amir?.sicil_no) || generalStaff[0]
+              const { amir, sofor, er } = vehicleAllocations.arazoz
               
               return (
                 <div className="border border-slate-800 rounded-xl p-4 bg-slate-900/10 backdrop-blur-sm relative overflow-hidden flex flex-col justify-between min-h-[220px]">
@@ -494,9 +525,8 @@ export default function PersonelYonetimPage() {
              
              {/* Vehicle 2: Kurtarma */}
              {(() => {
-               const amir = shiftLeaders[1] || shiftLeaders[0]
-               const sofor = drivers[1] || (drivers[0] ? { ...drivers[0], ad: drivers[0].ad + " (Yedek)" } : null)
-               const er = rescueSpecialists.find(p => p.sicil_no !== sofor?.sicil_no && p.sicil_no !== amir?.sicil_no) || activeShiftStaff.find(p => p.sicil_no !== sofor?.sicil_no && p.sicil_no !== amir?.sicil_no)
+               const { amir, sofor, uzman: er } = vehicleAllocations.kurtarma
+               const hasScba = er ? certifications.some(c => c.sicil_no === er.sicil_no && c.tip === 'SCBA' && new Date(c.gecerlilik_tarihi) >= new Date('2026-05-20')) : false
                
                return (
                  <div className="border border-slate-800 rounded-xl p-4 bg-slate-900/10 backdrop-blur-sm relative overflow-hidden flex flex-col justify-between min-h-[220px]">
@@ -537,7 +567,7 @@ export default function PersonelYonetimPage() {
                          {er ? (
                            <span className="font-semibold text-slate-200 flex items-center gap-1">
                              {er.ad} {er.soyad}
-                             {rescueSpecialists.includes(er) && (
+                             {hasScba && (
                                <Badge className="bg-amber-500/10 text-amber-500 border border-amber-500/20 text-[8px] px-1 py-0 h-4">SCBA</Badge>
                              )}
                            </span>
@@ -558,8 +588,7 @@ export default function PersonelYonetimPage() {
              
              {/* Vehicle 3: Merdivenli */}
              {(() => {
-               const sofor = drivers[2] || (drivers[0] ? { ...drivers[0], ad: drivers[0].ad + " (Yedek)" } : null)
-               const er = activeShiftStaff.find(p => p.sicil_no !== sofor?.sicil_no && !shiftLeaders.includes(p))
+               const { erisim, sofor, kule } = vehicleAllocations.merdivenli
                
                return (
                  <div className="border border-slate-800 rounded-xl p-4 bg-slate-900/10 backdrop-blur-sm relative overflow-hidden flex flex-col justify-between min-h-[220px]">
@@ -581,7 +610,7 @@ export default function PersonelYonetimPage() {
                      <div className="space-y-2 text-xs">
                        <div className="flex justify-between items-center py-1 border-b border-slate-800/40">
                          <span className="text-slate-400">Erişim Personeli:</span>
-                         <span className="font-semibold text-slate-200">{er ? `${er.ad} ${er.soyad}` : 'Atanmamış'}</span>
+                         <span className="font-semibold text-slate-200">{erisim ? `${erisim.ad} ${erisim.soyad}` : 'Atanmamış'}</span>
                        </div>
                        
                        <div className="flex justify-between items-center py-1 border-b border-slate-800/40">
@@ -597,7 +626,7 @@ export default function PersonelYonetimPage() {
                        
                        <div className="flex justify-between items-center py-1">
                          <span className="text-slate-400">Kule Elemanı:</span>
-                         <span className="font-semibold text-slate-200">{er ? `${er.ad} ${er.soyad}` : 'Atanmamış'}</span>
+                         <span className="font-semibold text-slate-200">{kule ? `${kule.ad} ${kule.soyad}` : 'Atanmamış'}</span>
                        </div>
                      </div>
                    </div>
