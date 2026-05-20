@@ -497,21 +497,24 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
         color: white;
       `
       innerEl.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 3px rgba(255,255,255,0.8));">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));">
           <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c-2.2 0-4-1.8-4-4a8 8 0 0 1 15 2.5A8 8 0 0 1 12 22a8 8 0 0 1-7-1.5"/>
         </svg>
       `
       el.appendChild(innerEl)
 
       const popup = new maplibregl.Popup({ offset: 18, maxWidth: '280px' }).setHTML(`
-        <div style="font-family:system-ui;padding:4px 0">
-          <div style="display:flex;align-items:center;justify-content:between;border-bottom:1px solid #eee;padding-bottom:4px;margin-bottom:4px;gap:8px">
-            <h3 style="font-weight:700;color:${triage.color};font-size:13px;margin:0">${inc.olay_turu}</h3>
-            <span style="font-size:9px;font-weight:800;padding:2px 6px;border-radius:9999px;background:${triage.color}20;color:${triage.color};border:1px solid ${triage.color}30">${triage.label}</span>
+        <div style="font-family:system-ui;padding:4px 0;color:#e2e8f0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:6px;margin-bottom:6px;gap:8px">
+            <h3 style="font-weight:700;color:${triage.color};font-size:13.5px;margin:0">${inc.olay_turu}</h3>
+            <span style="font-size:9.5px;font-weight:800;padding:2px 6px;border-radius:9999px;background:${triage.color}20;color:${triage.color};border:1px solid ${triage.color}40">${triage.label}</span>
           </div>
-          <p style="font-size:12px;margin:2px 0"><strong>Mahalle:</strong> ${inc.mahalle || '-'}</p>
-          <p style="font-size:12px;margin:2px 0"><strong>Adres:</strong> ${inc.adres || '-'}</p>
-          <p style="font-size:11px;color:#888;margin-top:4px">${inc.cikis_saati ? new Date(inc.cikis_saati).toLocaleString('tr-TR') : 'Zaman bilgisi yok'}</p>
+          <p style="font-size:12px;margin:3px 0;color:#cbd5e1;"><strong style="color:#94a3b8;font-weight:500;">Mahalle:</strong> ${inc.mahalle || '-'}</p>
+          <p style="font-size:12px;margin:3px 0;color:#cbd5e1;"><strong style="color:#94a3b8;font-weight:500;">Adres:</strong> ${inc.adres || '-'}</p>
+          <p style="font-size:11px;color:#94a3b8;margin-top:6px;display:flex;align-items:center;gap:4px;">
+            <span style="opacity:0.7">🕒</span>
+            <span>${inc.cikis_saati ? new Date(inc.cikis_saati).toLocaleString('tr-TR') : 'Zaman bilgisi yok'}</span>
+          </p>
         </div>
       `)
 
@@ -525,7 +528,7 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
 
     hydrantElementsRef.current = []
 
-    // Hydrant markers (durum-based green/red)
+    // Hydrant markers (durum-based green/red with modern custom droplet/shield SVG shape-coding)
     if (showHidrantlar) {
       hydrants.forEach(hyd => {
         const coords = parseLocation(hyd.location)
@@ -550,12 +553,16 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
         const gradientId = `hydrant-grad-${hyd.id}`
         
         innerEl.innerHTML = `
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" style="width: 100%; height: 100%; filter: ${isMevcut ? 'drop-shadow(0 0 8px #22c55e)' : 'drop-shadow(0 0 10px #ef4444)'};">
-            <circle cx="50" cy="50" r="42" fill="url(#${gradientId})" stroke="#ffffff" stroke-width="3"/>
-            <path d="M35 42 L35 70 C35 76 65 76 65 70 L65 42 Z" fill="#ffffff" opacity="0.95"/>
-            <path d="M30 32 H70 V42 H30 Z" fill="#ffffff"/>
-            <circle cx="50" cy="22" r="8" fill="#ffffff"/>
-            <path d="M50 48 C53 52 53 58 50 62 C47 58 47 52 50 48 Z" fill="${isMevcut ? '#15803d' : '#b91c1c'}"/>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" style="width: 100%; height: 100%; filter: ${isMevcut ? 'drop-shadow(0 0 8px rgba(34, 197, 94, 0.8))' : 'drop-shadow(0 0 8px rgba(239, 68, 68, 0.8))'};">
+            <!-- Modern upward-tapering droplet/shield form for shape-coding -->
+            <path d="M50 5 C50 5 82 45 82 68 A32 32 0 1 1 18 68 C18 45 50 5 50 5 Z" fill="url(#${gradientId})" stroke="#ffffff" stroke-width="3"/>
+            <!-- Elegant premium fire hydrant graphics positioned perfectly inside the shape -->
+            <g transform="translate(0, 10)">
+              <path d="M35 42 L35 70 C35 76 65 76 65 70 L65 42 Z" fill="#ffffff" opacity="0.95"/>
+              <path d="M30 32 H70 V42 H30 Z" fill="#ffffff"/>
+              <circle cx="50" cy="22" r="8" fill="#ffffff"/>
+              <path d="M50 48 C53 52 53 58 50 62 C47 58 47 52 50 48 Z" fill="${isMevcut ? '#22c55e' : '#ef4444'}"/>
+            </g>
             <defs>
               <linearGradient id="${gradientId}" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stop-color="${isMevcut ? '#22c55e' : '#ef4444'}" />
@@ -567,24 +574,24 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
         el.appendChild(innerEl)
 
         const popup = new maplibregl.Popup({ offset: 16, maxWidth: '280px' }).setHTML(`
-          <div style="font-family:system-ui;padding:4px;color:#1e293b;line-height:1.5;">
-            <h3 style="font-weight:800;color:${isMevcut ? '#16a34a' : '#dc2626'};font-size:14px;border-bottom:1px solid #e2e8f0;padding-bottom:6px;margin:0 0 6px 0;display:flex;align-items:center;gap:6px;">
+          <div style="font-family:system-ui;padding:4px;color:#e2e8f0;line-height:1.5;">
+            <h3 style="font-weight:800;color:${isMevcut ? '#22c55e' : '#ef4444'};font-size:14px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:6px;margin:0 0 6px 0;display:flex;align-items:center;gap:6px;">
               <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${isMevcut ? '#22c55e' : '#ef4444'};box-shadow:0 0 6px ${isMevcut ? '#22c55e' : '#ef4444'}"></span>
               Yangın Hidrantı #${hyd.no}
             </h3>
             <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 8px;font-size:12px;">
-              <span style="color:#64748b;font-weight:500;">Durum:</span>
-              <span style="font-weight:700;color:${isMevcut ? '#16a34a' : '#dc2626'}">${isMevcut ? 'MEVCUT (Çalışıyor)' : 'DEVRE_DIŞI (Arızalı)'}</span>
+              <span style="color:#94a3b8;font-weight:500;">Durum:</span>
+              <span style="font-weight:700;color:${isMevcut ? '#22c55e' : '#ef4444'}">${isMevcut ? 'MEVCUT (Çalışıyor)' : 'DEVRE_DIŞI (Arızalı)'}</span>
               
-              <span style="color:#64748b;font-weight:500;">Kalite:</span>
-              <span style="font-weight:600;color:#0f172a;">${hyd.kalite || 'Belirtilmemiş'}</span>
+              <span style="color:#94a3b8;font-weight:500;">Kalite:</span>
+              <span style="font-weight:600;color:#f1f5f9;">${hyd.kalite || 'Belirtilmemiş'}</span>
               
-              <span style="color:#64748b;font-weight:500;">İmalatçı:</span>
-              <span style="font-weight:600;color:#0f172a;">${hyd.imalatci || 'Sivas Belediyesi'}</span>
+              <span style="color:#94a3b8;font-weight:500;">İmalatçı:</span>
+              <span style="font-weight:600;color:#f1f5f9;">${hyd.imalatci || 'Sivas Belediyesi'}</span>
               
               ${hyd.proje_adi ? `
-              <span style="color:#64748b;font-weight:500;grid-column:1/3;margin-top:4px;">Konum Detayı:</span>
-              <span style="grid-column:1/3;color:#334155;background:#f8fafc;padding:6px;border-radius:4px;font-size:11px;line-height:1.4;border:1px solid #e2e8f0;word-break:break-word;">${hyd.proje_adi}</span>
+              <span style="color:#94a3b8;font-weight:500;grid-column:1/3;margin-top:4px;">Konum Detayı:</span>
+              <span style="grid-column:1/3;color:#cbd5e1;background:rgba(255,255,255,0.05);padding:6px;border-radius:4px;font-size:11px;line-height:1.4;border:1px solid rgba(255,255,255,0.08);word-break:break-word;">${hyd.proje_adi}</span>
               ` : ''}
             </div>
           </div>
@@ -626,10 +633,10 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
     `
 
     const stationPopup = new maplibregl.Popup({ offset: 20 }).setHTML(`
-      <div style="font-family:system-ui;padding:4px 0">
-        <h3 style="font-weight:700;color:#f97316;font-size:14px;border-bottom:1px solid #eee;padding-bottom:4px;margin-bottom:4px">Merkez İtfaiye İstasyonu</h3>
-        <p style="font-size:12px;margin:2px 0">Sivas Belediyesi İtfaiye Müdürlüğü</p>
-        <p style="font-size:11px;color:#888;margin-top:2px">Yenişehir, Merkez</p>
+      <div style="font-family:system-ui;padding:4px 0;color:#e2e8f0;">
+        <h3 style="font-weight:700;color:#f97316;font-size:14px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:4px;margin-bottom:4px">Merkez İtfaiye İstasyonu</h3>
+        <p style="font-size:12px;margin:2px 0;color:#cbd5e1;">Sivas Belediyesi İtfaiye Müdürlüğü</p>
+        <p style="font-size:11px;color:#94a3b8;margin-top:2px">Yenişehir, Merkez</p>
       </div>
     `)
 
@@ -937,75 +944,143 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
         </div>
       </div>
       <style>{`
-        @keyframes pulse-glow-red {
+        /* MapLibre Premium Glassmorphic Dark Theme Popup Overrides */
+        .maplibregl-popup-content {
+          background: rgba(15, 23, 42, 0.85) !important;
+          backdrop-filter: blur(8px) !important;
+          -webkit-backdrop-filter: blur(8px) !important;
+          border: 1px solid rgba(255, 255, 255, 0.12) !important;
+          box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.55) !important;
+          border-radius: 12px !important;
+          padding: 12px 16px !important;
+        }
+
+        .maplibregl-popup-close-button {
+          color: rgba(255, 255, 255, 0.6) !important;
+          border: 0 !important;
+          background: transparent !important;
+          font-size: 16px !important;
+          padding: 4px 8px !important;
+          top: 6px !important;
+          right: 6px !important;
+          outline: none !important;
+          transition: all 0.2s ease !important;
+        }
+        .maplibregl-popup-close-button:hover {
+          color: #ffffff !important;
+          background: rgba(255, 255, 255, 0.1) !important;
+          border-radius: 4px !important;
+        }
+
+        /* Seamless Tip Alignment for all maplibre directions */
+        .maplibregl-popup-anchor-top .maplibregl-popup-tip {
+          border-bottom-color: rgba(15, 23, 42, 0.85) !important;
+        }
+        .maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
+          border-top-color: rgba(15, 23, 42, 0.85) !important;
+        }
+        .maplibregl-popup-anchor-left .maplibregl-popup-tip {
+          border-right-color: rgba(15, 23, 42, 0.85) !important;
+        }
+        .maplibregl-popup-anchor-right .maplibregl-popup-tip {
+          border-left-color: rgba(15, 23, 42, 0.85) !important;
+        }
+        .maplibregl-popup-anchor-top-left .maplibregl-popup-tip {
+          border-bottom-color: rgba(15, 23, 42, 0.85) !important;
+        }
+        .maplibregl-popup-anchor-top-right .maplibregl-popup-tip {
+          border-bottom-color: rgba(15, 23, 42, 0.85) !important;
+        }
+        .maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip {
+          border-top-color: rgba(15, 23, 42, 0.85) !important;
+        }
+        .maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip {
+          border-top-color: rgba(15, 23, 42, 0.85) !important;
+        }
+
+        /* @keyframes incidentPulse: Expanding transparent wave box-shadow effect per severity */
+        @keyframes incidentPulseRed {
           0% {
-            transform: scale(1);
             box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.8);
-            filter: drop-shadow(0 0 4px #ef4444);
+            transform: scale(1);
           }
           70% {
-            transform: scale(1.08);
-            box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
-            filter: drop-shadow(0 0 12px #ef4444);
-          }
-          100% {
-            transform: scale(1);
-            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
-            filter: drop-shadow(0 0 4px #ef4444);
-          }
-        }
-        @keyframes pulse-glow-yellow {
-          0% {
-            transform: scale(1);
-            box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.8);
-            filter: drop-shadow(0 0 3px #eab308);
-          }
-          70% {
+            box-shadow: 0 0 0 14px rgba(239, 68, 68, 0);
             transform: scale(1.06);
-            box-shadow: 0 0 0 8px rgba(234, 179, 8, 0);
-            filter: drop-shadow(0 0 10px #eab308);
           }
           100% {
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
             transform: scale(1);
-            box-shadow: 0 0 0 0 rgba(234, 179, 8, 0);
-            filter: drop-shadow(0 0 3px #eab308);
           }
         }
-        @keyframes pulse-glow-green {
+        @keyframes incidentPulseYellow {
           0% {
+            box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.8);
             transform: scale(1);
-            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.8);
-            filter: drop-shadow(0 0 3px #22c55e);
           }
           70% {
-            transform: scale(1.04);
-            box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
-            filter: drop-shadow(0 0 8px #22c55e);
+            box-shadow: 0 0 0 12px rgba(234, 179, 8, 0);
+            transform: scale(1.05);
           }
           100% {
+            box-shadow: 0 0 0 0 rgba(234, 179, 8, 0);
             transform: scale(1);
-            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
-            filter: drop-shadow(0 0 3px #22c55e);
           }
         }
+        @keyframes incidentPulseGreen {
+          0% {
+            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.8);
+            transform: scale(1);
+          }
+          70% {
+            box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+            transform: scale(1.04);
+          }
+          100% {
+            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+            transform: scale(1);
+          }
+        }
+
+        /* Classes mapped to triage.glowClass */
         .triage-critical-glow {
-          animation: pulse-glow-red 1s infinite ease-in-out;
+          animation: incidentPulseRed 1.6s infinite ease-in-out !important;
         }
         .triage-medium-glow {
-          animation: pulse-glow-yellow 2s infinite ease-in-out;
+          animation: incidentPulseYellow 2s infinite ease-in-out !important;
         }
         .triage-low-glow {
-          animation: pulse-glow-green 2.5s infinite ease-in-out;
+          animation: incidentPulseGreen 2.4s infinite ease-in-out !important;
         }
+
+        /* Hydrant Pulse Keyframes: soft green & sharp red neon glows */
         @keyframes pulse-hydrant-green {
-          0% { transform: scale(1); filter: drop-shadow(0 0 4px #22c55e); }
-          50% { transform: scale(1.06); filter: drop-shadow(0 0 12px #22c55e); }
-          100% { transform: scale(1); filter: drop-shadow(0 0 4px #22c55e); }
+          0% {
+            transform: scale(1);
+            filter: drop-shadow(0 0 4px rgba(34, 197, 94, 0.65));
+          }
+          50% {
+            transform: scale(1.08);
+            filter: drop-shadow(0 0 14px rgba(34, 197, 94, 0.95));
+          }
+          100% {
+            transform: scale(1);
+            filter: drop-shadow(0 0 4px rgba(34, 197, 94, 0.65));
+          }
         }
         @keyframes pulse-hydrant-red {
-          0% { transform: scale(1); filter: drop-shadow(0 0 5px #ef4444); }
-          50% { transform: scale(1.08); filter: drop-shadow(0 0 15px #ef4444); }
-          100% { transform: scale(1); filter: drop-shadow(0 0 5px #ef4444); }
+          0% {
+            transform: scale(1);
+            filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.65));
+          }
+          50% {
+            transform: scale(1.1);
+            filter: drop-shadow(0 0 16px rgba(239, 68, 68, 0.95));
+          }
+          100% {
+            transform: scale(1);
+            filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.65));
+          }
         }
         .map-marker-hydrant-pulse-green {
           animation: pulse-hydrant-green 2.5s infinite ease-in-out;
