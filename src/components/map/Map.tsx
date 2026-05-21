@@ -6,6 +6,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import * as turf from '@turf/turf'
 import { Layers, Building2, Map as MapIcon, Milestone, Droplets } from 'lucide-react'
 import { getTriageInfo } from '@/lib/utils'
+import { Vehicle } from '@/types'
 
 
 
@@ -41,6 +42,7 @@ interface Hydrant {
 interface MapProps {
   incidents: Incident[]
   hydrants: Hydrant[]
+  vehicles?: Vehicle[]
   mode: 'idle' | 'add_incident' | 'add_hydrant'
   onMapClick: (lat: number, lng: number) => void
   focusLocation: [number, number] | null
@@ -117,10 +119,11 @@ const parseLocation = (loc: any): [number, number] | null => {
   return null
 }
 
-export default function Map({ incidents, hydrants, mode, onMapClick, focusLocation, onUpdateHydrantStatus }: MapProps) {
+export default function Map({ incidents, hydrants, vehicles, mode, onMapClick, focusLocation, onUpdateHydrantStatus }: MapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const markersRef = useRef<maplibregl.Marker[]>([])
+  const vehicleMarkersRef = useRef<maplibregl.Marker[]>([])
   const hydrantElementsRef = useRef<{el: HTMLDivElement, coords: [number, number]}[]>([])
   const modeRef = useRef(mode)
   const onMapClickRef = useRef(onMapClick)
@@ -724,6 +727,183 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
 
   }, [incidents, hydrants, showHidrantlar, showPasifVakalar, mapReady])
 
+  // ─── Sync markers for vehicles ────────────────
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+
+    // Clear old vehicle markers
+    vehicleMarkersRef.current.forEach(m => m.remove())
+    vehicleMarkersRef.current = []
+
+    if (vehicles && vehicles.length > 0) {
+      vehicles.forEach((veh, i) => {
+        const count = vehicles.length
+        const angle = (i * 2 * Math.PI) / count
+        const radius = 0.00035 // cluster around Sivas fire station coordinates beautifully
+        const lngOffset = Math.cos(angle) * radius
+        const latOffset = Math.sin(angle) * radius
+        const coords: [number, number] = [STATION_COORDS[0] + lngOffset, STATION_COORDS[1] + latOffset]
+
+        const el = document.createElement('div')
+        el.className = 'map-marker-vehicle'
+        el.style.width = '38px'
+        el.style.height = '38px'
+        el.style.cursor = 'pointer'
+
+        const typeStr = (veh.arac_tipi || veh.aracTipi || "").toLowerCase();
+        let color = '#10b981'; // Default green for aktif
+        let glowClass = 'vehicle-aktif-glow';
+        const activeDurum = (veh.durum || "aktif").toLowerCase();
+        if (activeDurum === 'bakimda') {
+          color = '#f59e0b';
+          glowClass = 'vehicle-bakimda-glow';
+        } else if (activeDurum === 'arizali') {
+          color = '#ef4444';
+          glowClass = 'vehicle-arizali-glow';
+        } else if (activeDurum === 'pasif') {
+          color = '#64748b';
+          glowClass = '';
+        }
+
+        const innerEl = document.createElement('div')
+        innerEl.className = `map-marker-vehicle-inner ${glowClass}`
+        innerEl.style.cssText = `
+          width: 100%; height: 100%;
+          background: rgba(15, 23, 42, 0.85);
+          border: 2px solid ${color};
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: ${color};
+          box-shadow: 0 0 10px ${color}33;
+          transition: all 0.3s;
+        `
+        
+        let silhouetteSvg = '';
+        if (typeStr.includes("arazöz")) {
+          silhouetteSvg = `
+            <svg viewBox="0 0 100 60" width="22" height="15" fill="none" stroke="currentColor" stroke-width="3" style="stroke-linecap:round;">
+              <rect x="10" y="15" width="80" height="30" rx="4" />
+              <rect x="70" y="15" width="20" height="18" rx="2" fill="currentColor" fill-opacity="0.2" />
+              <circle cx="25" cy="48" r="8" fill="currentColor" />
+              <circle cx="75" cy="48" r="8" fill="currentColor" />
+            </svg>
+          `;
+        } else if (typeStr.includes("merdiven")) {
+          silhouetteSvg = `
+            <svg viewBox="0 0 100 60" width="22" height="15" fill="none" stroke="currentColor" stroke-width="3" style="stroke-linecap:round;">
+              <rect x="10" y="20" width="80" height="25" rx="3" />
+              <path d="M15 14 L75 7" stroke-width="4" />
+              <circle cx="25" cy="48" r="8" fill="currentColor" />
+              <circle cx="75" cy="48" r="8" fill="currentColor" />
+            </svg>
+          `;
+        } else if (typeStr.includes("kurtarma") || typeStr.includes("arama")) {
+          silhouetteSvg = `
+            <svg viewBox="0 0 100 60" width="22" height="15" fill="none" stroke="currentColor" stroke-width="3" style="stroke-linecap:round;">
+              <rect x="10" y="15" width="80" height="30" rx="4" />
+              <path d="M15 20 L15 8 L35 4" stroke-width="4" />
+              <circle cx="25" cy="48" r="8" fill="currentColor" />
+              <circle cx="75" cy="48" r="8" fill="currentColor" />
+            </svg>
+          `;
+        } else if (typeStr.includes("lojistik") || typeStr.includes("tanker")) {
+          silhouetteSvg = `
+            <svg viewBox="0 0 100 60" width="22" height="15" fill="none" stroke="currentColor" stroke-width="3" style="stroke-linecap:round;">
+              <path d="M68 18 L88 18 L90 45 L68 45 Z" fill="currentColor" fill-opacity="0.2" />
+              <rect x="10" y="15" width="55" height="30" rx="10" />
+              <circle cx="20" cy="48" r="8" fill="currentColor" />
+              <circle cx="78" cy="48" r="8" fill="currentColor" />
+            </svg>
+          `;
+        } else {
+          silhouetteSvg = `
+            <svg viewBox="0 0 100 60" width="22" height="15" fill="none" stroke="currentColor" stroke-width="3" style="stroke-linecap:round;">
+              <path d="M10 25 L45 25 L45 20 L75 20 L90 30 L90 45 L10 45 Z" />
+              <circle cx="25" cy="47" r="7" fill="currentColor" />
+              <circle cx="75" cy="47" r="7" fill="currentColor" />
+            </svg>
+          `;
+        }
+
+        innerEl.innerHTML = silhouetteSvg
+        el.appendChild(innerEl)
+
+        const idStr = veh.plaka.replace(/\s+/g, '-').toLowerCase()
+        
+        let personnelBadges = '';
+        const crewList = (veh as any).aktifPersonel || (veh as any).aktif_personel || [];
+        if (crewList.length > 0) {
+          personnelBadges = crewList.map((p: string) => `
+            <span style="font-size:9.5px;padding:2px 5px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#e2e8f0;border-radius:4px;">${p}</span>
+          `).join('')
+        } else {
+          personnelBadges = '<span style="font-size:10px;color:#64748b;font-style:italic;">Görevli Yok</span>';
+        }
+
+        const popup = new maplibregl.Popup({ offset: 18, maxWidth: '300px' }).setHTML(`
+          <div style="font-family:system-ui;padding:4px;color:#e2e8f0;line-height:1.5;">
+            <div style="display:flex;align-items:center;justify-content:between;border-bottom:1px solid rgba(255,255,255,0.12);padding-bottom:6px;margin-bottom:6px;gap:8px;">
+              <div>
+                <h3 style="font-weight:800;color:${color};font-size:14px;margin:0;font-family:monospace;letter-spacing:-0.5px;">${veh.plaka}</h3>
+                <span style="font-size:10.5px;color:#94a3b8;font-weight:600;">${veh.arac_tipi || veh.aracTipi}</span>
+              </div>
+              <div style="margin-left:auto;display:flex;flex-direction:column;align-items:end;gap:4px;">
+                <span style="font-size:8.5px;font-weight:800;padding:2px 6px;border-radius:9999px;background:${color}15;color:${color};border:1px solid ${color}30;text-transform:uppercase;">${activeDurum}</span>
+                ${veh.marka ? `<span style="font-size:8.5px;font-weight:800;padding:1px 4px;border-radius:4px;background:rgba(34,211,238,0.1);color:#22d3ee;border:1px solid rgba(34,211,238,0.2);font-family:monospace;">${veh.marka}</span>` : ''}
+              </div>
+            </div>
+            
+            <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 8px;font-size:11.5px;margin-bottom:8px;font-family:monospace;">
+              <span style="color:#64748b;font-weight:500;">Kilometre:</span>
+              <span style="font-weight:700;color:#f1f5f9;text-align:right;">${veh.km?.toLocaleString() || '0'} km</span>
+              
+              <span style="color:#64748b;font-weight:500;">Motor Saati:</span>
+              <span style="font-weight:700;color:#f1f5f9;text-align:right;">${veh.motorSaatiPTO || '0'} saat</span>
+
+              ${veh.istasyon ? `
+                <span style="color:#64748b;font-weight:500;">İstasyon:</span>
+                <span style="font-weight:600;color:#cbd5e1;text-align:right;font-size:11px;">${veh.istasyon}</span>
+              ` : ''}
+
+              ${veh.yil && veh.model ? `
+                <span style="color:#64748b;font-weight:500;">Model:</span>
+                <span style="font-weight:600;color:#cbd5e1;text-align:right;font-size:11px;">${veh.yil} - ${veh.model}</span>
+              ` : ''}
+            </div>
+
+            <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:6px;margin-bottom:8px;">
+              <span style="font-size:9.5px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;margin-bottom:4px;letter-spacing:0.5px;">Aktif Mürettebat</span>
+              <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                ${personnelBadges}
+              </div>
+            </div>
+
+            <div style="margin-top:8px;">
+              <a href="/araclar/${idStr}" style="text-decoration:none;display:flex;align-items:center;justify-content:center;width:100%;background:${color}20;color:${color};border:1px solid ${color}40;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;transition:all 0.2s;text-align:center;box-sizing:border-box;">
+                <span>🚒</span> &nbsp;Detaylı Envanter / Bölmeler
+              </a>
+            </div>
+          </div>
+        `)
+
+        const marker = new maplibregl.Marker({ element: el })
+          .setLngLat(coords)
+          .setPopup(popup)
+          .addTo(map)
+
+        vehicleMarkersRef.current.push(marker)
+      })
+    }
+
+    return () => {
+      vehicleMarkersRef.current.forEach(m => m.remove())
+      vehicleMarkersRef.current = []
+    }
+  }, [vehicles, mapReady])
+
   // ─── Sync visibility of binalar & numarataj layers ───
   useEffect(() => {
     const map = mapRef.current
@@ -1235,6 +1415,33 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
         }
         .map-marker-hydrant-pulse-red {
           animation: pulse-hydrant-red 2s infinite ease-in-out;
+        }
+
+        /* Vehicle Pulse Keyframes */
+        @keyframes pulse-vehicle-aktif {
+          0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
+          70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        @keyframes pulse-vehicle-bakimda {
+          0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6); }
+          70% { box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+        }
+        @keyframes pulse-vehicle-arizali {
+          0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+          70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        .vehicle-aktif-glow {
+          animation: pulse-vehicle-aktif 2s infinite ease-in-out;
+        }
+        .vehicle-bakimda-glow {
+          animation: pulse-vehicle-bakimda 2s infinite ease-in-out;
+        }
+        .vehicle-arizali-glow {
+          animation: pulse-vehicle-arizali 1.5s infinite ease-in-out;
         }
       `}</style>
     </div>

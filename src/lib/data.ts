@@ -3,13 +3,18 @@ import { Vehicle, Personnel, MaintenanceLog, FuelLog, TaskLog } from "@/types";
 export const mockVehicles: Vehicle[] = [
   {
     plaka: "58 ACT 367",
-    aracTipi: "Ford Arazöz",
+    aracTipi: "Arazöz",
+    arac_tipi: "Arazöz",
+    marka: "S-A1",
     aktifPersonel: ["Mustafa Köse", "Onurcan Kaya"],
     km: 78420,
     motorSaatiPTO: 2145,
     durum: "aktif",
     sigortaBitis: "2026-11-20",
     muayeneBitis: "2026-08-15",
+    istasyon: "Merkez İstasyonu",
+    yil: 2018,
+    model: "Ford Cargo 2533",
     bolmeler: {
       kabin_ici: [
         { malzeme: "Kriko", adet: 1, durum: "Tam" },
@@ -34,13 +39,18 @@ export const mockVehicles: Vehicle[] = [
   },
   {
     plaka: "58 TH 256",
-    aracTipi: "İlk Müdahale Atego",
+    aracTipi: "Hızlı Müdahale",
+    arac_tipi: "Hızlı Müdahale",
+    marka: "S-M1",
     aktifPersonel: ["Melih Arslan", "Selahattin Tosun"],
     km: 45230,
     motorSaatiPTO: 1287,
     durum: "aktif",
     sigortaBitis: "2026-09-15",
     muayeneBitis: "2026-07-20",
+    istasyon: "Merkez İstasyonu",
+    yil: 2020,
+    model: "Mercedes Atego 1530",
     bolmeler: {
       sol_on_kapak: [
         { malzeme: "Holmatro Güç Ünitesi", adet: 1, durum: "Tam" },
@@ -50,8 +60,8 @@ export const mockVehicles: Vehicle[] = [
         { malzeme: "Amir Baltası", adet: 1, durum: "Tam" }
       ],
       sol_arka_kapak: [
-        { malzeme: "85'lik Yangın Hortumu", adet: 5, durum: "Tam" },
-        { malzeme: "110'luk Turbo Lans", adet: 2, durum: "Tam" },
+        { malzeme: "85'lik Hortum", adet: 5, durum: "Tam" },
+        { malzeme: "85'lik Turbo Lans", adet: 2, durum: "Tam" },
         { malzeme: "Ala Hortum Süzgeci", adet: 1, durum: "Kayıp/Yok" },
         { malzeme: "Hava Yastığı (Pompa Üzeri)", adet: 4, durum: "Tam" }
       ],
@@ -64,13 +74,18 @@ export const mockVehicles: Vehicle[] = [
   },
   {
     plaka: "58 TH 257",
-    aracTipi: "5 Nolu Atego Arama-Kurtarma",
+    aracTipi: "Kurtarma",
+    arac_tipi: "Kurtarma",
+    marka: "S-K1",
     aktifPersonel: ["İsmail Aslan", "Muhammed Enes Yıldırım"],
     km: 32150,
     motorSaatiPTO: 940,
     durum: "aktif",
     sigortaBitis: "2026-10-10",
     muayeneBitis: "2026-05-12",
+    istasyon: "Merkez İstasyonu",
+    yil: 2021,
+    model: "Mercedes Atego 1629 Arama-Kurtarma",
     bolmeler: {
       sol_on_kapak: [
         { malzeme: "Kaşık Sedye", adet: 1, durum: "Tam" },
@@ -98,13 +113,18 @@ export const mockVehicles: Vehicle[] = [
   },
   {
     plaka: "58 AEH 221",
-    aracTipi: "42 Metre MAN",
+    aracTipi: "Merdivenli",
+    arac_tipi: "Merdivenli",
+    marka: "S-M2",
     aktifPersonel: ["Uğur Budak", "Mustafa Demir"],
     km: 18400,
     motorSaatiPTO: 450,
     durum: "aktif",
     sigortaBitis: "2026-12-01",
     muayeneBitis: "2026-11-15",
+    istasyon: "Merkez İstasyonu",
+    yil: 2022,
+    model: "MAN TGS 33.400 42M",
     bolmeler: {
       arac_ici: [
         { malzeme: "El Feneri", adet: 3, durum: "Tam" },
@@ -124,13 +144,18 @@ export const mockVehicles: Vehicle[] = [
   },
   {
     plaka: "58 FP 968",
-    aracTipi: "BMC Fatih Arazöz",
+    aracTipi: "Arazöz",
+    arac_tipi: "Arazöz",
+    marka: "S-A2",
     aktifPersonel: ["Muhammed Yasir İnce", "Muhammed Kara"],
     km: 145000,
     motorSaatiPTO: 5600,
     durum: "aktif",
     sigortaBitis: "2026-06-25",
     muayeneBitis: "2026-03-10",
+    istasyon: "Fatih İstasyonu",
+    yil: 2012,
+    model: "BMC Fatih Arazöz",
     bolmeler: {
       sol_on_kapak: [
         { malzeme: "Kazma", adet: 1, durum: "Tam" },
@@ -143,8 +168,324 @@ export const mockVehicles: Vehicle[] = [
         { malzeme: "T Anahtarı", adet: 1, durum: "Tam" }
       ]
     }
+  },
+  {
+    plaka: "58 SC 112",
+    aracTipi: "Lojistik",
+    arac_tipi: "Lojistik",
+    marka: "S-T1",
+    aktifPersonel: ["Fatih Güler"],
+    km: 62100,
+    motorSaatiPTO: 1420,
+    durum: "aktif",
+    sigortaBitis: "2026-10-22",
+    muayeneBitis: "2026-09-12",
+    istasyon: "Merkez İstasyonu",
+    yil: 2019,
+    model: "Mercedes Axor 3240 Su Tankeri",
+    bolmeler: {
+      kabin_ici: [
+        { malzeme: "İlk Yardım Çantası", adet: 1, durum: "Tam" },
+        { malzeme: "El Feneri", adet: 2, durum: "Tam" }
+      ],
+      arka_bolme: [
+        { malzeme: "85'lik Hortum", adet: 4, durum: "Tam" },
+        { malzeme: "Alıcı Hortum Süzgeci", adet: 1, durum: "Tam" },
+        { malzeme: "85'lik Kollu Lans", adet: 2, durum: "Tam" }
+      ]
+    }
+  },
+  {
+    plaka: "58 TZ 310",
+    aracTipi: "Merdivenli",
+    arac_tipi: "Merdivenli",
+    marka: "S-M3",
+    aktifPersonel: ["Hasan Çınar Kuzu"],
+    km: 84300,
+    motorSaatiPTO: 2310,
+    durum: "aktif",
+    sigortaBitis: "2026-05-30",
+    muayeneBitis: "2026-04-18",
+    istasyon: "Fatih İstasyonu",
+    yil: 2017,
+    model: "Iveco Eurocargo 160E30 30M",
+    bolmeler: {
+      sag_dolap: [
+        { malzeme: "Temiz Hava Solunum Cihazı", adet: 2, durum: "Tam" },
+        { malzeme: "SCBA Maskesi", adet: 2, durum: "Tam" }
+      ],
+      sol_dolap: [
+        { malzeme: "Büyük Balta", adet: 1, durum: "Tam" },
+        { malzeme: "Kurtarma Kemeri", adet: 4, durum: "Tam" }
+      ]
+    }
+  },
+  {
+    plaka: "58 TC 911",
+    aracTipi: "Kurtarma",
+    arac_tipi: "Kurtarma",
+    marka: "S-K2",
+    aktifPersonel: ["Sencer Yıldız"],
+    km: 24500,
+    motorSaatiPTO: 380,
+    durum: "aktif",
+    sigortaBitis: "2026-12-15",
+    muayeneBitis: "2026-11-20",
+    istasyon: "Merkez İstasyonu",
+    yil: 2022,
+    model: "Ford Ranger 4x4 Arama Kurtarma",
+    bolmeler: {
+      bagaj_ici: [
+        { malzeme: "Jeneratör", adet: 1, durum: "Tam" },
+        { malzeme: "Motorlu Testere", adet: 1, durum: "Tam" },
+        { malzeme: "Şerit Bariyer", adet: 2, durum: "Tam" },
+        { malzeme: "Şarjlı Projektör", adet: 2, durum: "Tam" }
+      ]
+    }
+  },
+  {
+    plaka: "58 FD 580",
+    aracTipi: "Arazöz",
+    arac_tipi: "Arazöz",
+    marka: "S-A3",
+    aktifPersonel: ["Abdullah Übeyde Özkur"],
+    km: 39800,
+    motorSaatiPTO: 890,
+    durum: "aktif",
+    sigortaBitis: "2026-08-04",
+    muayeneBitis: "2026-07-28",
+    istasyon: "Fatih İstasyonu",
+    yil: 2018,
+    model: "Isuzu NPR Dar Alan Arazözü",
+    bolmeler: {
+      sol_dolap: [
+        { malzeme: "85'lik Hortum", adet: 3, durum: "Tam" },
+        { malzeme: "85'lik Turbo Lans", adet: 1, durum: "Tam" }
+      ],
+      sag_dolap: [
+        { malzeme: "İlk Yardım Çantası", adet: 1, durum: "Tam" },
+        { malzeme: "Yangın Battaniyesi", adet: 1, durum: "Tam" }
+      ]
+    }
+  },
+  {
+    plaka: "58 KC 440",
+    aracTipi: "Lojistik",
+    arac_tipi: "Lojistik",
+    marka: "S-L1",
+    aktifPersonel: ["Kadir Kuru"],
+    km: 112000,
+    motorSaatiPTO: 0,
+    durum: "aktif",
+    sigortaBitis: "2026-07-15",
+    muayeneBitis: "2026-06-10",
+    istasyon: "Merkez İstasyonu",
+    yil: 2015,
+    model: "BMC Megastar Lojistik",
+    bolmeler: {
+      kasa_ici: [
+        { malzeme: "Duba", adet: 10, durum: "Tam" },
+        { malzeme: "Emniyet Şeridi", adet: 5, durum: "Tam" },
+        { malzeme: "Sedyeler", adet: 3, durum: "Tam" }
+      ]
+    }
+  },
+  {
+    plaka: "58 AA 112",
+    aracTipi: "Kurtarma",
+    arac_tipi: "Kurtarma",
+    marka: "S-K3",
+    aktifPersonel: ["Emir Furkan Taşdelen"],
+    km: 15400,
+    motorSaatiPTO: 210,
+    durum: "aktif",
+    sigortaBitis: "2026-09-08",
+    muayeneBitis: "2026-08-30",
+    istasyon: "Merkez İstasyonu",
+    yil: 2021,
+    model: "Mercedes Sprinter KBRN Müdahale",
+    bolmeler: {
+      kabin_ici: [
+        { malzeme: "KBRN Gaz Maskesi", adet: 6, durum: "Tam" },
+        { malzeme: "Gaz Dedektörü", adet: 2, durum: "Tam" }
+      ],
+      arka_bolme: [
+        { malzeme: "KBRN Koruyucu Elbise (A Tipi)", adet: 4, durum: "Tam" },
+        { malzeme: "KBRN Koruyucu Elbise (B Tipi)", adet: 4, durum: "Tam" },
+        { malzeme: "Dekontaminasyon Çadırı", adet: 1, durum: "Tam" }
+      ]
+    }
+  },
+  {
+    plaka: "58 TT 500",
+    aracTipi: "Arazöz",
+    arac_tipi: "Arazöz",
+    marka: "S-A4",
+    aktifPersonel: ["Mustafa Metin Bıçakcigil"],
+    km: 56300,
+    motorSaatiPTO: 1680,
+    durum: "aktif",
+    sigortaBitis: "2026-11-12",
+    muayeneBitis: "2026-10-05",
+    istasyon: "Fatih İstasyonu",
+    yil: 2020,
+    model: "Mercedes Atego 1530 Arazöz",
+    bolmeler: {
+      sol_dolap: [
+        { malzeme: "85'lik Hortum", adet: 6, durum: "Tam" },
+        { malzeme: "85'lik Turbo Lans", adet: 2, durum: "Tam" }
+      ],
+      sag_dolap: [
+        { malzeme: "Temiz Hava Solunum Cihazı", adet: 2, durum: "Tam" },
+        { malzeme: "Jeneratör", adet: 1, durum: "Tam" }
+      ]
+    }
+  },
+  {
+    plaka: "58 TR 600",
+    aracTipi: "Hızlı Müdahale",
+    arac_tipi: "Hızlı Müdahale",
+    marka: "S-M4",
+    aktifPersonel: [],
+    km: 34200,
+    motorSaatiPTO: 490,
+    durum: "aktif",
+    sigortaBitis: "2026-10-18",
+    muayeneBitis: "2026-09-22",
+    istasyon: "Merkez İstasyonu",
+    yil: 2021,
+    model: "Volkswagen Amarok Müdahale",
+    bolmeler: {
+      kasa_ici: [
+        { malzeme: "UHP Yüksek Basınçlı Lans", adet: 1, durum: "Tam" },
+        { malzeme: "İlk Yardım Çantası", adet: 1, durum: "Tam" },
+        { malzeme: "Şarjlı Projektör", adet: 2, durum: "Tam" }
+      ]
+    }
+  },
+  {
+    plaka: "58 FF 911",
+    aracTipi: "Lojistik",
+    arac_tipi: "Lojistik",
+    marka: "S-T2",
+    aktifPersonel: [],
+    km: 98000,
+    motorSaatiPTO: 2800,
+    durum: "pasif",
+    sigortaBitis: "2026-04-12",
+    muayeneBitis: "2026-03-01",
+    istasyon: "Fatih İstasyonu",
+    yil: 2018,
+    model: "MAN TGS 10 Tonluk Su Tankeri",
+    bolmeler: {
+      arka_bolme: [
+        { malzeme: "85'lik Hortum", adet: 6, durum: "Tam" },
+        { malzeme: "Alıcı Hortum", adet: 4, durum: "Tam" }
+      ]
+    }
+  },
+  {
+    plaka: "58 YC 780",
+    aracTipi: "Arazöz",
+    arac_tipi: "Arazöz",
+    marka: "S-A5",
+    aktifPersonel: [],
+    km: 74200,
+    motorSaatiPTO: 1950,
+    durum: "aktif",
+    sigortaBitis: "2026-08-30",
+    muayeneBitis: "2026-07-15",
+    istasyon: "Merkez İstasyonu",
+    yil: 2016,
+    model: "Mercedes Axor Köpük Arazözü",
+    bolmeler: {
+      sol_dolap: [
+        { malzeme: "Ağır Köpük Lansı", adet: 2, durum: "Tam" },
+        { malzeme: "Orta Köpük Lansı", adet: 1, durum: "Tam" },
+        { malzeme: "85'lik Hortum", adet: 4, durum: "Tam" }
+      ],
+      sag_dolap: [
+        { malzeme: "Köpük Melanjörü", adet: 1, durum: "Tam" },
+        { malzeme: "Köpük Sıvısı Bidonu", adet: 4, durum: "Tam" }
+      ]
+    }
+  },
+  {
+    plaka: "58 BD 150",
+    aracTipi: "Kurtarma",
+    arac_tipi: "Kurtarma",
+    marka: "S-K4",
+    aktifPersonel: [],
+    km: 41200,
+    motorSaatiPTO: 1150,
+    durum: "bakimda",
+    sigortaBitis: "2026-12-10",
+    muayeneBitis: "2026-11-28",
+    istasyon: "Merkez İstasyonu",
+    yil: 2019,
+    model: "Mercedes Unimog U4023 Arama Kurtarma",
+    bolmeler: {
+      kasa_ici: [
+        { malzeme: "Ön Vinç Çelik Halatı", adet: 1, durum: "Tam" },
+        { malzeme: "Trifor", adet: 1, durum: "Tam" },
+        { malzeme: "Jeneratör", adet: 1, durum: "Tam" },
+        { malzeme: "Hidrolik Kesici", adet: 1, durum: "Tam" }
+      ]
+    }
+  },
+  {
+    plaka: "58 KM 330",
+    aracTipi: "Merdivenli",
+    arac_tipi: "Merdivenli",
+    marka: "S-M5",
+    aktifPersonel: [],
+    km: 12500,
+    motorSaatiPTO: 310,
+    durum: "aktif",
+    sigortaBitis: "2027-02-15",
+    muayeneBitis: "2027-01-20",
+    istasyon: "Merkez İstasyonu",
+    yil: 2023,
+    model: "Scania P360 54M Merdivenli",
+    bolmeler: {
+      sol_dolap: [
+        { malzeme: "Temiz Hava Solunum Cihazı", adet: 2, durum: "Tam" },
+        { malzeme: "Kurtarma Kemeri", adet: 4, durum: "Tam" }
+      ],
+      sag_dolap: [
+        { malzeme: "Jeneratör", adet: 1, durum: "Tam" },
+        { malzeme: "El Feneri", adet: 4, durum: "Tam" }
+      ]
+    }
+  },
+  {
+    plaka: "58 AS 900",
+    aracTipi: "Arazöz",
+    arac_tipi: "Arazöz",
+    marka: "S-A6",
+    aktifPersonel: [],
+    km: 29500,
+    motorSaatiPTO: 720,
+    durum: "aktif",
+    sigortaBitis: "2026-10-30",
+    muayeneBitis: "2026-09-18",
+    istasyon: "Merkez İstasyonu",
+    yil: 2022,
+    model: "Volvo FMX 8x4 Devasa Arazöz",
+    bolmeler: {
+      sol_dolap: [
+        { malzeme: "85'lik Hortum", adet: 8, durum: "Tam" },
+        { malzeme: "85'lik Turbo Lans", adet: 3, durum: "Tam" }
+      ],
+      sag_dolap: [
+        { malzeme: "Temiz Hava Solunum Cihazı", adet: 4, durum: "Tam" },
+        { malzeme: "Hidrolik Ayırıcı", adet: 1, durum: "Tam" },
+        { malzeme: "Amir Baltası", adet: 2, durum: "Tam" }
+      ]
+    }
   }
 ];
+
 
 export const mockPersonnel: Personnel[] = [
   { sicil_no: "SB5801", ad: "İbrahim", soyad: "Alaçam", unvan: "Müdür", rol: "Admin" },

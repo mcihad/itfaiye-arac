@@ -1,18 +1,15 @@
 "use client"
 import { useState, useCallback, useEffect } from "react"
-import { ScanLine, Camera, Check, AlertTriangle, Truck, ClipboardCheck, Search, X, ChevronDown, Loader2, Keyboard } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { ScanLine, Camera, AlertTriangle, Search, Loader2, Keyboard, ArrowLeft } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/Card"
 import { Input } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
-import { InventoryCheckModal } from "@/components/inventory/InventoryCheckModal"
-import { DailyVehicleCheckModal } from "@/components/inventory/DailyVehicleCheckModal"
 import { api } from "@/lib/api"
-import { cn } from "@/lib/utils"
 import { COMPARTMENT_NAMES } from "@/lib/constants"
-
 import { Scanner } from "@yudiel/react-qr-scanner"
 
-type ScanMode = "scanning" | "choosing" | "inventory" | "daily" | "error"
+type ScanMode = "scanning" | "error"
 
 interface VehicleInfo {
   plaka: string
@@ -21,11 +18,9 @@ interface VehicleInfo {
 }
 
 export default function TarayiciPage() {
+  const router = useRouter()
   const [mode, setMode] = useState<ScanMode>("scanning")
-  const [vehicle, setVehicle] = useState<VehicleInfo | null>(null)
-  const [compartmentKey, setCompartmentKey] = useState("")
   const [errorMsg, setErrorMsg] = useState("")
-  const [successMsg, setSuccessMsg] = useState("")
   const [manualPlaka, setManualPlaka] = useState("")
   const [manualLoading, setManualLoading] = useState(false)
   const [cameraError, setCameraError] = useState(false)
@@ -103,7 +98,7 @@ export default function TarayiciPage() {
     return null
   }
 
-  // ─── Vehicle Lookup ────────────────────────────────────────
+  // ─── Vehicle Lookup & Redirect ──────────────────────────────
   const lookupVehicle = useCallback(async (plaka: string, compartment?: string) => {
     const { data: rawData, error } = await api.from("vehicles")
       .select("plaka,arac_tipi,bolmeler")
@@ -117,17 +112,15 @@ export default function TarayiciPage() {
     }
 
     const data = rawData as VehicleInfo
-    setVehicle(data)
+    const plakaSlug = plaka.replace(/\s+/g, "-").toLowerCase()
 
-    // Smart routing: if compartment provided, go directly to inventory
+    // Redirect to the target deep link immediately
     if (compartment && data.bolmeler?.[compartment]) {
-      setCompartmentKey(compartment)
-      setMode("inventory")
+      router.push(`/arac/${plakaSlug}/${compartment}`)
     } else {
-      // Show chooser bottom sheet
-      setMode("choosing")
+      router.push(`/arac/${plakaSlug}`)
     }
-  }, [])
+  }, [router])
 
   // ─── QR Scan Handler ───────────────────────────────────────
   const handleScan = useCallback((results: any[]) => {
@@ -159,38 +152,12 @@ export default function TarayiciPage() {
     setManualLoading(false)
   }
 
-  // ─── Compartment Selection ─────────────────────────────────
-  const handleCompartmentSelect = (key: string) => {
-    setCompartmentKey(key)
-    setMode("inventory")
-  }
-
   // ─── Reset to Scanner ──────────────────────────────────────
   const resetToScanner = () => {
     setMode("scanning")
-    setVehicle(null)
-    setCompartmentKey("")
     setErrorMsg("")
     setManualPlaka("")
   }
-
-  // ─── Save Callbacks ────────────────────────────────────────
-  const handleInventorySaved = () => {
-    setSuccessMsg(`${vehicle?.plaka} — ${COMPARTMENT_NAMES[compartmentKey] || compartmentKey} sayımı başarıyla kaydedildi!`)
-    resetToScanner()
-    setTimeout(() => setSuccessMsg(""), 4000)
-  }
-
-  const handleDailySaved = () => {
-    setSuccessMsg(`${vehicle?.plaka} günlük kontrol raporu kaydedildi!`)
-    resetToScanner()
-    setTimeout(() => setSuccessMsg(""), 4000)
-  }
-
-  // ─── Available compartments for the vehicle ────────────────
-  const vehicleCompartments = vehicle?.bolmeler
-    ? Object.keys(vehicle.bolmeler).filter(k => Array.isArray(vehicle.bolmeler[k]) && vehicle.bolmeler[k].length > 0)
-    : []
 
   return (
     <div className="flex flex-col h-[calc(100vh-140px)] w-full items-center justify-start space-y-5 pt-4">
@@ -199,34 +166,26 @@ export default function TarayiciPage() {
       <div className="text-center space-y-1">
         <h1 className="text-2xl font-bold flex items-center justify-center gap-2">
           <ScanLine className="w-6 h-6 text-primary" />
-          Akıllı Tarayıcı
+          Akıllı QR & Barkod Okuyucu
         </h1>
         <p className="text-sm text-muted-foreground max-w-sm">
-          QR kod okutarak envanter sayımı veya günlük araç kontrolü yapın.
+          Araç veya bölme QR kodunu taratarak envanter ve durum takip ekranına doğrudan geçiş yapın.
         </p>
       </div>
-
-      {/* Success Message */}
-      {successMsg && (
-        <div className="bg-success/10 text-success px-4 py-3 rounded-xl flex items-center justify-center gap-2 w-full max-w-sm animate-in fade-in slide-in-from-top-4 shadow-lg border border-success/20">
-          <Check className="w-5 h-5" />
-          <span className="text-sm font-semibold">{successMsg}</span>
-        </div>
-      )}
 
       {/* ═══ SCANNER VIEW ═══ */}
       {mode === "scanning" && (
         <>
-          <Card className="w-full max-w-sm aspect-square bg-surface border-2 border-border/50 relative overflow-hidden group shadow-lg">
+          <Card className="w-full max-w-sm aspect-square bg-slate-900/50 border-2 border-white/10 relative overflow-hidden group shadow-[0_0_40px_-5px_rgba(34,211,238,0.25)] rounded-3xl">
             <CardContent className="p-0 w-full h-full flex flex-col items-center justify-center relative">
               <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20 pointer-events-none z-10" />
 
               {cameraError ? (
                 <div className="flex flex-col items-center justify-center text-center p-6 space-y-4">
                   <Camera className="w-16 h-16 text-muted-foreground opacity-50" />
-                  <p className="text-sm text-muted-foreground font-medium">
+                  <p className="text-sm text-muted-foreground font-medium leading-relaxed">
                     Kamera erişimi sağlanamadı.<br />
-                    Tarayıcı izinlerini kontrol edin veya aşağıdan manuel giriş yapın.
+                    Lütfen tarayıcı izinlerini kontrol edin veya aşağıdan manuel olarak arama yapın.
                   </p>
                 </div>
               ) : (
@@ -239,16 +198,16 @@ export default function TarayiciPage() {
 
                   {/* Scan Frame Overlay */}
                   <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
-                    <div className="w-3/4 h-3/4 border-2 border-primary/40 rounded-xl relative">
-                      <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-primary rounded-tl-xl" />
-                      <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-primary rounded-tr-xl" />
-                      <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-primary rounded-bl-xl" />
-                      <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-primary rounded-br-xl" />
-                      <div className="absolute left-0 right-0 h-0.5 bg-primary shadow-[0_0_8px_2px_rgba(var(--primary),0.6)] animate-[scan_2s_ease-in-out_infinite]" />
+                    <div className="w-3/4 h-3/4 border border-cyan-500/30 rounded-2xl relative shadow-[0_0_15px_rgba(34,211,238,0.15)]">
+                      <div className="absolute -top-[1.5px] -left-[1.5px] w-6 h-6 border-t-[3px] border-l-[3px] border-cyan-400 rounded-tl-xl" />
+                      <div className="absolute -top-[1.5px] -right-[1.5px] w-6 h-6 border-t-[3px] border-r-[3px] border-cyan-400 rounded-tr-xl" />
+                      <div className="absolute -bottom-[1.5px] -left-[1.5px] w-6 h-6 border-b-[3px] border-l-[3px] border-cyan-400 rounded-bl-xl" />
+                      <div className="absolute -bottom-[1.5px] -right-[1.5px] w-6 h-6 border-b-[3px] border-r-[3px] border-cyan-400 rounded-br-xl" />
+                      <div className="absolute left-0 right-0 h-[2px] bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)] animate-[scan_2.5s_ease-in-out_infinite]" />
                     </div>
                   </div>
-                  <p className="absolute bottom-6 left-0 right-0 text-center text-xs font-semibold text-primary/80 animate-pulse z-20">
-                    QR kodu vizöre ortalayın
+                  <p className="absolute bottom-6 left-0 right-0 text-center text-xs font-semibold text-cyan-400/90 animate-pulse z-20">
+                    QR Kodu Çerçevenin İçine Alın
                   </p>
                 </div>
               )}
@@ -258,11 +217,11 @@ export default function TarayiciPage() {
           {/* Manual Input */}
           <div className="w-full max-w-sm space-y-3">
             <div className="flex items-center gap-2 px-1">
-              <div className="h-px flex-1 bg-border/50" />
-              <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest flex items-center gap-1.5">
-                <Keyboard className="w-3 h-3" /> veya Manuel Giriş
+              <div className="h-px flex-1 bg-white/10" />
+              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest flex items-center gap-1.5">
+                <Keyboard className="w-3 h-3 text-slate-500" /> veya Manuel Giriş
               </span>
-              <div className="h-px flex-1 bg-border/50" />
+              <div className="h-px flex-1 bg-white/10" />
             </div>
             <div className="flex gap-2">
               <Input
@@ -270,12 +229,12 @@ export default function TarayiciPage() {
                 value={manualPlaka}
                 onChange={e => setManualPlaka(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && handleManualSearch()}
-                className="font-mono tracking-wider"
+                className="font-mono tracking-wider bg-slate-950/50 border-white/10 text-white focus:border-cyan-500/50 rounded-xl"
               />
               <Button 
                 onClick={handleManualSearch} 
                 disabled={manualLoading || !manualPlaka.trim()}
-                className="shrink-0"
+                className="shrink-0 rounded-xl font-bold bg-cyan-600 hover:bg-cyan-500 text-white"
               >
                 {manualLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
               </Button>
@@ -284,129 +243,38 @@ export default function TarayiciPage() {
         </>
       )}
 
-      {/* ═══ CHOOSING MODE — Bottom Sheet ═══ */}
-      {mode === "choosing" && vehicle && (
-        <div className="w-full max-w-sm animate-in slide-in-from-bottom-8 fade-in duration-300">
-          <Card className="border-2 border-primary/20 shadow-2xl overflow-hidden">
-            <CardContent className="p-0">
-              {/* Vehicle Header */}
-              <div className="bg-primary/5 border-b border-primary/10 p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
-                    <Truck className="w-6 h-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-lg">{vehicle.plaka}</p>
-                    <p className="text-xs text-muted-foreground">{vehicle.arac_tipi}</p>
-                  </div>
-                </div>
-                <button onClick={resetToScanner} className="p-2 hover:bg-muted rounded-lg transition-colors">
-                  <X className="w-5 h-5 text-muted-foreground" />
-                </button>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="p-4 space-y-3">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider text-center mb-1">
-                  Ne yapmak istiyorsunuz?
-                </p>
-
-                {/* Option 1: Compartment/Inventory */}
-                <button
-                  onClick={() => {
-                    if (vehicleCompartments.length === 1) {
-                      handleCompartmentSelect(vehicleCompartments[0])
-                    } else if (vehicleCompartments.length > 0) {
-                      // Show compartment list inline
-                      const el = document.getElementById("compartment-list")
-                      if (el) el.classList.toggle("hidden")
-                    }
-                  }}
-                  className="w-full p-4 bg-cyan-500/5 hover:bg-cyan-500/10 border-2 border-cyan-500/20 hover:border-cyan-500/40 rounded-2xl flex items-center gap-4 transition-all group text-left"
-                >
-                  <div className="w-12 h-12 bg-cyan-500/15 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                    <ClipboardCheck className="w-6 h-6 text-cyan-500" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-base">📋 Bölme / Envanter Sayımı</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Aracın bölmelerindeki malzemeleri kontrol edin
-                    </p>
-                  </div>
-                  {vehicleCompartments.length > 1 && (
-                    <ChevronDown className="w-5 h-5 text-muted-foreground shrink-0" />
-                  )}
-                </button>
-
-                {/* Compartment sub-list (hidden by default) */}
-                {vehicleCompartments.length > 1 && (
-                  <div id="compartment-list" className="hidden space-y-1.5 pl-4 animate-in slide-in-from-top-2">
-                    {vehicleCompartments.map(key => (
-                      <button
-                        key={key}
-                        onClick={() => handleCompartmentSelect(key)}
-                        className="w-full p-3 bg-muted/40 hover:bg-muted border border-border/50 rounded-xl text-left text-sm font-medium transition-colors flex items-center gap-2"
-                      >
-                        <div className="w-2 h-2 rounded-full bg-cyan-400 shrink-0" />
-                        {COMPARTMENT_NAMES[key] || key}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {vehicleCompartments.length === 0 && (
-                  <p className="text-xs text-muted-foreground text-center py-1 italic">
-                    Bu araçta tanımlı bölme bulunmuyor.
-                  </p>
-                )}
-
-                {/* Option 2: Daily Check */}
-                <button
-                  onClick={() => setMode("daily")}
-                  className="w-full p-4 bg-emerald-500/5 hover:bg-emerald-500/10 border-2 border-emerald-500/20 hover:border-emerald-500/40 rounded-2xl flex items-center gap-4 transition-all group text-left"
-                >
-                  <div className="w-12 h-12 bg-emerald-500/15 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                    <Truck className="w-6 h-6 text-emerald-500" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-base">🚒 Günlük Araç Kontrolü</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Yakıt, su, köpük, pompa ve genel durum kontrolü
-                    </p>
-                  </div>
-                </button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
       {/* ═══ ERROR MODE ═══ */}
       {mode === "error" && (
-        <div className="w-full max-w-sm animate-in zoom-in fade-in">
-          <Card className="border-2 border-danger/20 shadow-lg">
+        <div className="w-full max-w-sm animate-in zoom-in fade-in duration-300">
+          <Card className="border-2 border-rose-500/20 bg-slate-900/90 shadow-2xl rounded-3xl">
             <CardContent className="p-6 text-center space-y-4">
-              <AlertTriangle className="w-14 h-14 text-danger mx-auto" />
-              <p className="font-bold text-lg">Tarama Başarısız</p>
-              <p className="text-sm text-muted-foreground">{errorMsg}</p>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={resetToScanner} className="flex-1">
-                  Tekrar Tara
+              <div className="w-14 h-14 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto border border-rose-500/25">
+                <AlertTriangle className="w-8 h-8 text-rose-500" />
+              </div>
+              <p className="font-black text-lg text-slate-200">Arama Bulunamadı</p>
+              <p className="text-sm text-slate-400 leading-relaxed">{errorMsg}</p>
+              <div className="flex gap-2 pt-2">
+                <Button variant="outline" onClick={resetToScanner} className="flex-1 rounded-xl border-white/10 text-white font-bold">
+                  <ArrowLeft className="w-4 h-4 mr-2" /> Tekrar Tara
                 </Button>
               </div>
 
               {/* Manual entry fallback */}
-              <div className="pt-3 border-t border-border/50">
-                <p className="text-xs text-muted-foreground mb-2">Plaka ile arama:</p>
+              <div className="pt-4 border-t border-white/5">
+                <p className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">Hızlı Plaka Arama:</p>
                 <div className="flex gap-2">
                   <Input
                     placeholder="58 ACT 367"
                     value={manualPlaka}
                     onChange={e => setManualPlaka(e.target.value)}
                     onKeyDown={e => e.key === "Enter" && handleManualSearch()}
-                    className="font-mono"
+                    className="font-mono bg-slate-950/50 border-white/10 text-white focus:border-cyan-500/50 rounded-xl"
                   />
-                  <Button onClick={handleManualSearch} disabled={manualLoading || !manualPlaka.trim()}>
+                  <Button 
+                    onClick={handleManualSearch} 
+                    disabled={manualLoading || !manualPlaka.trim()}
+                    className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl"
+                  >
                     {manualLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                   </Button>
                 </div>
@@ -414,27 +282,6 @@ export default function TarayiciPage() {
             </CardContent>
           </Card>
         </div>
-      )}
-
-      {/* ═══ MODALS ═══ */}
-      {mode === "inventory" && vehicle && compartmentKey && (
-        <InventoryCheckModal
-          isOpen={true}
-          vehiclePlaka={vehicle.plaka}
-          compartmentKey={compartmentKey}
-          onClose={resetToScanner}
-          onSave={handleInventorySaved}
-        />
-      )}
-
-      {mode === "daily" && vehicle && (
-        <DailyVehicleCheckModal
-          isOpen={true}
-          vehiclePlaka={vehicle.plaka}
-          vehicleType={vehicle.arac_tipi}
-          onClose={resetToScanner}
-          onSaved={handleDailySaved}
-        />
       )}
     </div>
   )

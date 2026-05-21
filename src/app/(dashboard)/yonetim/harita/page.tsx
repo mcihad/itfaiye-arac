@@ -37,6 +37,7 @@ export default function HaritaPage() {
   const { user } = useAuthStore()
   const [incidents, setIncidents] = useState<Incident[]>([])
   const [hydrants, setHydrants] = useState<Hydrant[]>([])
+  const [vehicles, setVehicles] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   // Search Engine State
@@ -70,9 +71,11 @@ export default function HaritaPage() {
     try {
       const { data: incData } = await api.from('incidents').select('*').neq('location', null)
       const { data: hydData } = await api.from('fire_hydrants').select('*')
+      const { data: vehData } = await api.from('vehicles').select('*')
 
       if (incData) setIncidents(incData)
       if (hydData) setHydrants(hydData)
+      if (vehData) setVehicles(vehData)
     } catch (err) {
       console.error(err)
     } finally {
@@ -375,6 +378,7 @@ export default function HaritaPage() {
           <Map 
             incidents={incidents} 
             hydrants={hydrants} 
+            vehicles={vehicles}
             mode={interactionMode} 
             onMapClick={handleMapClick} 
             focusLocation={focusLocation}

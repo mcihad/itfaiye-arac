@@ -111,6 +111,52 @@ async function ensureDutyLogsTableExists() {
   }
 }
 
+async function ensureVehicleColumnsExist() {
+  try {
+    await query(`ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS marka VARCHAR;`);
+    await query(`ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS istasyon TEXT;`);
+    await query(`ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS yil INTEGER;`);
+    await query(`ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS model TEXT;`);
+  } catch (err) {
+    console.error('ensureVehicleColumnsExist hatası:', err);
+  }
+}
+
+async function autoSeedVehiclesIfEmpty() {
+  try {
+    const countRes = await query('SELECT COUNT(*) FROM vehicles');
+    const count = parseInt(countRes.rows[0]?.count || '0', 10);
+    if (count === 0) {
+      const { mockVehicles } = await import('@/lib/data');
+      for (const v of mockVehicles) {
+        await query(
+          `INSERT INTO vehicles (plaka, arac_tipi, marka, durum, bolmeler, km, "motorSaatiPTO", "sigortaBitis", "muayeneBitis", istasyon, yil, model)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+           ON CONFLICT (plaka) DO NOTHING`,
+          [
+            v.plaka,
+            v.arac_tipi || v.aracTipi,
+            v.marka || null,
+            v.durum || 'aktif',
+            JSON.stringify(v.bolmeler),
+            v.km || 0,
+            v.motorSaatiPTO || 0,
+            v.sigortaBitis || null,
+            v.muayeneBitis || null,
+            v.istasyon || null,
+            v.yil || null,
+            v.model || null
+          ]
+        );
+      }
+      console.log('✓ 18 taktik araç başarıyla seed edildi.');
+    }
+  } catch (err) {
+    console.error('autoSeedVehiclesIfEmpty hatası:', err);
+  }
+}
+
+
 
 function parseFilters(searchParams: URLSearchParams): Array<{ column: string; op: string; value: string }> {
   const filters: Array<{ column: string; op: string; value: string }> = [];
@@ -179,6 +225,10 @@ export async function GET(
     if (table === 'duty_logs') {
       await ensureDutyLogsTableExists();
     }
+    if (table === 'vehicles') {
+      await ensureVehicleColumnsExist();
+      await autoSeedVehiclesIfEmpty();
+    }
 
     const { searchParams } = new URL(request.url);
     const select = searchParams.get('select') || '*';
@@ -245,6 +295,9 @@ export async function POST(
     if (table === 'duty_logs') {
       await ensureDutyLogsTableExists();
     }
+    if (table === 'vehicles') {
+      await ensureVehicleColumnsExist();
+    }
 
     const body = await request.json();
     const rows = Array.isArray(body.data) ? body.data : [body.data];
@@ -301,6 +354,9 @@ export async function PATCH(
     }
     if (table === 'duty_logs') {
       await ensureDutyLogsTableExists();
+    }
+    if (table === 'vehicles') {
+      await ensureVehicleColumnsExist();
     }
 
     const body = await request.json();

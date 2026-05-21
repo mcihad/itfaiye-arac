@@ -9,14 +9,20 @@ export type CompartmentMap = Record<string, InventoryItem[]>;
 export interface Vehicle {
   plaka: string;
   aracTipi: string;
-  aktifPersonel: string[];
+  arac_tipi?: string;
+  marka?: string;
+  aktifPersonel?: string[];
   bolmeler: CompartmentMap;
   km?: number;
   motorSaatiPTO?: number;
-  durum?: "aktif" | "bakimda" | "arizali" | "pasif";
+  durum?: "aktif" | "bakimda" | "arizali" | "pasif" | string;
   sigortaBitis?: string;
   muayeneBitis?: string;
+  istasyon?: string;
+  yil?: number;
+  model?: string;
 }
+
 
 export interface Personnel {
   sicil_no: string;

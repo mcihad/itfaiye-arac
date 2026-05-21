@@ -29,16 +29,16 @@ async function main() {
     const res = await pool.query(`
       SELECT column_name, data_type 
       FROM information_schema.columns 
-      WHERE table_name = 'incidents';
+      WHERE table_name = 'vehicles';
     `);
-    console.log('Incident Columns:');
+    console.log('Vehicle Columns:');
     console.log(res.rows);
 
-    const rowsCount = await pool.query('SELECT COUNT(*) FROM incidents;');
-    console.log('Incident count:', rowsCount.rows[0].count);
+    const rowsCount = await pool.query('SELECT COUNT(*) FROM vehicles;');
+    console.log('Vehicle count:', rowsCount.rows[0].count);
 
-    const sample = await pool.query('SELECT * FROM incidents WHERE location IS NOT NULL LIMIT 2;');
-    console.log('Sample incidents:', sample.rows);
+    const sample = await pool.query('SELECT * FROM vehicles LIMIT 2;');
+    console.log('Sample vehicles:', sample.rows);
   } catch (err) {
     console.error('Error:', err);
   } finally {
