@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button"
 import { Badge } from "@/components/ui/Badge"
 import { useAuthStore } from "@/lib/authStore"
 import { ScanBarcode, Activity, Wind, AlertTriangle, Plus, Battery, Loader2, Save } from "lucide-react"
+import { calculateRemainingDays } from "@/lib/utils"
 
 interface SCBACylinder {
   id: string
@@ -122,16 +123,13 @@ export default function SCBAModulePage() {
 
   // Is test close? (6 months = ~180 days)
   const isTestWarning = (nextTestDate: string) => {
-    const next = new Date(nextTestDate).getTime()
-    const now = new Date().getTime()
-    const diffDays = (next - now) / (1000 * 60 * 60 * 24)
-    return diffDays <= 180
+    const res = calculateRemainingDays(nextTestDate)
+    return res.days !== null && res.days > 0 && res.days <= 180
   }
 
   const isTestExpired = (nextTestDate: string) => {
-    const next = new Date(nextTestDate).getTime()
-    const now = new Date().getTime()
-    return next < now
+    const res = calculateRemainingDays(nextTestDate)
+    return res.days !== null && res.days <= 0
   }
 
   const warningCount = cylinders.filter(c => isTestWarning(c.sonraki_test_tarihi)).length
@@ -246,6 +244,7 @@ export default function SCBAModulePage() {
              const expired = isTestExpired(cyl.sonraki_test_tarihi)
              const warning = !expired && isTestWarning(cyl.sonraki_test_tarihi)
              const pressurePct = (cyl.guncel_basinc / cyl.basinc_bar) * 100
+             const rem = calculateRemainingDays(cyl.sonraki_test_tarihi)
              
              return (
                <Card key={cyl.id} className={`overflow-hidden border-l-4 ${expired ? 'border-l-danger bg-danger/5' : warning ? 'border-l-warning' : 'border-l-success'}`}>
@@ -266,6 +265,15 @@ export default function SCBAModulePage() {
                      <div>
                        <p className={`text-xs uppercase font-semibold ${expired ? 'text-danger' : 'text-muted-foreground'}`}>Sonraki Test</p>
                        <p className={`font-bold ${expired ? 'text-danger' : ''}`}>{new Date(cyl.sonraki_test_tarihi).toLocaleDateString("tr-TR")}</p>
+                       {rem.days !== null && (
+                         rem.days > 180 ? (
+                           <p className="text-xs text-emerald-400 mt-1">⏳ {rem.days} gün kaldı</p>
+                         ) : rem.days > 0 ? (
+                           <p className="text-xs text-amber-500 font-semibold mt-1">⚠️ {rem.days} gün kaldı - Yenileme Yaklaştı</p>
+                         ) : (
+                           <p className="text-xs text-rose-500 animate-pulse font-bold mt-1">🚨 SÜRESİ GEÇTİ - KULLANIM DIŞI</p>
+                         )
+                       )}
                      </div>
                    </div>
 

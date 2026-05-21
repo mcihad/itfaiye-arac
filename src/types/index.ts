@@ -27,6 +27,9 @@ export interface Personnel {
   posta?: string;
   posta_no?: number;
   durum?: "Görevde" | "İzinli" | "Raporlu" | string;
+  ilkyardim_sertifika_tarihi?: string;
+  ehliyet_gecerlilik_tarihi?: string;
+  scba_sertifika_tarihi?: string;
 }
 
 export interface StaffCertification {

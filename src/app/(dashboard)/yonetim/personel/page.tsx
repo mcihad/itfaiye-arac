@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/Badge"
 import { Search, Plus, UserPlus, Shield, ShieldAlert, Key, Loader2, Star, CheckCircle2, SlidersHorizontal, Settings2, AlertTriangle, RefreshCcw, ShieldCheck, Truck, HeartPulse, Wind, Activity } from "lucide-react"
 import { api } from "@/lib/api"
 import { type Personnel } from "@/types"
-import { cn } from "@/lib/utils"
+import { cn, calculateRemainingDays } from "@/lib/utils"
 import { useAuthStore } from "@/lib/authStore"
 import Link from 'next/link'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/Dialog"
@@ -73,16 +73,24 @@ export default function PersonelYonetimPage() {
       }
 
       if (data && data.length > 0) {
-        const mapped: Personnel[] = data.map((p: any) => ({
-          sicil_no: p.sicil_no,
-          ad: p.ad,
-          soyad: p.soyad,
-          unvan: p.unvan,
-          rol: p.rol,
-          posta: p.posta || '',
-          posta_no: p.posta_no || 1,
-          durum: p.durum || 'Görevde'
-        }))
+        const mapped: Personnel[] = data.map((p: any) => {
+          const ehliyet = certData?.find((c: any) => c.sicil_no === p.sicil_no && c.tip === 'Ehliyet')
+          const ilkyardim = certData?.find((c: any) => c.sicil_no === p.sicil_no && c.tip === 'İlkyardım')
+          const scba = certData?.find((c: any) => c.sicil_no === p.sicil_no && c.tip === 'SCBA')
+          return {
+            sicil_no: p.sicil_no,
+            ad: p.ad,
+            soyad: p.soyad,
+            unvan: p.unvan,
+            rol: p.rol,
+            posta: p.posta || '',
+            posta_no: p.posta_no || 1,
+            durum: p.durum || 'Görevde',
+            ehliyet_gecerlilik_tarihi: ehliyet?.gecerlilik_tarihi || undefined,
+            ilkyardim_sertifika_tarihi: ilkyardim?.gecerlilik_tarihi || undefined,
+            scba_sertifika_tarihi: scba?.gecerlilik_tarihi || undefined
+          }
+        })
         setPersonnel(mapped)
         
         // Build permissions map from DB columns
@@ -436,6 +444,59 @@ export default function PersonelYonetimPage() {
     }
   }, [activeShiftStaff, certifications])
 
+  const criticalPersonnel = useMemo(() => {
+    interface CriticalIssue {
+      type: 'Ehliyet' | 'İlkyardım' | 'SCBA'
+      label: string
+      days: number | null
+      isExpired: boolean
+    }
+    
+    const list: Array<{
+      person: Personnel
+      issues: CriticalIssue[]
+    }> = []
+
+    personnel.forEach(p => {
+      const personIssues: CriticalIssue[] = []
+
+      const certs: Array<{ type: 'Ehliyet' | 'İlkyardım' | 'SCBA'; date?: string }> = [
+        { type: 'Ehliyet', date: p.ehliyet_gecerlilik_tarihi },
+        { type: 'İlkyardım', date: p.ilkyardim_sertifika_tarihi },
+        { type: 'SCBA', date: p.scba_sertifika_tarihi }
+      ]
+
+      certs.forEach(c => {
+        if (c.date) {
+          const res = calculateRemainingDays(c.date)
+          if (res.days !== null) {
+            if (res.days <= 0) {
+              personIssues.push({
+                type: c.type,
+                label: c.type === 'Ehliyet' ? 'Ağır Vasıta Ehliyeti' : c.type === 'İlkyardım' ? 'İlk Yardım Sertifikası' : 'SCBA Sertifikası',
+                days: res.days,
+                isExpired: true
+              })
+            } else if (res.days <= 30) {
+              personIssues.push({
+                type: c.type,
+                label: c.type === 'Ehliyet' ? 'Ağır Vasıta Ehliyeti' : c.type === 'İlkyardım' ? 'İlk Yardım Sertifikası' : 'SCBA Sertifikası',
+                days: res.days,
+                isExpired: false
+              })
+            }
+          }
+        }
+      })
+
+      if (personIssues.length > 0) {
+        list.push({ person: p, issues: personIssues })
+      }
+    })
+
+    return list
+  }, [personnel])
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
@@ -467,6 +528,100 @@ export default function PersonelYonetimPage() {
           </Button>
         </div>
       </div>
+
+      {/* Kritik Belge Takip ve Planlama Radarı */}
+      <Card className="border-slate-800 bg-slate-950/40 backdrop-blur-md shadow-xl overflow-hidden relative">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-red-500/10 to-amber-500/5 rounded-full blur-2xl pointer-events-none" />
+        <CardHeader className="pb-3 border-b border-border/50 bg-muted/10">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-amber-500/10 rounded-lg text-amber-500">
+              <ShieldAlert className="w-5 h-5 animate-pulse" />
+            </div>
+            <div>
+              <CardTitle className="text-base font-bold text-slate-100">Kritik Belge Takip ve Planlama Radarı</CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Geçerlilik süresi dolan veya son 30 güne giren personel ehliyet, ilk yardım ve SCBA sertifikaları.
+              </p>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-4 sm:p-6">
+          {criticalPersonnel.length === 0 ? (
+            <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-xl">
+              <div className="p-3 bg-emerald-500/10 text-emerald-400 rounded-full shrink-0">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <div className="text-center sm:text-left">
+                <p className="font-semibold text-emerald-400 text-sm">Tüm Personel Belgeleri Güvenli & Güncel</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Süre aşımı veya kritik aşamaya yaklaşan ehliyet, ilk yardım veya SCBA sertifikası bulunmamaktadır.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {criticalPersonnel.map(({ person, issues }) => (
+                <div 
+                  key={person.sicil_no} 
+                  className="border border-slate-800 rounded-xl p-4 bg-slate-900/10 hover:bg-slate-900/30 transition-all flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h4 className="font-bold text-slate-200 text-sm">{person.ad} {person.soyad}</h4>
+                        <p className="text-[10px] font-mono text-muted-foreground">{person.sicil_no} • {person.unvan} • Posta {person.posta_no || 1}</p>
+                      </div>
+                      <Badge variant="outline" className="text-[9px] bg-slate-900 border-slate-800 text-slate-400">
+                        Posta {person.posta_no || 1}
+                      </Badge>
+                    </div>
+
+                    <div className="space-y-2 mt-2">
+                      {issues.map((issue, idx) => (
+                        <div key={idx} className="flex flex-col gap-1">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-slate-400 flex items-center gap-1.5 font-medium">
+                              {issue.type === 'Ehliyet' ? <Truck className="w-3.5 h-3.5 text-cyan-500" /> :
+                               issue.type === 'İlkyardım' ? <HeartPulse className="w-3.5 h-3.5 text-rose-500" /> :
+                               <Wind className="w-3.5 h-3.5 text-teal-500" />}
+                              {issue.label}
+                            </span>
+                            {issue.isExpired ? (
+                              <Badge className="bg-red-500/10 text-red-500 border border-red-500/20 text-[9px] animate-pulse py-0.5">
+                                Süresi Geçti
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-amber-500/10 text-amber-500 border border-amber-500/20 text-[9px] py-0.5">
+                                Kritik Eşik
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="text-[10px] pl-5">
+                            {issue.isExpired ? (
+                              <span className="text-rose-500 font-bold">🚨 {Math.abs(issue.days || 0)} gün önce süresi doldu</span>
+                            ) : (
+                              <span className="text-amber-500 font-semibold">⏳ {issue.days} gün kaldı</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full mt-4 text-[11px] h-8 bg-slate-950/40 hover:bg-slate-900 border-slate-800 text-slate-300 hover:text-white"
+                    onClick={() => openEditModal(person)}
+                  >
+                    <Settings2 className="w-3 h-3 mr-1.5" /> Sertifikayı Güncelle
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Aktif Vardiya ve Araç Eşleştirme Şeması */}
       <Card className="border-slate-800 bg-slate-950/40 backdrop-blur-md shadow-xl">

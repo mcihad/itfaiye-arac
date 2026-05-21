@@ -46,3 +46,29 @@ export function getTriageInfo(olayTuru: string) {
     animation: "pulse-glow-green 2.5s infinite ease-in-out"
   };
 }
+
+export function calculateRemainingDays(targetDate: string | null | undefined): { days: number | null; text: string } {
+  if (!targetDate) {
+    return { days: null, text: "Tarih Girilmemiş" };
+  }
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const expiry = new Date(targetDate);
+  expiry.setHours(0, 0, 0, 0);
+  
+  if (isNaN(expiry.getTime())) {
+    return { days: null, text: "Tarih Girilmemiş" };
+  }
+  
+  const diffTime = expiry.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays < 0) {
+    return { days: diffDays, text: "SÜRESİ GEÇTİ" };
+  }
+  if (diffDays === 0) {
+    return { days: 0, text: "Bugün son gün" };
+  }
+  return { days: diffDays, text: `${diffDays} gün kaldı` };
+}
