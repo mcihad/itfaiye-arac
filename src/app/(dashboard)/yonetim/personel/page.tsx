@@ -35,6 +35,9 @@ export default function PersonelYonetimPage() {
   // Certifications
   const [certifications, setCertifications] = useState<any[]>([])
 
+  // Vehicles
+  const [dbVehicles, setDbVehicles] = useState<any[]>([])
+
   // Edit Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [selectedPerson, setSelectedPerson] = useState<Personnel | null>(null)
@@ -62,6 +65,11 @@ export default function PersonelYonetimPage() {
       const { data: certData, error: certErr } = await api.from('staff_certifications').select('*')
       if (!certErr && certData) {
         setCertifications(certData)
+      }
+
+      const { data: vehData, error: vehErr } = await api.from('vehicles').select('*')
+      if (!vehErr && vehData) {
+        setDbVehicles(vehData)
       }
 
       if (data && data.length > 0) {
@@ -340,6 +348,25 @@ export default function PersonelYonetimPage() {
     return personnel.filter(p => p.posta_no === activeShift)
   }, [personnel, activeShift])
 
+  // Dynamic vehicles selection matching user database content (Sivas plates)
+  const dynamicVehicles = useMemo(() => {
+    const arazoz = dbVehicles.find(v => (v.arac_tipi || '').toLowerCase().includes('arazöz')) || 
+                  dbVehicles.find(v => v.plaka === '58 FP 968') || 
+                  dbVehicles.find(v => v.plaka === '58 ACT 367') ||
+                  { plaka: '58 FP 968', arac_tipi: 'BMC Fatih Arazöz' };
+                  
+    const kurtarma = dbVehicles.find(v => (v.arac_tipi || '').toLowerCase().includes('kurtarma') || (v.arac_tipi || '').toLowerCase().includes('müdahale')) || 
+                    dbVehicles.find(v => v.plaka === '58 TH 257') || 
+                    dbVehicles.find(v => v.plaka === '58 TH 256') ||
+                    { plaka: '58 TH 257', arac_tipi: '5 Nolu Arama-Kurtarma' };
+                    
+    const merdivenli = dbVehicles.find(v => (v.arac_tipi || '').toLowerCase().includes('merdivenli') || (v.arac_tipi || '').toLowerCase().includes('metre') || (v.arac_tipi || '').toLowerCase().includes('man')) || 
+                      dbVehicles.find(v => v.plaka === '58 AEH 221') || 
+                      { plaka: '58 AEH 221', arac_tipi: '42 Metre MAN' };
+                      
+    return { arazoz, kurtarma, merdivenli };
+  }, [dbVehicles]);
+
   // Centralized Akıllı Araç & Rota Eşleştirme Dağıtımı (Faz 11.2)
   const vehicleAllocations = useMemo(() => {
     const assigned = new Set<string>()
@@ -486,8 +513,8 @@ export default function PersonelYonetimPage() {
                           <Truck className="w-5 h-5" />
                         </div>
                         <div>
-                          <h3 className="font-bold text-slate-200 text-sm">38 AK 110</h3>
-                          <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Arazöz (Söndürme)</span>
+                          <h3 className="font-bold text-slate-200 text-sm">{dynamicVehicles.arazoz.plaka}</h3>
+                          <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{dynamicVehicles.arazoz.arac_tipi}</span>
                         </div>
                        </div>
                        <Badge className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[10px]">Aktif</Badge>
@@ -540,8 +567,8 @@ export default function PersonelYonetimPage() {
                            <ShieldCheck className="w-5 h-5" />
                          </div>
                          <div>
-                           <h3 className="font-bold text-slate-200 text-sm">38 BF 450</h3>
-                           <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Kurtarma (Arama)</span>
+                           <h3 className="font-bold text-slate-200 text-sm">{dynamicVehicles.kurtarma.plaka}</h3>
+                           <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{dynamicVehicles.kurtarma.arac_tipi}</span>
                          </div>
                        </div>
                        <Badge className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[10px]">Aktif</Badge>
@@ -602,8 +629,8 @@ export default function PersonelYonetimPage() {
                            <SlidersHorizontal className="w-5 h-5" />
                          </div>
                          <div>
-                           <h3 className="font-bold text-slate-200 text-sm">38 DZ 777</h3>
-                           <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Merdivenli (44m)</span>
+                           <h3 className="font-bold text-slate-200 text-sm">{dynamicVehicles.merdivenli.plaka}</h3>
+                           <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{dynamicVehicles.merdivenli.arac_tipi}</span>
                          </div>
                        </div>
                        <Badge className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[10px]">Aktif</Badge>

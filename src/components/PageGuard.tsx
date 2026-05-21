@@ -36,7 +36,7 @@ export function mapUserToPermissionRole(user: any): string {
 }
 
 interface PageGuardProps {
-  pageId: 'harita' | 'personel_yonetimi' | 'arac_bakim' | 'envanter' | 'raporlar';
+  pageId: 'harita' | 'personel_yonetimi' | 'arac_bakim' | 'envanter' | 'raporlar' | 'egitimler';
   children: React.ReactNode;
 }
 
@@ -70,7 +70,7 @@ export default function PageGuard({ pageId, children }: PageGuardProps) {
             if (mappedRole === 'Müdür' || mappedRole === 'Amir') {
               setHasPermission(true);
             } else if (mappedRole === 'Çavuş') {
-              setHasPermission(['harita', 'arac_bakim', 'envanter', 'raporlar'].includes(pageId));
+              setHasPermission(['harita', 'arac_bakim', 'envanter', 'raporlar', 'egitimler'].includes(pageId));
             } else if (mappedRole === 'Santral') {
               setHasPermission(['harita', 'raporlar'].includes(pageId));
             } else {
@@ -83,7 +83,7 @@ export default function PageGuard({ pageId, children }: PageGuardProps) {
             if (mappedRole === 'Müdür' || mappedRole === 'Amir') {
               setHasPermission(true);
             } else if (mappedRole === 'Çavuş') {
-              setHasPermission(['harita', 'arac_bakim', 'envanter', 'raporlar'].includes(pageId));
+              setHasPermission(['harita', 'arac_bakim', 'envanter', 'raporlar', 'egitimler'].includes(pageId));
             } else if (mappedRole === 'Santral') {
               setHasPermission(['harita', 'raporlar'].includes(pageId));
             } else {

@@ -38,6 +38,7 @@ async function ensureRolePermissionsTableExists() {
       { rol: 'Müdür', sayfa_id: 'arac_bakim', izinli: true },
       { rol: 'Müdür', sayfa_id: 'envanter', izinli: true },
       { rol: 'Müdür', sayfa_id: 'raporlar', izinli: true },
+      { rol: 'Müdür', sayfa_id: 'egitimler', izinli: true },
 
       // Amir
       { rol: 'Amir', sayfa_id: 'harita', izinli: true },
@@ -45,6 +46,7 @@ async function ensureRolePermissionsTableExists() {
       { rol: 'Amir', sayfa_id: 'arac_bakim', izinli: true },
       { rol: 'Amir', sayfa_id: 'envanter', izinli: true },
       { rol: 'Amir', sayfa_id: 'raporlar', izinli: true },
+      { rol: 'Amir', sayfa_id: 'egitimler', izinli: true },
 
       // Çavuş
       { rol: 'Çavuş', sayfa_id: 'harita', izinli: true },
@@ -52,6 +54,7 @@ async function ensureRolePermissionsTableExists() {
       { rol: 'Çavuş', sayfa_id: 'arac_bakim', izinli: true },
       { rol: 'Çavuş', sayfa_id: 'envanter', izinli: true },
       { rol: 'Çavuş', sayfa_id: 'raporlar', izinli: true },
+      { rol: 'Çavuş', sayfa_id: 'egitimler', izinli: true },
 
       // Santral
       { rol: 'Santral', sayfa_id: 'harita', izinli: true },
@@ -59,13 +62,15 @@ async function ensureRolePermissionsTableExists() {
       { rol: 'Santral', sayfa_id: 'arac_bakim', izinli: false },
       { rol: 'Santral', sayfa_id: 'envanter', izinli: false },
       { rol: 'Santral', sayfa_id: 'raporlar', izinli: true },
+      { rol: 'Santral', sayfa_id: 'egitimler', izinli: false },
 
       // Er
       { rol: 'Er', sayfa_id: 'harita', izinli: true },
       { rol: 'Er', sayfa_id: 'personel_yonetimi', izinli: false },
       { rol: 'Er', sayfa_id: 'arac_bakim', izinli: false },
       { rol: 'Er', sayfa_id: 'envanter', izinli: true },
-      { rol: 'Er', sayfa_id: 'raporlar', izinli: false }
+      { rol: 'Er', sayfa_id: 'raporlar', izinli: false },
+      { rol: 'Er', sayfa_id: 'egitimler', izinli: false }
     ];
 
     for (const p of defaultPermissions) {

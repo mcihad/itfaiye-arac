@@ -5,7 +5,7 @@ import { useAuthStore } from '@/lib/authStore';
 import { api } from '@/lib/api';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { Shield, Lock, Unlock, Flame, Users, Wrench, Combine, FileText, Loader2, Sparkles, ShieldAlert, Check, AlertTriangle } from 'lucide-react';
+import { Shield, Lock, Unlock, Flame, Users, Wrench, Combine, FileText, Loader2, Sparkles, ShieldAlert, Check, AlertTriangle, GraduationCap } from 'lucide-react';
 
 interface PermissionRow {
   id?: number;
@@ -20,6 +20,7 @@ const PAGE_METADATA = [
   { id: 'arac_bakim', title: 'Araç Bakım & Garaj', desc: 'Arıza ihbarları, teknik raporlama ve müdür onay adımları', icon: Wrench, color: 'text-emerald-500 bg-emerald-500/10' },
   { id: 'envanter', title: 'Malzeme Envanteri', desc: 'QR kod üretimi, araç malzeme zimmetleri ve durum sayımları', icon: Combine, color: 'text-amber-500 bg-amber-500/10' },
   { id: 'raporlar', title: 'EK-16 Raporları', desc: 'Merkezi log sistemi, geçmiş denetimler ve sorun analizleri', icon: FileText, color: 'text-purple-500 bg-purple-500/10' },
+  { id: 'egitimler', title: 'Eğitim & Faaliyetler', desc: 'Resmi imza sirkülü eğitim raporları, tatbikat ve ziyaret kayıtları', icon: GraduationCap, color: 'text-blue-500 bg-blue-500/10' },
 ];
 
 const ROLES = [
