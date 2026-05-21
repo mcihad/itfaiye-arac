@@ -130,9 +130,9 @@ async function autoSeedVehiclesIfEmpty() {
       const { mockVehicles } = await import('@/lib/data');
       for (const v of mockVehicles) {
         await query(
-          `INSERT INTO vehicles (plaka, arac_tipi, marka, durum, bolmeler, km, "motorSaatiPTO", "sigortaBitis", "muayeneBitis", istasyon, yil, model)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-           ON CONFLICT (plaka) DO NOTHING`,
+          'INSERT INTO vehicles (plaka, arac_tipi, marka, durum, bolmeler, km, "motorSaatiPTO", "sigortaBitis", "muayeneBitis", istasyon, yil, model) ' +
+          'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) ' +
+          'ON CONFLICT (plaka) DO NOTHING',
           [
             v.plaka,
             v.arac_tipi || v.aracTipi,
