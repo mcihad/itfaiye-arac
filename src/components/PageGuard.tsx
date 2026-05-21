@@ -36,7 +36,7 @@ export function mapUserToPermissionRole(user: any): string {
 }
 
 interface PageGuardProps {
-  pageId: 'harita' | 'personel_yonetimi' | 'arac_bakim' | 'envanter' | 'raporlar' | 'egitimler' | 'hizmet_basvurulari';
+  pageId: 'harita' | 'personel_yonetimi' | 'arac_bakim' | 'envanter' | 'raporlar' | 'egitimler' | 'hizmet_basvurulari' | 'gorevler';
   children: React.ReactNode;
 }
 
@@ -70,11 +70,11 @@ export default function PageGuard({ pageId, children }: PageGuardProps) {
             if (mappedRole === 'Müdür' || mappedRole === 'Amir') {
               setHasPermission(true);
             } else if (mappedRole === 'Çavuş') {
-              setHasPermission(['harita', 'arac_bakim', 'envanter', 'raporlar', 'egitimler', 'hizmet_basvurulari'].includes(pageId));
+              setHasPermission(['harita', 'arac_bakim', 'envanter', 'raporlar', 'egitimler', 'hizmet_basvurulari', 'gorevler'].includes(pageId));
             } else if (mappedRole === 'Santral') {
-              setHasPermission(['harita', 'raporlar', 'hizmet_basvurulari'].includes(pageId));
+              setHasPermission(['harita', 'raporlar', 'hizmet_basvurulari', 'gorevler'].includes(pageId));
             } else {
-              setHasPermission(['harita', 'envanter', 'hizmet_basvurulari'].includes(pageId));
+              setHasPermission(['harita', 'envanter', 'hizmet_basvurulari', 'gorevler'].includes(pageId));
             }
           } else if (data) {
             setHasPermission(!!data.izinli);
@@ -83,11 +83,11 @@ export default function PageGuard({ pageId, children }: PageGuardProps) {
             if (mappedRole === 'Müdür' || mappedRole === 'Amir') {
               setHasPermission(true);
             } else if (mappedRole === 'Çavuş') {
-              setHasPermission(['harita', 'arac_bakim', 'envanter', 'raporlar', 'egitimler', 'hizmet_basvurulari'].includes(pageId));
+              setHasPermission(['harita', 'arac_bakim', 'envanter', 'raporlar', 'egitimler', 'hizmet_basvurulari', 'gorevler'].includes(pageId));
             } else if (mappedRole === 'Santral') {
-              setHasPermission(['harita', 'raporlar', 'hizmet_basvurulari'].includes(pageId));
+              setHasPermission(['harita', 'raporlar', 'hizmet_basvurulari', 'gorevler'].includes(pageId));
             } else {
-              setHasPermission(['harita', 'envanter', 'hizmet_basvurulari'].includes(pageId));
+              setHasPermission(['harita', 'envanter', 'hizmet_basvurulari', 'gorevler'].includes(pageId));
             }
           }
           setLoading(false);

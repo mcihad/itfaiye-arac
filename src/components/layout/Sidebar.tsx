@@ -51,9 +51,9 @@ export function Sidebar() {
           </>
         )}
 
-        <Link href="/gorevler" className="flex items-center space-x-3 rounded-md px-3 py-2 hover:bg-muted text-muted-foreground hover:text-foreground">
+        <Link href="/yonetim/gorevler" className="flex items-center space-x-3 rounded-md px-3 py-2 hover:bg-cyan-500/10 text-cyan-500 hover:text-cyan-400 font-medium">
           <FileText size={20} />
-          <span>Görevler & Teslim</span>
+          <span>📋 Görev & Devir-Teslim</span>
         </Link>
 
         {!isEr && (
@@ -95,10 +95,7 @@ export function Sidebar() {
               <History size={20} />
               <span>Raporlar & Loglar</span>
             </Link>
-            <Link href="/yonetim/sablonlar" className="flex items-center space-x-3 rounded-md px-3 py-2 hover:bg-muted text-muted-foreground hover:text-foreground">
-              <ListChecks size={20} />
-              <span>Görev Şablonları</span>
-            </Link>
+
           </div>
         )}
       </nav>

@@ -40,6 +40,7 @@ async function ensureRolePermissionsTableExists() {
       { rol: 'Müdür', sayfa_id: 'raporlar', izinli: true },
       { rol: 'Müdür', sayfa_id: 'egitimler', izinli: true },
       { rol: 'Müdür', sayfa_id: 'hizmet_basvurulari', izinli: true },
+      { rol: 'Müdür', sayfa_id: 'gorevler', izinli: true },
 
       // Amir
       { rol: 'Amir', sayfa_id: 'harita', izinli: true },
@@ -49,6 +50,7 @@ async function ensureRolePermissionsTableExists() {
       { rol: 'Amir', sayfa_id: 'raporlar', izinli: true },
       { rol: 'Amir', sayfa_id: 'egitimler', izinli: true },
       { rol: 'Amir', sayfa_id: 'hizmet_basvurulari', izinli: true },
+      { rol: 'Amir', sayfa_id: 'gorevler', izinli: true },
 
       // Çavuş
       { rol: 'Çavuş', sayfa_id: 'harita', izinli: true },
@@ -58,6 +60,7 @@ async function ensureRolePermissionsTableExists() {
       { rol: 'Çavuş', sayfa_id: 'raporlar', izinli: true },
       { rol: 'Çavuş', sayfa_id: 'egitimler', izinli: true },
       { rol: 'Çavuş', sayfa_id: 'hizmet_basvurulari', izinli: true },
+      { rol: 'Çavuş', sayfa_id: 'gorevler', izinli: true },
 
       // Santral
       { rol: 'Santral', sayfa_id: 'harita', izinli: true },
@@ -67,6 +70,7 @@ async function ensureRolePermissionsTableExists() {
       { rol: 'Santral', sayfa_id: 'raporlar', izinli: true },
       { rol: 'Santral', sayfa_id: 'egitimler', izinli: false },
       { rol: 'Santral', sayfa_id: 'hizmet_basvurulari', izinli: true },
+      { rol: 'Santral', sayfa_id: 'gorevler', izinli: true },
 
       // Er
       { rol: 'Er', sayfa_id: 'harita', izinli: true },
@@ -75,7 +79,8 @@ async function ensureRolePermissionsTableExists() {
       { rol: 'Er', sayfa_id: 'envanter', izinli: true },
       { rol: 'Er', sayfa_id: 'raporlar', izinli: false },
       { rol: 'Er', sayfa_id: 'egitimler', izinli: false },
-      { rol: 'Er', sayfa_id: 'hizmet_basvurulari', izinli: true }
+      { rol: 'Er', sayfa_id: 'hizmet_basvurulari', izinli: true },
+      { rol: 'Er', sayfa_id: 'gorevler', izinli: true }
     ];
 
     for (const p of defaultPermissions) {
