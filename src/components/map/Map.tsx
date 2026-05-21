@@ -202,68 +202,82 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
     fetch(`https://router.project-osrm.org/route/v1/driving/${STATION_COORDS[0]},${STATION_COORDS[1]};${targetLngLat[0]},${targetLngLat[1]}?overview=full&geometries=geojson`)
       .then(res => res.json())
       .then(data => {
-        if (data.routes && data.routes[0]) {
-          const routeGeojson = data.routes[0].geometry
+        // Safe guard against map being removed/destroyed before fetch finishes
+        if (!mapRef.current || mapRef.current !== map) return
+        try {
+          if (!map.getStyle || !map.getStyle()) return
 
-          if (map.getSource('route-source')) {
-            (map.getSource('route-source') as maplibregl.GeoJSONSource).setData(routeGeojson)
-          } else {
-            map.addSource('route-source', { type: 'geojson', data: routeGeojson })
+          if (data.routes && data.routes[0]) {
+            const routeGeojson = data.routes[0].geometry
 
-            // Background line
-            map.addLayer({
-              id: 'route-line-bg',
-              type: 'line',
-              source: 'route-source',
-              paint: {
-                'line-color': '#ef4444',
-                'line-width': 5,
-                'line-opacity': 0.3
+            if (map.getSource('route-source')) {
+              (map.getSource('route-source') as maplibregl.GeoJSONSource).setData(routeGeojson)
+            } else {
+              map.addSource('route-source', { type: 'geojson', data: routeGeojson })
+
+              // Background line
+              map.addLayer({
+                id: 'route-line-bg',
+                type: 'line',
+                source: 'route-source',
+                paint: {
+                  'line-color': '#ef4444',
+                  'line-width': 5,
+                  'line-opacity': 0.3
+                }
+              })
+
+              // Animated dashed line
+              map.addLayer({
+                id: 'route-line-animated',
+                type: 'line',
+                source: 'route-source',
+                paint: {
+                  'line-color': '#ef4444',
+                  'line-width': 5,
+                  'line-dasharray': [0, 4, 3]
+                }
+              })
+            }
+
+            // Setup dash animation
+            const dashArraySeq = [
+              [0, 4, 3],
+              [0.5, 4, 2.5],
+              [1, 4, 2],
+              [1.5, 4, 1.5],
+              [2, 4, 1],
+              [2.5, 4, 0.5],
+              [3, 4, 0],
+              [0, 0, 3, 4],
+              [0, 0.5, 3, 3.5],
+              [0, 1, 3, 3],
+              [0, 1.5, 3, 2.5],
+              [0, 2, 3, 2],
+              [0, 2.5, 3, 1.5],
+              [0, 3, 3, 1],
+              [0, 3.5, 3, 0.5]
+            ]
+            let step = 0
+
+            const animateDashArray = () => {
+              // Safe guard against map being removed or replaced
+              if (!mapRef.current || mapRef.current !== map) return
+              try {
+                if (!map.getStyle || !map.getStyle() || !map.getLayer('route-line-animated')) return
+                step = (step + 1) % dashArraySeq.length
+                map.setPaintProperty('route-line-animated', 'line-dasharray', dashArraySeq[step])
+                routeAnimFrameRef.current = requestAnimationFrame(() => {
+                  setTimeout(animateDashArray, 50)
+                })
+              } catch (e) {
+                console.warn("Map route animation safely stopped:", e)
               }
-            })
-
-            // Animated dashed line
-            map.addLayer({
-              id: 'route-line-animated',
-              type: 'line',
-              source: 'route-source',
-              paint: {
-                'line-color': '#ef4444',
-                'line-width': 5,
-                'line-dasharray': [0, 4, 3]
-              }
-            })
+            }
+            animateDashArray()
           }
-
-          // Setup dash animation
-          const dashArraySeq = [
-            [0, 4, 3],
-            [0.5, 4, 2.5],
-            [1, 4, 2],
-            [1.5, 4, 1.5],
-            [2, 4, 1],
-            [2.5, 4, 0.5],
-            [3, 4, 0],
-            [0, 0, 3, 4],
-            [0, 0.5, 3, 3.5],
-            [0, 1, 3, 3],
-            [0, 1.5, 3, 2.5],
-            [0, 2, 3, 2],
-            [0, 2.5, 3, 1.5],
-            [0, 3, 3, 1],
-            [0, 3.5, 3, 0.5]
-          ]
-          let step = 0
-
-          const animateDashArray = () => {
-            if (!map.getLayer('route-line-animated')) return
-            step = (step + 1) % dashArraySeq.length
-            map.setPaintProperty('route-line-animated', 'line-dasharray', dashArraySeq[step])
-            routeAnimFrameRef.current = requestAnimationFrame(() => {
-              setTimeout(animateDashArray, 50)
-            })
-          }
-          animateDashArray()
+        } catch (e) {
+          console.error("Error drawing OSRM route analysis layers:", e)
         }
       })
       .catch(err => console.error("OSRM Route Error:", err))
