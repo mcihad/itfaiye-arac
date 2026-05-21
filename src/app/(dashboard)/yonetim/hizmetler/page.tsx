@@ -148,9 +148,9 @@ export default function HizmetlerPage() {
       const { error } = await api.update('citizen_requests', { durum: newStatus }, { id: id })
       
       if (!error) {
-        setRequests(prev => prev.map(req => req.id === id ? { ...req, durum: newStatus as any } : req))
+        setRequests(prev => prev.map(req => req.id === id ? { ...req, durum: newStatus as CitizenRequest['durum'] } : req))
         if (selectedRequest && selectedRequest.id === id) {
-          setSelectedRequest(prev => prev ? { ...prev, durum: newStatus as any } : null)
+          setSelectedRequest(prev => prev ? { ...prev, durum: newStatus as CitizenRequest['durum'] } : null)
         }
       }
     } catch (err) {
