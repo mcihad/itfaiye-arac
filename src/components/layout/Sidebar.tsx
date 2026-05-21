@@ -2,105 +2,129 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { Home, Truck, Users, Wrench, Fuel, FileText, ScanLine, Wind, ListChecks, BarChart3, GraduationCap, Map, Camera, History, Shield } from 'lucide-react'
+import { usePathname } from 'next/navigation'
+import { 
+  LayoutDashboard, 
+  Map, 
+  Truck, 
+  Camera, 
+  ScanLine, 
+  Wrench, 
+  Wind, 
+  ClipboardList, 
+  Users, 
+  GraduationCap, 
+  Building, 
+  FileText, 
+  ShieldAlert, 
+  History 
+} from 'lucide-react'
 import { ThemeToggle } from '@/components/theme/ThemeToggle'
 import { useAuthStore } from '@/lib/authStore'
+import { cn } from '@/lib/utils'
 
 export function Sidebar() {
+  const pathname = usePathname()
   const { user } = useAuthStore()
   const isEr = user?.rol === 'User'
 
+  // Dynamic status match helper
+  const isActive = (href: string, matchStart?: string) => {
+    if (href === '/' && pathname !== '/') return false
+    if (matchStart && pathname.startsWith(matchStart)) return true
+    return pathname === href || pathname.startsWith(href + '/')
+  }
+
+  // Structured strategic grouping
+  const groups = [
+    {
+      title: "ANLIK DURUM & KOMUTA",
+      items: [
+        { href: "/", label: "Gösterge Paneli", icon: LayoutDashboard, visible: true },
+        { href: "/yonetim/harita", label: "Komuta Haritası (CBS)", icon: Map, visible: !isEr },
+      ]
+    },
+    {
+      title: "FİLO & LOJİSTİK YÖNETİMİ",
+      items: [
+        { href: "/araclar", label: "Araç Filosu & Envanter", icon: Truck, visible: !isEr, matchStart: '/arac/' },
+        { href: "/yonetim/tarayici", label: "QR Araç Tara", icon: Camera, visible: true },
+        { href: "/barkod", label: "Barkod Oku", icon: ScanLine, visible: true },
+        { href: "/yonetim/arac-bakim", label: "Araç Bakım & Yakıt", icon: Wrench, visible: !isEr },
+        { href: "/scba", label: "SCBA Tüp Takibi", icon: Wind, visible: !isEr },
+      ]
+    },
+    {
+      title: "KARARGÂH & İDARİ",
+      items: [
+        { href: "/yonetim/gorevler", label: "Görev & Devir-Teslim", icon: ClipboardList, visible: true },
+        { href: "/yonetim/personel", label: "Personel Yönetimi", icon: Users, visible: !isEr },
+        { href: "/yonetim/egitimler", label: "Eğitim & Faaliyetler", icon: GraduationCap, visible: !isEr },
+      ]
+    },
+    {
+      title: "RESMİ İŞLEMLER & SİSTEM",
+      items: [
+        { href: "/yonetim/hizmetler", label: "Hizmet Başvuruları", icon: Building, visible: !isEr },
+        { href: "/yonetim/olaylar", label: "Olay & Vaka Raporları", icon: FileText, visible: !isEr },
+        { href: "/yonetim/yetkiler", label: "Yetki & Rol Matrisi", icon: ShieldAlert, visible: user?.rol === 'Müdür' || user?.rol === 'Admin' },
+        { href: "/yonetim/raporlar", label: "Sistem Raporları & Loglar", icon: History, visible: !isEr },
+      ]
+    }
+  ]
+
   return (
-    <aside className="hidden w-64 flex-col border-r border-border bg-surface md:flex">
-      <div className="flex h-16 items-center px-6 border-b border-border space-x-3">
+    <aside className="hidden w-64 flex-col border-r border-slate-900 bg-slate-950/80 backdrop-blur-xl md:flex">
+      {/* Brand Header */}
+      <div className="flex h-16 items-center px-6 border-b border-slate-900 space-x-3">
          <Image src="/logo-itfaiye.png" alt="Logo" width={32} height={32} className="object-contain" />
-         <h1 className="text-lg font-bold tracking-tight text-foreground">Sivas İtfaiyesi</h1>
+         <div className="flex flex-col">
+           <h1 className="text-sm font-bold tracking-wider text-slate-100 uppercase">Sivas İtfaiyesi</h1>
+           <span className="text-[9px] text-cyan-500 font-semibold tracking-widest uppercase">Komuta Merkezi</span>
+         </div>
       </div>
-      <nav className="flex-1 space-y-2 p-4 overflow-y-auto">
-        <Link href="/" className="flex items-center space-x-3 rounded-md px-3 py-2 bg-primary/10 text-primary font-medium">
-          <Home size={20} />
-          <span>Dashboard</span>
-        </Link>
-        
-        {!isEr && (
-          <Link href="/araclar" className="flex items-center space-x-3 rounded-md px-3 py-2 hover:bg-muted text-muted-foreground hover:text-foreground">
-            <Truck size={20} />
-            <span>Araçlar</span>
-          </Link>
-        )}
 
-        <Link href="/barkod" className="flex items-center space-x-3 rounded-md px-3 py-2 bg-primary/10 text-primary font-bold shadow-sm">
-          <ScanLine size={20} />
-          <span>Barkod Oku</span>
-        </Link>
-        <Link href="/yonetim/tarayici" className="flex items-center space-x-3 rounded-md px-3 py-2 bg-orange-500/10 text-orange-500 font-bold shadow-sm">
-          <Camera size={20} />
-          <span>📷 QR Araç Tara</span>
-        </Link>
+      {/* Navigation Groups */}
+      <nav className="flex-1 p-4 overflow-y-auto space-y-6 scrollbar-thin scrollbar-thumb-slate-800">
+        {groups.map((group, gIdx) => {
+          const visibleItems = group.items.filter(item => item.visible)
+          if (visibleItems.length === 0) return null
 
-        {!isEr && (
-          <>
-            <Link href="/envanter-yonetimi" className="flex items-center space-x-3 rounded-md px-3 py-2 hover:bg-muted text-muted-foreground hover:text-foreground">
-              <ScanLine size={20} className="opacity-0" />
-              <span>Envanter Yönetimi</span>
-            </Link>
-            <Link href="/scba" className="flex items-center space-x-3 rounded-md px-3 py-2 hover:bg-cyan-500/10 text-cyan-600 font-medium">
-              <Wind size={20} />
-              <span>SCBA Tüp Takibi</span>
-            </Link>
-          </>
-        )}
+          return (
+            <div key={gIdx} className="space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-3 block mb-2">
+                {group.title}
+              </span>
+              <div className="space-y-1">
+                {visibleItems.map((item, iIdx) => {
+                  const Icon = item.icon
+                  const active = isActive(item.href, item.matchStart)
 
-        <Link href="/yonetim/gorevler" className="flex items-center space-x-3 rounded-md px-3 py-2 hover:bg-cyan-500/10 text-cyan-500 hover:text-cyan-400 font-medium">
-          <FileText size={20} />
-          <span>📋 Görev & Devir-Teslim</span>
-        </Link>
-
-        {!isEr && (
-          <div className="pt-4 mt-2 border-t border-border/50">
-            <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Yönetim Paneli</p>
-            <Link href="/yonetim/harita" className="flex items-center space-x-3 rounded-md px-3 py-2 hover:bg-muted text-muted-foreground hover:text-foreground">
-              <Map size={20} />
-              <span>Komuta Haritası (CBS)</span>
-            </Link>
-            <Link href="/yonetim/istatistikler" className="flex items-center space-x-3 rounded-md px-3 py-2 hover:bg-muted text-muted-foreground hover:text-foreground">
-              <BarChart3 size={20} />
-              <span>Olay İstatistikleri</span>
-            </Link>
-            <Link href="/yonetim/arac-bakim" className="flex items-center space-x-3 rounded-md px-3 py-2 hover:bg-orange-500/10 text-orange-500 hover:text-orange-400 font-medium">
-              <Fuel size={20} />
-              <span>🚒 Araç Bakım & Yakıt</span>
-            </Link>
-            <Link href="/yonetim/hizmetler" className="flex items-center space-x-3 rounded-md px-3 py-2 hover:bg-muted text-muted-foreground hover:text-foreground">
-              <FileText size={20} />
-              <span>Hizmet Başvuruları</span>
-            </Link>
-            <Link href="/yonetim/egitimler" className="flex items-center space-x-3 rounded-md px-3 py-2 hover:bg-muted text-muted-foreground hover:text-foreground">
-              <GraduationCap size={20} />
-              <span>Eğitim & Faaliyetler</span>
-            </Link>
-            <Link href="/yonetim/olaylar" className="flex items-center space-x-3 rounded-md px-3 py-2 hover:bg-muted text-muted-foreground hover:text-foreground">
-              <FileText size={20} />
-              <span>Olay & Vaka Raporları</span>
-            </Link>
-            <Link href="/yonetim/yetkiler" className="flex items-center space-x-3 rounded-md px-3 py-2 hover:bg-muted text-muted-foreground hover:text-foreground">
-              <Shield size={20} className="text-primary" />
-              <span>Yetki & Rol Matrisi</span>
-            </Link>
-            <Link href="/yonetim/personel" className="flex items-center space-x-3 rounded-md px-3 py-2 hover:bg-muted text-muted-foreground hover:text-foreground">
-              <Users size={20} />
-              <span>Personel Yönetimi</span>
-            </Link>
-            <Link href="/yonetim/raporlar" className="flex items-center space-x-3 rounded-md px-3 py-2 hover:bg-muted text-muted-foreground hover:text-foreground">
-              <History size={20} />
-              <span>Raporlar & Loglar</span>
-            </Link>
-
-          </div>
-        )}
+                  return (
+                    <Link
+                      key={iIdx}
+                      href={item.href}
+                      className={cn(
+                        "flex items-center space-x-3 rounded-md px-3 py-2 text-xs font-medium transition-all duration-200 border-l-2",
+                        active
+                          ? "bg-cyan-500/10 text-cyan-400 border-cyan-500 shadow-[inset_10px_0_15px_-10px_rgba(6,182,212,0.15)] font-semibold"
+                          : "text-slate-400 border-transparent hover:bg-slate-900/50 hover:text-slate-200"
+                      )}
+                    >
+                      <Icon size={16} />
+                      <span>{item.label}</span>
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
       </nav>
-      <div className="p-4 border-t border-border flex items-center justify-between">
-        <span className="text-xs font-semibold text-muted-foreground">Tema Ayarı</span>
+
+      {/* Theme Toggle & Bottom Info */}
+      <div className="p-4 border-t border-slate-900 flex items-center justify-between bg-slate-950/50">
+        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">HUD Arayüzü</span>
         <ThemeToggle />
       </div>
     </aside>
