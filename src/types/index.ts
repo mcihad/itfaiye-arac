@@ -106,3 +106,20 @@ export interface Incident {
   location?: string | { coordinates: [number, number] };
   aciliyet_seviyesi?: number;
 }
+
+export interface DutyLog {
+  id?: number;
+  sicil_no: string;
+  action: 'START_DUTY' | 'END_DUTY';
+  timestamp: string;
+  latitude: number;
+  longitude: number;
+}
+
+export interface ShiftState {
+  status: 'AKTIF' | 'TAMAMLANDI';
+  loading: boolean;
+  distance: number | null;
+  coords: { lat: number; lng: number } | null;
+  message: string;
+}

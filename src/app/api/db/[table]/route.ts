@@ -12,7 +12,7 @@ const ALLOWED_TABLES = [
   'citizen_requests', 'activities_and_trainings', 'personnel_activities',
   'vehicle_maintenances', 'fire_hydrants', 'spatial_addresses',
   'staff_certifications', 'vw_expiring_certifications', 'unified_system_logs', 'daily_vehicle_checks',
-  'role_permissions'
+  'role_permissions', 'duty_logs'
 ];
 
 async function ensureRolePermissionsTableExists() {
@@ -94,6 +94,23 @@ async function ensureRolePermissionsTableExists() {
   }
 }
 
+async function ensureDutyLogsTableExists() {
+  try {
+    await query(`
+      CREATE TABLE IF NOT EXISTS duty_logs (
+        id SERIAL PRIMARY KEY,
+        sicil_no TEXT NOT NULL,
+        action TEXT NOT NULL,
+        timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        latitude DOUBLE PRECISION,
+        longitude DOUBLE PRECISION
+      )
+    `);
+  } catch (err) {
+    console.error('ensureDutyLogsTableExists hatası:', err);
+  }
+}
+
 
 function parseFilters(searchParams: URLSearchParams): Array<{ column: string; op: string; value: string }> {
   const filters: Array<{ column: string; op: string; value: string }> = [];
@@ -159,6 +176,9 @@ export async function GET(
     if (table === 'role_permissions') {
       await ensureRolePermissionsTableExists();
     }
+    if (table === 'duty_logs') {
+      await ensureDutyLogsTableExists();
+    }
 
     const { searchParams } = new URL(request.url);
     const select = searchParams.get('select') || '*';
@@ -222,6 +242,9 @@ export async function POST(
     if (table === 'role_permissions') {
       await ensureRolePermissionsTableExists();
     }
+    if (table === 'duty_logs') {
+      await ensureDutyLogsTableExists();
+    }
 
     const body = await request.json();
     const rows = Array.isArray(body.data) ? body.data : [body.data];
@@ -275,6 +298,9 @@ export async function PATCH(
     }
     if (table === 'role_permissions') {
       await ensureRolePermissionsTableExists();
+    }
+    if (table === 'duty_logs') {
+      await ensureDutyLogsTableExists();
     }
 
     const body = await request.json();
@@ -331,6 +357,9 @@ export async function DELETE(
     }
     if (table === 'role_permissions') {
       await ensureRolePermissionsTableExists();
+    }
+    if (table === 'duty_logs') {
+      await ensureDutyLogsTableExists();
     }
 
     const { searchParams } = new URL(request.url);
