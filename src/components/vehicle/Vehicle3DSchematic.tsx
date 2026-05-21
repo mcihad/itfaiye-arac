@@ -116,12 +116,37 @@ const SIREN_VERTICES: Point3D[] = [
   { x: 45, y: 23, z: 18 },   // 33: siren right base back
 ];
 
+const ARMOR_VERTICES: Point3D[] = [
+  // Body side armor plates
+  { x: 30, y: 16, z: -28.1 },  // 34: Left armor front top
+  { x: -75, y: 16, z: -28.1 }, // 35: Left armor rear top
+  { x: -75, y: -10, z: -28.1 },// 36: Left armor rear bottom
+  { x: 30, y: -10, z: -28.1 }, // 37: Left armor front bottom
+  
+  { x: 30, y: 16, z: 28.1 },   // 38: Right armor front top
+  { x: -75, y: 16, z: 28.1 },  // 39: Right armor rear top
+  { x: -75, y: -10, z: 28.1 }, // 40: Right armor rear bottom
+  { x: 30, y: -10, z: 28.1 },  // 41: Right armor front bottom
+
+  // Cab door armor plates
+  { x: 56, y: 14, z: -27.1 },  // 42: Left cab front top
+  { x: 40, y: 14, z: -27.1 },  // 43: Left cab rear top
+  { x: 40, y: -8,  z: -27.1 }, // 44: Left cab rear bottom
+  { x: 56, y: -8,  z: -27.1 }, // 45: Left cab front bottom
+
+  { x: 56, y: 14, z: 27.1 },   // 46: Right cab front top
+  { x: 40, y: 14, z: 27.1 },   // 47: Right cab rear top
+  { x: 40, y: -8,  z: 27.1 },  // 48: Right cab rear bottom
+  { x: 56, y: -8,  z: 27.1 },  // 49: Right cab front bottom
+];
+
 const VERTICES: Point3D[] = [
   ...CAB_VERTICES,
   ...BODY_VERTICES,
   ...LADDER_VERTICES,
   ...BUMPER_VERTICES,
   ...SIREN_VERTICES,
+  ...ARMOR_VERTICES,
 ];
 
 // === SOLID 3D FACES & WIREFRAME LINES ===
@@ -135,6 +160,10 @@ const SOLID_FACES: SolidFace[] = [
   { indices: [0, 2, 4, 6, 8], baseColor: [20, 30, 48], type: 'cab' }, // left wall
   { indices: [1, 3, 5, 7, 9], baseColor: [20, 30, 48], type: 'cab' }, // right wall
 
+  // --- CAB ARMOR PLATES ---
+  { indices: [42, 43, 44, 45], baseColor: [32, 45, 75], type: 'cab', outlineColor: 'rgba(34, 211, 238, 0.55)' }, // left cab armor plate
+  { indices: [46, 47, 48, 49], baseColor: [32, 45, 75], type: 'cab', outlineColor: 'rgba(34, 211, 238, 0.55)' }, // right cab armor plate
+
   // --- BODY FACES ---
   { indices: [10, 11, 13, 12], baseColor: [15, 23, 42], type: 'body' }, // front wall
   { indices: [14, 15, 17, 16], baseColor: [20, 30, 48], type: 'body', outlineColor: 'rgba(6, 182, 212, 0.3)' }, // rear wall
@@ -142,6 +171,10 @@ const SOLID_FACES: SolidFace[] = [
   { indices: [12, 13, 17, 16], baseColor: [8, 12, 22], type: 'body' },  // bottom frame
   { indices: [10, 14, 16, 12], baseColor: [16, 26, 44], type: 'body' }, // left side
   { indices: [11, 15, 17, 13], baseColor: [16, 26, 44], type: 'body' }, // right side
+
+  // --- BODY ARMOR PLATES ---
+  { indices: [34, 35, 36, 37], baseColor: [30, 48, 80], type: 'body', outlineColor: 'rgba(34, 211, 238, 0.55)' }, // left side armor plate
+  { indices: [38, 39, 40, 41], baseColor: [30, 48, 80], type: 'body', outlineColor: 'rgba(34, 211, 238, 0.55)' }, // right side armor plate
 
   // --- BUMPER ---
   { indices: [22, 23, 25, 24], baseColor: [71, 85, 105], type: 'bumper' }, // bumper front face
@@ -216,6 +249,42 @@ const COMPARTMENT_PANELS: Record<string, Point3D[]> = {
     { x: -25, y: -8, z: 0 },
     { x: -25, y: 10, z: 0 },
     { x: 25, y: 10, z: 0 }
+  ],
+  arka_bolme: [
+    { x: -80.2, y: -12, z: -22 },
+    { x: -80.2, y: 14, z: -22 },
+    { x: -80.2, y: 14, z: 22 },
+    { x: -80.2, y: -12, z: 22 }
+  ],
+  arka_kapak: [
+    { x: -80.4, y: -8, z: -16 },
+    { x: -80.4, y: 10, z: -16 },
+    { x: -80.4, y: 10, z: 16 },
+    { x: -80.4, y: -8, z: 16 }
+  ],
+  sol_dolap: [
+    { x: 30, y: -12, z: -28.2 },
+    { x: -75, y: -12, z: -28.2 },
+    { x: -75, y: 15, z: -28.2 },
+    { x: 30, y: 15, z: -28.2 }
+  ],
+  sag_dolap: [
+    { x: 30, y: -12, z: 28.2 },
+    { x: -75, y: -12, z: 28.2 },
+    { x: -75, y: 15, z: 28.2 },
+    { x: 30, y: 15, z: 28.2 }
+  ],
+  bagaj_ici: [
+    { x: -80.3, y: -10, z: -20 },
+    { x: -80.3, y: 12, z: -20 },
+    { x: -80.3, y: 12, z: 20 },
+    { x: -80.3, y: -10, z: 20 }
+  ],
+  kasa_ici: [
+    { x: 25, y: -8, z: 0 },
+    { x: -25, y: -8, z: 0 },
+    { x: -25, y: 10, z: 0 },
+    { x: 25, y: 10, z: 0 }
   ]
 };
 
@@ -230,6 +299,12 @@ const HOTSPOT_3D: Record<string, HatchNode> = {
   sag_orta_kapak: { key: "sag_orta_kapak", x: -14.5,y: 1.5,z: 28.2,  label: "Sağ Orta",    side: "right" },
   sag_arka_kapak: { key: "sag_arka_kapak", x: -55, y: 1.5, z: 28.2,  label: "Sağ Arka",    side: "right" },
   arac_ustu:      { key: "arac_ustu",      x: -20, y: 22.5, z: 0,    label: "Araç Üstü",   side: "top" },
+  arka_bolme:     { key: "arka_bolme",     x: -80, y: 1,   z: 0,     label: "Arka Bölme",  side: "center" },
+  arka_kapak:     { key: "arka_kapak",     x: -80.2,y: 1,   z: 0,     label: "Arka Kapak",  side: "center" },
+  sol_dolap:      { key: "sol_dolap",      x: -22.5,y: 1.5, z: -28.2, label: "Sol Dolap",   side: "left" },
+  sag_dolap:      { key: "sag_dolap",      x: -22.5,y: 1.5, z: 28.2,  label: "Sağ Dolap",   side: "right" },
+  bagaj_ici:      { key: "bagaj_ici",      x: -80.1,y: 1,   z: 0,     label: "Bagaj İçi",   side: "center" },
+  kasa_ici:       { key: "kasa_ici",       x: 0,   y: 1,   z: 0,     label: "Kasa İçi",    side: "center" },
 };
 
 // === CAMERA FOCUS TARGETS FOR EACH COMPARTMENT ===
@@ -243,6 +318,12 @@ const COMPARTMENT_CAMERA_TARGETS: Record<string, CameraTarget> = {
   kabin_ici:      { yaw: -Math.PI / 5, pitch: 0.22, zoom: 130 },
   arac_ici:       { yaw: -Math.PI / 4, pitch: 0.35, zoom: 115 },
   arac_ustu:      { yaw: 0,            pitch: Math.PI / 3, zoom: 130 },
+  arka_bolme:     { yaw: -Math.PI,     pitch: 0.1,  zoom: 125 },
+  arka_kapak:     { yaw: -Math.PI,     pitch: 0.1,  zoom: 125 },
+  sol_dolap:      { yaw: -Math.PI / 2, pitch: 0.05, zoom: 120 },
+  sag_dolap:      { yaw: Math.PI / 2,  pitch: 0.05, zoom: 120 },
+  bagaj_ici:      { yaw: -Math.PI,     pitch: 0.1,  zoom: 125 },
+  kasa_ici:       { yaw: -Math.PI / 4, pitch: 0.35, zoom: 115 },
 };
 
 // === Point-in-Polygon (Ray-casting Algorithm) ===
@@ -875,9 +956,19 @@ export function Vehicle3DSchematic({
           zDepth: zDepth - 0.25, // Offset slightly forward to prevent z-fighting on body side
           draw: () => {
             if (isActive || isHovered) {
-              ctx.fillStyle = isActive ? "rgba(34, 197, 94, 0.25)" : "rgba(34, 211, 238, 0.12)";
-              ctx.strokeStyle = isActive ? "#22c55e" : "#22d3ee";
-              ctx.lineWidth = isActive ? 2.5 : 1.5;
+              // Breathing glow calculation for Sivas İtfaiyesi Premium visual style
+              const pulseIntensity = Math.abs(Math.sin(now / 220));
+              const activeFillAlpha = 0.20 + pulseIntensity * 0.18; // Pulses between 0.20 and 0.38
+              const activeStrokeAlpha = 0.75 + pulseIntensity * 0.25; // Pulses between 0.75 and 1.00
+              const glowBlur = isActive ? (10 + pulseIntensity * 8) : 6;
+
+              ctx.fillStyle = isActive 
+                ? `rgba(34, 197, 94, ${activeFillAlpha})` 
+                : "rgba(34, 211, 238, 0.12)";
+              ctx.strokeStyle = isActive 
+                ? `rgba(34, 197, 94, ${activeStrokeAlpha})` 
+                : "#22d3ee";
+              ctx.lineWidth = isActive ? 3 : 1.5;
 
               ctx.beginPath();
               ctx.moveTo(projPoints[0].x, projPoints[0].y);
@@ -887,7 +978,7 @@ export function Vehicle3DSchematic({
               ctx.closePath();
               ctx.fill();
               
-              ctx.shadowBlur = isActive ? 12 : 6;
+              ctx.shadowBlur = glowBlur;
               ctx.shadowColor = isActive ? "#22c55e" : "#22d3ee";
               ctx.stroke();
               ctx.shadowBlur = 0; // reset
