@@ -632,29 +632,26 @@ export default function EgitimlerPage() {
             color: #000000 !important;
             margin: 0 !important;
             padding: 0 !important;
+            height: auto !important;
           }
-          /* Hide anything except the print container */
-          body > div:not(.print-container),
-          body > span,
-          main,
-          aside,
-          nav,
-          header,
-          footer,
-          .print\\:hidden,
-          [class*="print:hidden"] {
-            display: none !important;
+          /* Hide all screen elements by default using visibility */
+          body * {
             visibility: hidden !important;
           }
+          /* Make the print container and all its children visible */
+          .print-container,
+          .print-container * {
+            visibility: visible !important;
+          }
+          /* Position the print container at the top left of the printed page */
           .print-container {
             display: block !important;
-            visibility: visible !important;
             position: absolute !important;
             left: 0 !important;
             top: 0 !important;
             width: 100% !important;
-            background: white !important;
-            color: black !important;
+            background-color: #ffffff !important;
+            color: #000000 !important;
             margin: 0 !important;
             padding: 15mm !important;
           }
