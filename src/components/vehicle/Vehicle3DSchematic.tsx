@@ -41,13 +41,32 @@ export interface HatchNode {
   side: "left" | "right" | "top" | "center";
 }
 
+export interface SolidFace {
+  indices: number[];
+  baseColor: [number, number, number];
+  type: 'cab' | 'body' | 'bumper' | 'siren' | 'ladder' | 'line';
+  outlineColor?: string;
+  lineWidth?: number;
+}
+
+export interface HitboxPolygon {
+  key: string;
+  points: { x: number; y: number }[];
+  zDepth: number;
+}
+
 interface CameraTarget {
   yaw: number;
   pitch: number;
   zoom: number;
 }
 
-// === 3D MODEL DEFINITIONS ===
+interface DrawItem {
+  zDepth: number;
+  draw: () => void;
+}
+
+// === 3D MODEL VERTICES ===
 const CAB_VERTICES: Point3D[] = [
   { x: 80, y: -18, z: -27 }, // 0: cab front bottom left
   { x: 80, y: -18, z: 27 },  // 1: cab front bottom right
@@ -105,43 +124,44 @@ const VERTICES: Point3D[] = [
   ...SIREN_VERTICES,
 ];
 
-const CAB_EDGES: [number, number][] = [
-  [0, 1], [0, 2], [1, 3], [2, 3], // front
-  [2, 4], [3, 5], [4, 5],         // windshield
-  [4, 6], [5, 7], [6, 7],         // roof
-  [6, 8], [7, 9], [8, 9],         // back wall
-  [0, 8], [1, 9],                 // floor rails
+// === SOLID 3D FACES & WIREFRAME LINES ===
+const SOLID_FACES: SolidFace[] = [
+  // --- CAB FACES ---
+  { indices: [0, 1, 3, 2], baseColor: [30, 41, 59], type: 'cab' }, // front hood
+  { indices: [2, 3, 5, 4], baseColor: [15, 76, 129], type: 'cab', outlineColor: 'rgba(34, 211, 238, 0.45)' }, // windshield (glowing blue-cyan tint)
+  { indices: [4, 5, 7, 6], baseColor: [15, 23, 42], type: 'cab' }, // roof
+  { indices: [6, 7, 9, 8], baseColor: [15, 23, 42], type: 'cab' }, // back wall
+  { indices: [0, 8, 9, 1], baseColor: [8, 12, 20], type: 'cab' },   // bottom
+  { indices: [0, 2, 4, 6, 8], baseColor: [20, 30, 48], type: 'cab' }, // left wall
+  { indices: [1, 3, 5, 7, 9], baseColor: [20, 30, 48], type: 'cab' }, // right wall
+
+  // --- BODY FACES ---
+  { indices: [10, 11, 13, 12], baseColor: [15, 23, 42], type: 'body' }, // front wall
+  { indices: [14, 15, 17, 16], baseColor: [20, 30, 48], type: 'body', outlineColor: 'rgba(6, 182, 212, 0.3)' }, // rear wall
+  { indices: [10, 11, 15, 14], baseColor: [12, 18, 30], type: 'body' }, // top deck
+  { indices: [12, 13, 17, 16], baseColor: [8, 12, 22], type: 'body' },  // bottom frame
+  { indices: [10, 14, 16, 12], baseColor: [16, 26, 44], type: 'body' }, // left side
+  { indices: [11, 15, 17, 13], baseColor: [16, 26, 44], type: 'body' }, // right side
+
+  // --- BUMPER ---
+  { indices: [22, 23, 25, 24], baseColor: [71, 85, 105], type: 'bumper' }, // bumper front face
+
+  // --- SIRENS ---
+  { indices: [26, 27, 29, 28], baseColor: [220, 38, 38], type: 'siren', outlineColor: 'rgba(239, 68, 68, 0.5)' }, // left red siren
+  { indices: [30, 31, 33, 32], baseColor: [37, 99, 235], type: 'siren', outlineColor: 'rgba(59, 130, 246, 0.5)' }, // right blue siren
+
+  // --- LADDER RAILS (rendered as lines) ---
+  { indices: [18, 20], baseColor: [6, 182, 212], type: 'line', outlineColor: 'rgba(6, 182, 212, 0.5)', lineWidth: 1.5 },
+  { indices: [19, 21], baseColor: [6, 182, 212], type: 'line', outlineColor: 'rgba(6, 182, 212, 0.5)', lineWidth: 1.5 },
+  { indices: [18, 19], baseColor: [6, 182, 212], type: 'line', outlineColor: 'rgba(6, 182, 212, 0.4)' },
+  { indices: [20, 21], baseColor: [6, 182, 212], type: 'line', outlineColor: 'rgba(6, 182, 212, 0.4)' },
+
+  // --- BUMPER MOUNTS (rendered as lines) ---
+  { indices: [0, 24], baseColor: [6, 182, 212], type: 'line', outlineColor: 'rgba(6, 182, 212, 0.4)' },
+  { indices: [1, 25], baseColor: [6, 182, 212], type: 'line', outlineColor: 'rgba(6, 182, 212, 0.4)' },
 ];
 
-const BODY_EDGES: [number, number][] = [
-  [10, 11], [10, 12], [11, 13], [12, 13], // body front
-  [10, 14], [11, 15], [12, 16], [13, 17], // body side rails
-  [14, 15], [14, 16], [15, 17], [16, 17], // body rear
-];
-
-const LADDER_EDGES: [number, number][] = [
-  [18, 19], [18, 20], [19, 21], [20, 21], // ladder rails
-];
-
-const BUMPER_EDGES: [number, number][] = [
-  [22, 23], [22, 24], [23, 25], [24, 25], // bumper front
-  [0, 24], [1, 25],                       // bumper mounts
-];
-
-const SIREN_EDGES: [number, number][] = [
-  [26, 27], [26, 28], [27, 29], [28, 29], // left siren
-  [30, 31], [30, 32], [31, 33], [32, 33], // right siren
-];
-
-const EDGES: [number, number][] = [
-  ...CAB_EDGES,
-  ...BODY_EDGES,
-  ...LADDER_EDGES,
-  ...BUMPER_EDGES,
-  ...SIREN_EDGES,
-];
-
-// === COMPARTMENT PANELS IN 3D SPACE ===
+// === COMPARTMENT HITBOX POLYGONS IN 3D SPACE ===
 const COMPARTMENT_PANELS: Record<string, Point3D[]> = {
   sol_on_kapak: [
     { x: 30, y: -12, z: -28.2 },
@@ -199,9 +219,9 @@ const COMPARTMENT_PANELS: Record<string, Point3D[]> = {
   ]
 };
 
-// === HOTSPOTS IN 3D SPACE ===
+// === HOTSPOT CENTERS (mainly for floating labels and leader lines) ===
 const HOTSPOT_3D: Record<string, HatchNode> = {
-  kabin_ici:      { key: "kabin_ici",      x: 55,  y: 2,   z: -27.2, label: "Kabin İçi",   side: "center" },
+  kabin_ici:      { key: "kabin_ici",      x: 57,  y: 4,   z: -27.2, label: "Kabin İçi",   side: "center" },
   arac_ici:       { key: "arac_ici",       x: 0,   y: 0,   z: 0,     label: "Araç İçi",    side: "center" },
   sol_on_kapak:   { key: "sol_on_kapak",   x: 17.5,y: 1.5, z: -28.2, label: "Sol Ön",      side: "left" },
   sol_orta_kapak: { key: "sol_orta_kapak", x: -14.5,y: 1.5,z: -28.2, label: "Sol Orta",    side: "left" },
@@ -209,21 +229,35 @@ const HOTSPOT_3D: Record<string, HatchNode> = {
   sag_on_kapak:   { key: "sag_on_kapak",   x: 17.5,y: 1.5, z: 28.2,  label: "Sağ Ön",      side: "right" },
   sag_orta_kapak: { key: "sag_orta_kapak", x: -14.5,y: 1.5,z: 28.2,  label: "Sağ Orta",    side: "right" },
   sag_arka_kapak: { key: "sag_arka_kapak", x: -55, y: 1.5, z: 28.2,  label: "Sağ Arka",    side: "right" },
-  arac_ustu:      { key: "arac_ustu",      x: -25, y: 22.5, z: 0,    label: "Araç Üstü",   side: "top" },
+  arac_ustu:      { key: "arac_ustu",      x: -20, y: 22.5, z: 0,    label: "Araç Üstü",   side: "top" },
 };
 
 // === CAMERA FOCUS TARGETS FOR EACH COMPARTMENT ===
 const COMPARTMENT_CAMERA_TARGETS: Record<string, CameraTarget> = {
-  sol_on_kapak:   { yaw: -Math.PI / 2, pitch: 0.05, zoom: 115 },
-  sol_orta_kapak: { yaw: -Math.PI / 2, pitch: 0.05, zoom: 115 },
-  sol_arka_kapak: { yaw: -Math.PI / 2, pitch: 0.05, zoom: 115 },
-  sag_on_kapak:   { yaw: Math.PI / 2,  pitch: 0.05, zoom: 115 },
-  sag_orta_kapak: { yaw: Math.PI / 2,  pitch: 0.05, zoom: 115 },
-  sag_arka_kapak: { yaw: Math.PI / 2,  pitch: 0.05, zoom: 115 },
-  kabin_ici:      { yaw: -Math.PI / 5, pitch: 0.22, zoom: 125 },
-  arac_ici:       { yaw: -Math.PI / 4, pitch: 0.35, zoom: 110 },
-  arac_ustu:      { yaw: 0,            pitch: Math.PI / 3, zoom: 125 },
+  sol_on_kapak:   { yaw: -Math.PI / 2, pitch: 0.05, zoom: 120 },
+  sol_orta_kapak: { yaw: -Math.PI / 2, pitch: 0.05, zoom: 120 },
+  sol_arka_kapak: { yaw: -Math.PI / 2, pitch: 0.05, zoom: 120 },
+  sag_on_kapak:   { yaw: Math.PI / 2,  pitch: 0.05, zoom: 120 },
+  sag_orta_kapak: { yaw: Math.PI / 2,  pitch: 0.05, zoom: 120 },
+  sag_arka_kapak: { yaw: Math.PI / 2,  pitch: 0.05, zoom: 120 },
+  kabin_ici:      { yaw: -Math.PI / 5, pitch: 0.22, zoom: 130 },
+  arac_ici:       { yaw: -Math.PI / 4, pitch: 0.35, zoom: 115 },
+  arac_ustu:      { yaw: 0,            pitch: Math.PI / 3, zoom: 130 },
 };
+
+// === Point-in-Polygon (Ray-casting Algorithm) ===
+function isPointInPolygon(px: number, py: number, polygon: { x: number; y: number }[]): boolean {
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i].x, yi = polygon[i].y;
+    const xj = polygon[j].x, yj = polygon[j].y;
+    
+    const intersect = ((yi > py) !== (yj > py))
+        && (px < (xj - xi) * (py - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
 
 // === 3D TO 2D PERSPECTIVE PROJECTION ===
 function project(
@@ -246,9 +280,9 @@ function project(
   const y2 = p.y * cosP - z1 * sinP;
   const z2 = p.y * sinP + z1 * cosP;
 
-  // Camera parameters
-  const distance = 210; // distance from origin
-  const fov = 350;      // field of view factor
+  // Camera settings
+  const distance = 210;
+  const fov = 350;
   const scale = fov / (distance + z2);
 
   const cx = width / 2;
@@ -259,6 +293,21 @@ function project(
   const projY = cy - y2 * scale * (zoom / 100);
 
   return { x: projX, y: projY, zDepth: z2 };
+}
+
+// === ROTATE 3D POINT ONLY (for Z-sorting math) ===
+function rotatePoint(p: Point3D, yaw: number, pitch: number): Point3D {
+  const cosY = Math.cos(yaw);
+  const sinY = Math.sin(yaw);
+  const x1 = p.x * cosY - p.z * sinY;
+  const z1 = p.x * sinY + p.z * cosY;
+
+  const cosP = Math.cos(pitch);
+  const sinP = Math.sin(pitch);
+  const y2 = p.y * cosP - z1 * sinP;
+  const z2 = p.y * sinP + z1 * cosP;
+
+  return { x: x1, y: y2, z: z2 };
 }
 
 // === HELPER DRAWING FUNCTIONS ===
@@ -273,11 +322,11 @@ function drawWheel(
   w: number,
   h: number
 ) {
-  const radius = 10;
+  const radius = 9.5;
   const segments = 12;
   const outerPoints: Point3D[] = [];
   const innerPoints: Point3D[] = [];
-  const thickness = centerZ > 0 ? -4 : 4;
+  const thickness = centerZ > 0 ? -4.5 : 4.5;
   
   for (let i = 0; i < segments; i++) {
     const angle = (i / segments) * Math.PI * 2;
@@ -296,30 +345,40 @@ function drawWheel(
   const projOuter = outerPoints.map(p => project(p, yaw, pitch, zoom, w, h));
   const projInner = innerPoints.map(p => project(p, yaw, pitch, zoom, w, h));
 
-  // Draw outer circle
+  // 1. Draw solid connector faces (tire tread)
+  ctx.fillStyle = "rgb(12, 16, 26)";
+  for (let i = 0; i < segments; i++) {
+    const next = (i + 1) % segments;
+    ctx.beginPath();
+    ctx.moveTo(projOuter[i].x, projOuter[i].y);
+    ctx.lineTo(projOuter[next].x, projOuter[next].y);
+    ctx.lineTo(projInner[next].x, projInner[next].y);
+    ctx.lineTo(projInner[i].x, projInner[i].y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  // 2. Draw outer face
+  ctx.fillStyle = "rgb(20, 28, 44)";
   ctx.beginPath();
   ctx.moveTo(projOuter[0].x, projOuter[0].y);
   for (let i = 1; i < segments; i++) {
     ctx.lineTo(projOuter[i].x, projOuter[i].y);
   }
   ctx.closePath();
+  ctx.fill();
   ctx.stroke();
 
-  // Draw inner circle
+  // 3. Draw inner face
+  ctx.fillStyle = "rgb(10, 15, 24)";
   ctx.beginPath();
   ctx.moveTo(projInner[0].x, projInner[0].y);
   for (let i = 1; i < segments; i++) {
     ctx.lineTo(projInner[i].x, projInner[i].y);
   }
   ctx.closePath();
-  ctx.stroke();
-
-  // Connect them
-  ctx.beginPath();
-  for (let i = 0; i < segments; i += 3) {
-    ctx.moveTo(projOuter[i].x, projOuter[i].y);
-    ctx.lineTo(projInner[i].x, projInner[i].y);
-  }
+  ctx.fill();
   ctx.stroke();
 }
 
@@ -375,7 +434,7 @@ function drawWaterCannon(
   ctx.moveTo(projBase.x, projBase.y);
   ctx.lineTo(projNeck.x, projNeck.y);
   ctx.lineTo(projNozzle.x, projNozzle.y);
-  ctx.lineWidth = 1.8;
+  ctx.lineWidth = 2;
   ctx.stroke();
   ctx.lineWidth = 1; // restore
 }
@@ -391,8 +450,8 @@ function drawHeadlightBeams(
   const leftHeadlight = { x: 80, y: -8, z: -20 };
   const rightHeadlight = { x: 80, y: -8, z: 20 };
 
-  const leftBeamEnd = { x: 120, y: -12, z: -35 };
-  const rightBeamEnd = { x: 120, y: -12, z: 35 };
+  const leftBeamEnd = { x: 125, y: -12, z: -35 };
+  const rightBeamEnd = { x: 125, y: -12, z: 35 };
 
   const projLStart = project(leftHeadlight, yaw, pitch, zoom, w, h);
   const projLEnd = project(leftBeamEnd, yaw, pitch, zoom, w, h);
@@ -400,30 +459,30 @@ function drawHeadlightBeams(
   const projRStart = project(rightHeadlight, yaw, pitch, zoom, w, h);
   const projREnd = project(rightBeamEnd, yaw, pitch, zoom, w, h);
 
-  // Draw light cones
-  ctx.fillStyle = "rgba(250, 204, 21, 0.04)";
+  // Light cones
+  ctx.fillStyle = "rgba(250, 204, 21, 0.05)";
   
   ctx.beginPath();
   ctx.moveTo(projLStart.x, projLStart.y);
-  ctx.lineTo(projLEnd.x, projLEnd.y - 12);
-  ctx.lineTo(projLEnd.x, projLEnd.y + 12);
+  ctx.lineTo(projLEnd.x, projLEnd.y - 14);
+  ctx.lineTo(projLEnd.x, projLEnd.y + 14);
   ctx.closePath();
   ctx.fill();
 
   ctx.beginPath();
   ctx.moveTo(projRStart.x, projRStart.y);
-  ctx.lineTo(projREnd.x, projREnd.y - 12);
-  ctx.lineTo(projREnd.x, projREnd.y + 12);
+  ctx.lineTo(projREnd.x, projREnd.y - 14);
+  ctx.lineTo(projREnd.x, projREnd.y + 14);
   ctx.closePath();
   ctx.fill();
 
-  // Headlight points
-  ctx.fillStyle = "rgba(250, 204, 21, 0.8)";
+  // Headlight flares
+  ctx.fillStyle = "rgba(250, 204, 21, 0.9)";
   ctx.beginPath();
-  ctx.arc(projLStart.x, projLStart.y, 3, 0, Math.PI * 2);
+  ctx.arc(projLStart.x, projLStart.y, 3.5, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
-  ctx.arc(projRStart.x, projRStart.y, 3, 0, Math.PI * 2);
+  ctx.arc(projRStart.x, projRStart.y, 3.5, 0, Math.PI * 2);
   ctx.fill();
 }
 
@@ -437,12 +496,12 @@ export function Vehicle3DSchematic({
 }: ThreeSceneProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Interaction States
+  // UI Control states
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const [autoRotate, setAutoRotate] = useState<boolean>(true);
   const [hudActive, setHudActive] = useState<boolean>(true);
 
-  // Use refs for continuous values to avoid performance hit on 60fps draw loop
+  // Rotation, pitch and zoom states in refs to maintain 60fps draw loops
   const yawRef = useRef<number>(-Math.PI / 4);
   const pitchRef = useRef<number>(0.25);
   const zoomRef = useRef<number>(100);
@@ -451,6 +510,7 @@ export function Vehicle3DSchematic({
   const targetPitchRef = useRef<number>(0.25);
   const targetZoomRef = useRef<number>(100);
 
+  // Drag states
   const isDraggingRef = useRef<boolean>(false);
   const dragStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const dragStartYawRef = useRef<number>(-Math.PI / 4);
@@ -458,20 +518,22 @@ export function Vehicle3DSchematic({
   const isDragClickRef = useRef<boolean>(true);
   
   const lastInteractionRef = useRef<number>(0);
-  const projectedHotspotsRef = useRef<{ key: string; x: number; y: number; r: number }[]>([]);
+  
+  // Hitbox polygon coordinates (populated dynamically during render loop)
+  const projectedPanelsRef = useRef<HitboxPolygon[]>([]);
 
-  // Focus transition when active compartment prop is updated
+  // Orbit transition LERP target locking on active compartment change
   useEffect(() => {
     if (activeCompartment && COMPARTMENT_CAMERA_TARGETS[activeCompartment]) {
       const target = COMPARTMENT_CAMERA_TARGETS[activeCompartment];
       targetYawRef.current = target.yaw;
       targetPitchRef.current = target.pitch;
       targetZoomRef.current = target.zoom;
-      lastInteractionRef.current = 0; // immediate lock
+      lastInteractionRef.current = 0; // lock immediately
     }
   }, [activeCompartment]);
 
-  // Event handlers
+  // Unified Mouse & Touch coordinate helper
   const getMousePos = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement> | MouseEvent | TouchEvent) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
@@ -519,22 +581,31 @@ export function Vehicle3DSchematic({
       const dx = pos.x - dragStartRef.current.x;
       const dy = pos.y - dragStartRef.current.y;
       
+      // Increased drag sensitivity (0.011)
       if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
         isDragClickRef.current = false;
       }
       
-      targetYawRef.current = dragStartYawRef.current + dx * 0.007;
-      targetPitchRef.current = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, dragStartPitchRef.current - dy * 0.007));
+      targetYawRef.current = dragStartYawRef.current + dx * 0.011;
+      targetPitchRef.current = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, dragStartPitchRef.current - dy * 0.011));
       lastInteractionRef.current = Date.now();
     } else {
+      // Ray-cast Hitbox Check
       let foundHover: string | null = null;
-      for (const hs of projectedHotspotsRef.current) {
-        const dist = Math.hypot(pos.x - hs.x, pos.y - hs.y);
-        if (dist < hs.r + 5) {
-          foundHover = hs.key;
-          break;
+      const hits: { key: string; zDepth: number }[] = [];
+      
+      projectedPanelsRef.current.forEach(panel => {
+        if (isPointInPolygon(pos.x, pos.y, panel.points)) {
+          hits.push({ key: panel.key, zDepth: panel.zDepth });
         }
+      });
+      
+      if (hits.length > 0) {
+        // Sort by Z-depth to target the closest panel (Raycast hit)
+        hits.sort((a, b) => a.zDepth - b.zDepth);
+        foundHover = hits[0].key;
       }
+      
       if (foundHover !== hoveredKey) {
         setHoveredKey(foundHover);
       }
@@ -547,16 +618,20 @@ export function Vehicle3DSchematic({
     
     if (isDragClickRef.current) {
       const pos = getMousePos(e);
-      let clickedKey: string | null = null;
-      for (const hs of projectedHotspotsRef.current) {
-        const dist = Math.hypot(pos.x - hs.x, pos.y - hs.y);
-        if (dist < hs.r + 5) {
-          clickedKey = hs.key;
-          break;
+      const hits: { key: string; zDepth: number }[] = [];
+      
+      projectedPanelsRef.current.forEach(panel => {
+        if (isPointInPolygon(pos.x, pos.y, panel.points)) {
+          hits.push({ key: panel.key, zDepth: panel.zDepth });
         }
-      }
-      if (clickedKey && compartmentKeys.includes(clickedKey)) {
-        onSelect(clickedKey);
+      });
+      
+      if (hits.length > 0) {
+        hits.sort((a, b) => a.zDepth - b.zDepth);
+        const clickedKey = hits[0].key;
+        if (compartmentKeys.includes(clickedKey)) {
+          onSelect(clickedKey);
+        }
       }
     }
     lastInteractionRef.current = Date.now();
@@ -567,7 +642,7 @@ export function Vehicle3DSchematic({
     setHoveredKey(null);
   };
 
-  // Main render loop
+  // Main 60fps render loop
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -587,10 +662,10 @@ export function Vehicle3DSchematic({
 
       ctx.clearRect(0, 0, w, h);
 
-      // Camera state transition math
       const now = Date.now();
       const timeSinceLastInteraction = now - lastInteractionRef.current;
 
+      // Inactivity Auto-orbit and lock transitions
       if (timeSinceLastInteraction > 3000 && autoRotate) {
         if (activeCompartment && COMPARTMENT_CAMERA_TARGETS[activeCompartment]) {
           const target = COMPARTMENT_CAMERA_TARGETS[activeCompartment];
@@ -604,18 +679,17 @@ export function Vehicle3DSchematic({
         }
       }
 
-      // Smooth interpolation using LERP
-      yawRef.current += (targetYawRef.current - yawRef.current) * 0.07;
-      pitchRef.current += (targetPitchRef.current - pitchRef.current) * 0.07;
-      zoomRef.current += (targetZoomRef.current - zoomRef.current) * 0.07;
+      // Smooth camera süzülme (LERP factor = 0.05 for extremely smooth transitions)
+      yawRef.current += (targetYawRef.current - yawRef.current) * 0.05;
+      pitchRef.current += (targetPitchRef.current - pitchRef.current) * 0.05;
+      zoomRef.current += (targetZoomRef.current - zoomRef.current) * 0.05;
 
       const yaw = yawRef.current;
       const pitch = pitchRef.current;
       const zoom = zoomRef.current;
 
-      // 1. Perspective grid on Y = -18 floor
+      // 1. Perspective grid on Y = -18 floor with glowing holographic fade
       if (hudActive) {
-        ctx.strokeStyle = "rgba(6, 182, 212, 0.05)";
         ctx.lineWidth = 0.8;
         const gridY = -18;
         const spacing = 20;
@@ -628,6 +702,9 @@ export function Vehicle3DSchematic({
           const p2 = { x: gridX, y: gridY, z: spacing * range };
           const pr1 = project(p1, yaw, pitch, zoom, w, h);
           const pr2 = project(p2, yaw, pitch, zoom, w, h);
+          
+          const opacity = Math.max(0, 0.12 - Math.abs(i) * 0.016);
+          ctx.strokeStyle = `rgba(6, 182, 212, ${opacity})`;
           
           ctx.beginPath();
           ctx.moveTo(pr1.x, pr1.y);
@@ -642,6 +719,9 @@ export function Vehicle3DSchematic({
           const pr1 = project(p1, yaw, pitch, zoom, w, h);
           const pr2 = project(p2, yaw, pitch, zoom, w, h);
           
+          const opacity = Math.max(0, 0.12 - Math.abs(i) * 0.016);
+          ctx.strokeStyle = `rgba(6, 182, 212, ${opacity})`;
+          
           ctx.beginPath();
           ctx.moveTo(pr1.x, pr1.y);
           ctx.lineTo(pr2.x, pr2.y);
@@ -649,199 +729,257 @@ export function Vehicle3DSchematic({
         }
       }
 
-      // 2. Inactive Compartment Panels (Faint lines and fill)
-      Object.entries(COMPARTMENT_PANELS).forEach(([key, vertices]) => {
-        if (!compartmentKeys.includes(key)) return;
-        const isActive = activeCompartment === key;
-        const isHovered = hoveredKey === key;
-        
-        if (!isActive && !isHovered) {
-          ctx.fillStyle = "rgba(6, 182, 212, 0.012)";
-          ctx.strokeStyle = "rgba(6, 182, 212, 0.12)";
-          ctx.lineWidth = 0.6;
-
-          ctx.beginPath();
-          const p0 = project(vertices[0], yaw, pitch, zoom, w, h);
-          ctx.moveTo(p0.x, p0.y);
-          for (let i = 1; i < vertices.length; i++) {
-            const pi = project(vertices[i], yaw, pitch, zoom, w, h);
-            ctx.lineTo(pi.x, pi.y);
-          }
-          ctx.closePath();
-          ctx.fill();
-          ctx.stroke();
-        }
+      // --- 3D ROTATION PRE-COMPUTATION ---
+      const rotatedVertices = VERTICES.map(v => rotatePoint(v, yaw, pitch));
+      const projectedVertices = rotatedVertices.map(rv => {
+        const distance = 210;
+        const fov = 350;
+        const scale = fov / (distance + rv.z);
+        const cx = w / 2;
+        const cy = h / 2;
+        return {
+          x: cx + rv.x * scale * (zoom / 100),
+          y: cy - rv.y * scale * (zoom / 100),
+          zDepth: rv.z
+        };
       });
 
-      // 3. Wheels in 3D
-      ctx.strokeStyle = "rgba(6, 182, 212, 0.35)";
-      ctx.lineWidth = 0.8;
-      drawWheel(ctx, 58, -18, -27.5, yaw, pitch, zoom, w, h);
-      drawWheel(ctx, 58, -18, 27.5, yaw, pitch, zoom, w, h);
-      drawWheel(ctx, -25, -18, -28.5, yaw, pitch, zoom, w, h);
-      drawWheel(ctx, -25, -18, 28.5, yaw, pitch, zoom, w, h);
-      drawWheel(ctx, -58, -18, -28.5, yaw, pitch, zoom, w, h);
-      drawWheel(ctx, -58, -18, 28.5, yaw, pitch, zoom, w, h);
+      // --- PAINTER'S ALGORITHM DRAW ITEMS ASSEMBLY ---
+      const drawItems: DrawItem[] = [];
 
-      // 4. Main Wireframe Body
-      ctx.strokeStyle = "rgba(6, 182, 212, 0.55)";
-      ctx.lineWidth = 1;
+      // 2. Add solid faces to rendering stack with flat ambient shading
+      SOLID_FACES.forEach(face => {
+        const zDepth = face.indices.reduce((sum, idx) => sum + rotatedVertices[idx].z, 0) / face.indices.length;
+        
+        drawItems.push({
+          zDepth,
+          draw: () => {
+            ctx.beginPath();
+            const p0 = projectedVertices[face.indices[0]];
+            ctx.moveTo(p0.x, p0.y);
+            for (let i = 1; i < face.indices.length; i++) {
+              const pi = projectedVertices[face.indices[i]];
+              ctx.lineTo(pi.x, pi.y);
+            }
+            ctx.closePath();
+            
+            if (face.type === 'line') {
+              ctx.strokeStyle = face.outlineColor || "rgba(6, 182, 212, 0.5)";
+              ctx.lineWidth = face.lineWidth || 1;
+              ctx.stroke();
+            } else {
+              // Calculate normal and light shading
+              const A = rotatedVertices[face.indices[0]];
+              const B = rotatedVertices[face.indices[1]];
+              const C = rotatedVertices[face.indices[2]];
+              
+              const v1 = { x: B.x - A.x, y: B.y - A.y, z: B.z - A.z };
+              const v2 = { x: C.x - A.x, y: C.y - A.y, z: C.z - A.z };
+              const nx = v1.y * v2.z - v1.z * v2.y;
+              const ny = v1.z * v2.x - v1.x * v2.z;
+              const nz = v1.x * v2.y - v1.y * v2.x;
+              const len = Math.hypot(nx, ny, nz);
+              let intensity = 0.65;
+              
+              if (len > 0) {
+                const normX = nx / len;
+                const normY = ny / len;
+                const normZ = nz / len;
+                
+                // Light direction
+                const lx = 0.3;
+                const ly = 0.8;
+                const lz = -0.5;
+                const lenL = Math.hypot(lx, ly, lz);
+                const dot = (normX * lx + normY * ly + normZ * lz) / lenL;
+                intensity = 0.28 + 0.72 * Math.abs(dot);
+              }
+              
+              const r = Math.floor(face.baseColor[0] * intensity);
+              const g = Math.floor(face.baseColor[1] * intensity);
+              const b = Math.floor(face.baseColor[2] * intensity);
+              
+              ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+              ctx.fill();
+              
+              ctx.strokeStyle = face.outlineColor || "rgba(6, 182, 212, 0.35)";
+              ctx.lineWidth = 0.8;
+              ctx.stroke();
+            }
+          }
+        });
+      });
+
+      // 3. Add solid cylinder wheels to rendering stack
+      const wheels = [
+        { x: 58, y: -18, z: -27.5 },
+        { x: 58, y: -18, z: 27.5 },
+        { x: -25, y: -18, z: -28.5 },
+        { x: -25, y: -18, z: 28.5 },
+        { x: -58, y: -18, z: -28.5 },
+        { x: -58, y: -18, z: 28.5 },
+      ];
       
-      EDGES.forEach(([i, j]) => {
-        const p1 = VERTICES[i];
-        const p2 = VERTICES[j];
-        const pr1 = project(p1, yaw, pitch, zoom, w, h);
-        const pr2 = project(p2, yaw, pitch, zoom, w, h);
-        
-        ctx.beginPath();
-        ctx.moveTo(pr1.x, pr1.y);
-        ctx.lineTo(pr2.x, pr2.y);
-        ctx.stroke();
+      wheels.forEach(wCenter => {
+        const rotCenter = rotatePoint(wCenter, yaw, pitch);
+        drawItems.push({
+          zDepth: rotCenter.z,
+          draw: () => {
+            ctx.strokeStyle = "rgba(6, 182, 212, 0.38)";
+            ctx.lineWidth = 0.8;
+            drawWheel(ctx, wCenter.x, wCenter.y, wCenter.z, yaw, pitch, zoom, w, h);
+          }
+        });
       });
 
-      // 5. Ladder and water cannon
-      ctx.strokeStyle = "rgba(6, 182, 212, 0.4)";
-      ctx.lineWidth = 0.8;
-      drawLadderRungs(ctx, yaw, pitch, zoom, w, h);
-      ctx.strokeStyle = "rgba(6, 182, 212, 0.65)";
-      drawWaterCannon(ctx, yaw, pitch, zoom, w, h);
+      // 4. Add ladder rungs to rendering stack
+      const ladderZ = (rotatedVertices[18].z + rotatedVertices[19].z + rotatedVertices[20].z + rotatedVertices[21].z) / 4;
+      drawItems.push({
+        zDepth: ladderZ,
+        draw: () => {
+          ctx.strokeStyle = "rgba(6, 182, 212, 0.4)";
+          ctx.lineWidth = 0.8;
+          drawLadderRungs(ctx, yaw, pitch, zoom, w, h);
+        }
+      });
 
-      // 6. Active/Hovered Panels on Top
+      // 5. Add water cannon to rendering stack
+      const cannonRot = rotatePoint({ x: 28, y: 24, z: 0 }, yaw, pitch);
+      drawItems.push({
+        zDepth: cannonRot.z,
+        draw: () => {
+          ctx.strokeStyle = "rgba(6, 182, 212, 0.7)";
+          drawWaterCannon(ctx, yaw, pitch, zoom, w, h);
+        }
+      });
+
+      // 6. Gather and store hitbox polygon projections, add panels to rendering stack
+      const newProjectedPanels: HitboxPolygon[] = [];
+
       Object.entries(COMPARTMENT_PANELS).forEach(([key, vertices]) => {
         if (!compartmentKeys.includes(key)) return;
-        const isActive = activeCompartment === key;
-        const isHovered = hoveredKey === key;
         
-        if (isActive || isHovered) {
-          ctx.fillStyle = isActive ? "rgba(34, 197, 94, 0.16)" : "rgba(34, 211, 238, 0.08)";
-          ctx.strokeStyle = isActive ? "#22c55e" : "#22d3ee";
-          ctx.lineWidth = isActive ? 2 : 1.2;
+        const projPoints = vertices.map(v => project(v, yaw, pitch, zoom, w, h));
+        const zDepth = vertices.reduce((sum, v) => sum + rotatePoint(v, yaw, pitch).z, 0) / vertices.length;
+        
+        newProjectedPanels.push({
+          key,
+          points: projPoints,
+          zDepth
+        });
 
-          ctx.beginPath();
-          const p0 = project(vertices[0], yaw, pitch, zoom, w, h);
-          ctx.moveTo(p0.x, p0.y);
-          for (let i = 1; i < vertices.length; i++) {
-            const pi = project(vertices[i], yaw, pitch, zoom, w, h);
-            ctx.lineTo(pi.x, pi.y);
-          }
-          ctx.closePath();
-          ctx.fill();
-          
-          ctx.shadowBlur = 8;
-          ctx.shadowColor = isActive ? "#22c55e" : "#22d3ee";
-          ctx.stroke();
-          ctx.shadowBlur = 0; // reset
-        }
-      });
-
-      // 7. Headlight Beams
-      ctx.strokeStyle = "rgba(250, 204, 21, 0.35)";
-      drawHeadlightBeams(ctx, yaw, pitch, zoom, w, h);
-
-      // 8. Projected Hotspots
-      const newHotspots: { key: string; x: number; y: number; r: number }[] = [];
-
-      Object.entries(HOTSPOT_3D).forEach(([key, hs]) => {
-        if (!compartmentKeys.includes(key)) return;
-
-        const proj = project(hs, yaw, pitch, zoom, w, h);
         const isActive = activeCompartment === key;
         const isHovered = hoveredKey === key;
-        const radius = isActive ? 10 : isHovered ? 8 : 6;
 
-        newHotspots.push({ key, x: proj.x, y: proj.y, r: radius + 4 });
+        drawItems.push({
+          zDepth: zDepth - 0.25, // Offset slightly forward to prevent z-fighting on body side
+          draw: () => {
+            if (isActive || isHovered) {
+              ctx.fillStyle = isActive ? "rgba(34, 197, 94, 0.25)" : "rgba(34, 211, 238, 0.12)";
+              ctx.strokeStyle = isActive ? "#22c55e" : "#22d3ee";
+              ctx.lineWidth = isActive ? 2.5 : 1.5;
 
-        if (isActive || isHovered) {
-          const color = isActive ? "#22c55e" : "#22d3ee";
-          ctx.strokeStyle = color;
-          ctx.lineWidth = isActive ? 1.5 : 1;
-          
-          // Pulsing circle
-          ctx.beginPath();
-          const pulse = radius + 6 + Math.sin(now / 150) * 3.5;
-          ctx.arc(proj.x, proj.y, pulse, 0, Math.PI * 2);
-          ctx.stroke();
+              ctx.beginPath();
+              ctx.moveTo(projPoints[0].x, projPoints[0].y);
+              for (let i = 1; i < projPoints.length; i++) {
+                ctx.lineTo(projPoints[i].x, projPoints[i].y);
+              }
+              ctx.closePath();
+              ctx.fill();
+              
+              ctx.shadowBlur = isActive ? 12 : 6;
+              ctx.shadowColor = isActive ? "#22c55e" : "#22d3ee";
+              ctx.stroke();
+              ctx.shadowBlur = 0; // reset
 
-          // Rotating segments
-          ctx.beginPath();
-          const bracketSize = radius + 11;
-          const rotationAngle = (now / 800) % (Math.PI * 2);
-          ctx.arc(proj.x, proj.y, bracketSize, rotationAngle, rotationAngle + Math.PI / 4);
-          ctx.stroke();
-          ctx.beginPath();
-          ctx.arc(proj.x, proj.y, bracketSize, rotationAngle + Math.PI / 2, rotationAngle + Math.PI / 2 + Math.PI / 4);
-          ctx.stroke();
-          ctx.beginPath();
-          ctx.arc(proj.x, proj.y, bracketSize, rotationAngle + Math.PI, rotationAngle + Math.PI + Math.PI / 4);
-          ctx.stroke();
-          ctx.beginPath();
-          ctx.arc(proj.x, proj.y, bracketSize, rotationAngle + 1.5 * Math.PI, rotationAngle + 1.5 * Math.PI + Math.PI / 4);
-          ctx.stroke();
+              // Centroid calculation for glowing targeting indicator & floating labels
+              const centroidX = projPoints.reduce((sum, p) => sum + p.x, 0) / projPoints.length;
+              const centroidY = projPoints.reduce((sum, p) => sum + p.y, 0) / projPoints.length;
 
-          // Radar Leader Line
-          ctx.strokeStyle = color;
-          ctx.lineWidth = 0.8;
-          ctx.beginPath();
-          ctx.moveTo(proj.x, proj.y);
-          const labelX = proj.x + 35;
-          const labelY = proj.y - 25;
-          ctx.lineTo(proj.x + 15, proj.y - 15);
-          ctx.lineTo(labelX, labelY);
-          ctx.stroke();
+              const color = isActive ? "#22c55e" : "#22d3ee";
+              ctx.strokeStyle = color;
+              
+              // Pulsing centroid center
+              ctx.fillStyle = color;
+              ctx.beginPath();
+              ctx.arc(centroidX, centroidY, isActive ? 4 : 3, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.beginPath();
+              const pulse = (isActive ? 7 : 5) + Math.sin(now / 120) * 2;
+              ctx.arc(centroidX, centroidY, pulse, 0, Math.PI * 2);
+              ctx.stroke();
 
-          // Text box background
-          ctx.fillStyle = "rgba(10, 15, 30, 0.9)";
-          ctx.strokeStyle = color;
-          ctx.lineWidth = 1;
-          
-          const labelText = hs.label.toUpperCase();
-          const subText = isActive ? "TACTICAL LOCKED" : "TARGET ENGAGED";
-          
-          ctx.font = "bold 9px monospace";
-          const textW = Math.max(ctx.measureText(labelText).width, ctx.measureText(subText).width) + 12;
-          const textH = 24;
-          
-          ctx.beginPath();
-          ctx.rect(labelX, labelY - 12, textW, textH);
-          ctx.fill();
-          ctx.stroke();
+              // Radar leader line
+              ctx.lineWidth = 0.85;
+              ctx.beginPath();
+              ctx.moveTo(centroidX, centroidY);
+              const labelX = centroidX + (centroidX > w / 2 ? -95 : 35);
+              const labelY = centroidY - 25;
+              ctx.lineTo(centroidX + (centroidX > w / 2 ? -15 : 15), centroidY - 15);
+              ctx.lineTo(labelX, labelY);
+              ctx.stroke();
 
-          // Draw Text
-          ctx.fillStyle = color;
-          ctx.fillText(labelText, labelX + 6, labelY - 2);
-          ctx.font = "7px monospace";
-          ctx.fillStyle = isActive ? "#22c55e" : "rgba(34, 211, 238, 0.75)";
-          ctx.fillText(subText, labelX + 6, labelY + 7);
-        } else {
-          ctx.fillStyle = "rgba(6, 182, 212, 0.4)";
-          ctx.strokeStyle = "rgba(6, 182, 212, 0.75)";
-          ctx.lineWidth = 1;
-          
-          ctx.beginPath();
-          ctx.arc(proj.x, proj.y, radius, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.stroke();
+              // Tactical HUD Info Box
+              ctx.fillStyle = "rgba(10, 15, 30, 0.94)";
+              ctx.lineWidth = 1;
+              
+              const hs = HOTSPOT_3D[key];
+              const labelText = hs ? hs.label.toUpperCase() : key.toUpperCase();
+              const subText = isActive ? "LOCK SECURED" : "HATCH FOCUS";
+              
+              ctx.font = "bold 9px monospace";
+              const textW = Math.max(ctx.measureText(labelText).width, ctx.measureText(subText).width) + 12;
+              const textH = 24;
+              const boxX = centroidX > w / 2 ? labelX - textW : labelX;
 
-          ctx.beginPath();
-          ctx.arc(proj.x, proj.y, radius + 4, 0, Math.PI * 2);
-          ctx.stroke();
+              ctx.beginPath();
+              ctx.rect(boxX, labelY - 12, textW, textH);
+              ctx.fill();
+              ctx.stroke();
 
-          ctx.fillStyle = "rgba(6, 182, 212, 0.55)";
-          ctx.font = "7px monospace";
-          ctx.textAlign = "center";
-          ctx.fillText(hs.label.toUpperCase(), proj.x, proj.y + radius + 11);
-          ctx.textAlign = "left";
-        }
-
-        ctx.fillStyle = "#ffffff";
-        ctx.beginPath();
-        ctx.arc(proj.x, proj.y, isActive ? 2.5 : 1.5, 0, Math.PI * 2);
-        ctx.fill();
+              // Info Box Text
+              ctx.fillStyle = color;
+              ctx.fillText(labelText, boxX + 6, labelY - 2);
+              ctx.font = "7px monospace";
+              ctx.fillStyle = isActive ? "#22c55e" : "rgba(34, 211, 238, 0.75)";
+              ctx.fillText(subText, boxX + 6, labelY + 7);
+            } else {
+              // Subtle blueprint lines for inactive compartments
+              ctx.strokeStyle = "rgba(6, 182, 212, 0.28)";
+              ctx.lineWidth = 0.65;
+              ctx.fillStyle = "rgba(6, 182, 212, 0.02)";
+              
+              ctx.beginPath();
+              ctx.moveTo(projPoints[0].x, projPoints[0].y);
+              for (let i = 1; i < projPoints.length; i++) {
+                ctx.lineTo(projPoints[i].x, projPoints[i].y);
+              }
+              ctx.closePath();
+              ctx.fill();
+              ctx.stroke();
+            }
+          }
+        });
       });
 
-      projectedHotspotsRef.current = newHotspots;
+      // Update projected panels ref for ray-cast mouse calculations
+      projectedPanelsRef.current = newProjectedPanels;
 
-      // 9. HUD Graphics and Telemetry
+      // 7. Headlight Beams Stack Entry (always rendered in front for transparency blending)
+      const headlightZ = rotatedVertices[0].z; // cab front Z
+      drawItems.push({
+        zDepth: headlightZ - 5,
+        draw: () => {
+          ctx.strokeStyle = "rgba(250, 204, 21, 0.35)";
+          drawHeadlightBeams(ctx, yaw, pitch, zoom, w, h);
+        }
+      });
+
+      // --- EXECUTE PAINTER'S ALGORITHM DRAW ORDER ---
+      drawItems.sort((a, b) => b.zDepth - a.zDepth); // Sort back-to-front (descending zDepth)
+      drawItems.forEach(item => item.draw());
+
+      // --- HUD OVERLAYS & TELEMETRY PANELS ---
       if (hudActive) {
         ctx.fillStyle = "rgba(6, 182, 212, 0.85)";
         ctx.font = "bold 9px monospace";
@@ -865,10 +1003,10 @@ export function Vehicle3DSchematic({
         ctx.stroke();
 
         // Top Left Telemetry Readout
-        ctx.fillText("TACTICAL HUD DISPLAY v23.01", 15, 20);
+        ctx.fillText("TACTICAL HUD GARAJI v23.1", 15, 20);
         ctx.fillStyle = "rgba(6, 182, 212, 0.55)";
         ctx.font = "8px monospace";
-        ctx.fillText("SYSTEM STATUS: NOMINAL", 15, 30);
+        ctx.fillText("MESH MODE: SOLID FLAT SHADING", 15, 30);
         ctx.fillText(`AZIMUTH:   ${((yaw * 180) / Math.PI).toFixed(1)}°`, 15, 42);
         ctx.fillText(`ELEVATION: ${((pitch * 180) / Math.PI).toFixed(1)}°`, 15, 52);
         ctx.fillText(`ZOOM:      ${zoom.toFixed(1)}%`, 15, 62);
@@ -911,7 +1049,7 @@ export function Vehicle3DSchematic({
 
         ctx.fillStyle = "rgba(6, 182, 212, 0.6)";
         ctx.font = "8px monospace";
-        ctx.fillText("SCAN ACTIVE", 60, h - 32);
+        ctx.fillText("HITBOX SCAN ACTIVE", 60, h - 32);
 
         // Bottom Right Status
         ctx.textAlign = "right";
@@ -943,7 +1081,7 @@ export function Vehicle3DSchematic({
 
   return (
     <div className="w-full relative rounded-xl border border-cyan-500/10 bg-slate-950/80 overflow-hidden select-none">
-      {/* 3D Canvas element */}
+      {/* 3D Solid Canvas */}
       <canvas
         ref={canvasRef}
         onMouseDown={handleMouseDown}
