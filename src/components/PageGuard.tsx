@@ -14,12 +14,13 @@ export function mapUserToPermissionRole(user: any): string {
   if (unvan === 'Müdür' || rol === 'Admin') {
     return 'Müdür';
   }
+  if (unvan === 'Amir' || rol === 'Editor') {
+    return 'Amir';
+  }
   if (
-    unvan === 'Amir' || 
     unvan === 'Başçavuş' || 
     unvan === 'Çavuş' || 
-    rol === 'Shift_Leader' || 
-    rol === 'Editor'
+    rol === 'Shift_Leader'
   ) {
     return 'Çavuş';
   }
@@ -65,8 +66,8 @@ export default function PageGuard({ pageId, children }: PageGuardProps) {
         if (active) {
           if (error) {
             console.error('PageGuard permission query error:', error);
-            // Default fallback: if query fails, let Müdür view, else fallback by role defaults
-            if (mappedRole === 'Müdür') {
+            // Default fallback: if query fails, let Müdür & Amir view, else fallback by role defaults
+            if (mappedRole === 'Müdür' || mappedRole === 'Amir') {
               setHasPermission(true);
             } else if (mappedRole === 'Çavuş') {
               setHasPermission(['harita', 'arac_bakim', 'envanter', 'raporlar'].includes(pageId));
@@ -79,7 +80,7 @@ export default function PageGuard({ pageId, children }: PageGuardProps) {
             setHasPermission(!!data.izinli);
           } else {
             // Default fallback if no row found
-            if (mappedRole === 'Müdür') {
+            if (mappedRole === 'Müdür' || mappedRole === 'Amir') {
               setHasPermission(true);
             } else if (mappedRole === 'Çavuş') {
               setHasPermission(['harita', 'arac_bakim', 'envanter', 'raporlar'].includes(pageId));
@@ -94,7 +95,7 @@ export default function PageGuard({ pageId, children }: PageGuardProps) {
       } catch (err) {
         console.error('PageGuard check error:', err);
         if (active) {
-          if (mappedRole === 'Müdür') {
+          if (mappedRole === 'Müdür' || mappedRole === 'Amir') {
             setHasPermission(true);
           } else {
             setHasPermission(false);

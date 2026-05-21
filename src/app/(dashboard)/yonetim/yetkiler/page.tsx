@@ -24,7 +24,8 @@ const PAGE_METADATA = [
 
 const ROLES = [
   { id: 'Müdür', title: 'Müdür / Yönetici', desc: 'SB5801 İbrahim Alaçam seviyesi en üst komuta' },
-  { id: 'Çavuş', title: 'Vardiya Amiri / Çavuş', desc: 'İstasyon yönetimi ve saha sevk sorumlusu' },
+  { id: 'Amir', title: 'Grup Amiri / Başamir', desc: 'İstasyon ve operasyon grup amirleri' },
+  { id: 'Çavuş', title: 'Vardiya Amiri / Çavuş', desc: 'Saha sevk sorumlusu ve ekip çavuşları' },
   { id: 'Santral', title: 'Santral / İhbar Memuru', desc: 'Kriz masası ve olay veri girişi operatörü' },
   { id: 'Er', title: 'Müdahale Eri / Personel', desc: 'Saha operasyon ekibi ve araç müdahale kadrosu' },
 ];
@@ -126,7 +127,7 @@ export default function YetkilerPage() {
             </Badge>
           </div>
           <p className="text-muted-foreground mt-1 text-sm">
-            Sivas İtfaiye Otomasyonu bünyesindeki 5 ana kontrol panelinin, 4 ana rütbe grubuna göre erişim kuralları.
+            Sivas İtfaiye Otomasyonu bünyesindeki 5 ana kontrol panelinin, 5 ana rütbe grubuna göre erişim kuralları.
           </p>
         </div>
 
@@ -180,7 +181,7 @@ export default function YetkilerPage() {
         <CardHeader className="border-b border-zinc-800 bg-zinc-900/20 pb-4">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base font-black tracking-wider uppercase text-zinc-300">MODERN YETKİLENDİRME GRİD MATRİSİ</CardTitle>
-            <span className="text-xs text-zinc-500 font-mono">5 EKRAN x 4 RÜTBE GRUBU</span>
+            <span className="text-xs text-zinc-500 font-mono">5 EKRAN x 5 RÜTBE GRUBU</span>
           </div>
         </CardHeader>
         
