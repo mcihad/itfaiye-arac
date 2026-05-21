@@ -5,7 +5,6 @@ import PageGuard from "@/components/PageGuard"
 import { api } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
-import { Input } from "@/components/ui/Input"
 import { Badge } from "@/components/ui/Badge"
 import { useAuthStore } from "@/lib/authStore"
 import {
@@ -15,14 +14,12 @@ import {
   Camera,
   Image as ImageIcon,
   Banknote,
-  Gauge,
   Check,
   Fuel,
   TrendingUp,
   Calendar,
   X,
   CheckCircle,
-  FileText,
   Droplets,
   MapPin,
   User
@@ -142,12 +139,21 @@ export default function AracBakimPage() {
   const fetchAllData = async () => {
     setLoading(true)
     try {
+      // Her tablo bağımsız hata yönetimi ile çekilir — birinin başarısızlığı diğerlerini etkilemez
+      const fetchOrNull = async (promise: any) => {
+        try {
+          return await promise
+        } catch {
+          return { data: null }
+        }
+      }
+
       const [vmRes, mlRes, flRes, vehRes, perRes] = await Promise.all([
-        api.from('vehicle_maintenances').select('*').order('tarih', { ascending: false }),
-        api.from('maintenance_logs').select('*').order('tarih', { ascending: false }),
-        api.from('fuel_logs').select('*').order('tarih', { ascending: false }),
-        api.from('vehicles').select('*').order('plaka', { ascending: true }),
-        api.from('personnel').select('*').eq('aktif', true).order('ad', { ascending: true })
+        fetchOrNull(api.from('vehicle_maintenances').select('*').order('tarih', { ascending: false })),
+        fetchOrNull(api.from('maintenance_logs').select('*').order('tarih', { ascending: false })),
+        fetchOrNull(api.from('fuel_logs').select('*').order('tarih', { ascending: false })),
+        fetchOrNull(api.from('vehicles').select('*').order('plaka', { ascending: true })),
+        fetchOrNull(api.from('personnel').select('*').eq('aktif', true).order('ad', { ascending: true }))
       ])
       if (vmRes.data) setVehicleMaintenances(vmRes.data as VehicleMaintenance[])
       if (mlRes.data) setMaintenanceLogs(mlRes.data as MaintenanceLog[])
@@ -270,11 +276,10 @@ export default function AracBakimPage() {
   }
 
   // ─── Computed KPI Values ─────────────────────────────────────
-  const allMaintenances = [...vehicleMaintenances]
   const totalBakimCount = vehicleMaintenances.length + maintenanceLogs.length
-  const totalBakimMaliyet = vehicleMaintenances.reduce((s, m) => s + (m.maliyet || 0), 0) + maintenanceLogs.reduce((s, m) => s + (m.maliyet || 0), 0)
+  const totalBakimMaliyet = vehicleMaintenances.reduce((s, m) => s + (Number(m.maliyet) || 0), 0) + maintenanceLogs.reduce((s, m) => s + (Number(m.maliyet) || 0), 0)
   const totalYakitCount = fuelLogs.length
-  const totalYakitMaliyet = fuelLogs.reduce((s, f) => s + (f.tutar || 0), 0)
+  const totalYakitMaliyet = fuelLogs.reduce((s, f) => s + (Number(f.tutar) || 0), 0)
 
   // ─── Filter by Plaka ────────────────────────────────────────
   const filteredVehicleMaintenances = selectedPlaka === 'all'
@@ -517,12 +522,12 @@ export default function AracBakimPage() {
                           </div>
                         </td>
                         <td className="p-4 align-middle text-zinc-400 font-mono text-xs">
-                          {m.kilometre > 0 ? `${m.kilometre.toLocaleString('tr-TR')} KM` : '—'}
+                          {Number(m.kilometre) > 0 ? `${Number(m.kilometre).toLocaleString('tr-TR')} KM` : '—'}
                         </td>
                         <td className="p-4 align-middle text-zinc-400 text-xs max-w-xs truncate">{m.aciklama || '—'}</td>
                         <td className="p-4 align-middle text-right font-bold text-sm">
-                          {m.maliyet > 0 ? (
-                            <span className="text-red-400">₺{m.maliyet.toLocaleString('tr-TR')}</span>
+                          {Number(m.maliyet) > 0 ? (
+                            <span className="text-red-400">₺{Number(m.maliyet).toLocaleString('tr-TR')}</span>
                           ) : '—'}
                         </td>
                         <td className="p-4 align-middle text-center">{getStatusBadge(m.durum)}</td>
@@ -549,12 +554,12 @@ export default function AracBakimPage() {
                           </div>
                         </td>
                         <td className="p-4 align-middle text-zinc-400 font-mono text-xs">
-                          {log.kmAt > 0 ? `${log.kmAt.toLocaleString('tr-TR')} KM` : '—'}
+                          {Number(log.kmAt) > 0 ? `${Number(log.kmAt).toLocaleString('tr-TR')} KM` : '—'}
                         </td>
                         <td className="p-4 align-middle text-zinc-400 text-xs max-w-xs truncate">{log.aciklama || '—'}</td>
                         <td className="p-4 align-middle text-right font-bold text-sm">
-                          {log.maliyet > 0 ? (
-                            <span className="text-red-400">₺{log.maliyet.toLocaleString('tr-TR')}</span>
+                          {Number(log.maliyet) > 0 ? (
+                            <span className="text-red-400">₺{Number(log.maliyet).toLocaleString('tr-TR')}</span>
                           ) : '—'}
                         </td>
                         <td className="p-4 align-middle text-center">
@@ -623,10 +628,10 @@ export default function AracBakimPage() {
                           </div>
                         </td>
                         <td className="p-4 align-middle text-right font-bold text-blue-400">
-                          ₺{log.tutar.toLocaleString('tr-TR')}
+                          ₺{(Number(log.tutar) || 0).toLocaleString('tr-TR')}
                         </td>
                         <td className="p-4 align-middle text-zinc-400 font-mono text-xs">
-                          {log.kmAt > 0 ? `${log.kmAt.toLocaleString('tr-TR')} KM` : '—'}
+                          {Number(log.kmAt) > 0 ? `${Number(log.kmAt).toLocaleString('tr-TR')} KM` : '—'}
                         </td>
                         <td className="p-4 align-middle text-zinc-400 text-xs">
                           <div className="flex items-center gap-1.5">
@@ -717,7 +722,7 @@ export default function AracBakimPage() {
                           </td>
                           <td className="p-4 align-middle text-zinc-400 text-xs max-w-xs truncate">{m.aciklama || '—'}</td>
                           <td className="p-4 align-middle text-right font-bold text-sm text-red-400">
-                            {m.maliyet > 0 ? `₺${m.maliyet.toLocaleString('tr-TR')}` : '—'}
+                            {Number(m.maliyet) > 0 ? `₺${Number(m.maliyet).toLocaleString('tr-TR')}` : '—'}
                           </td>
                           <td className="p-4 align-middle text-right">
                             <Button
