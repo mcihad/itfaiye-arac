@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { Loader2, Map as MapIcon, Flame, Droplets, Target, Search, Plus, MapPin, X, Sparkles } from "lucide-react"
 import { RouteAnalysisPanel } from "@/components/ai/RouteAnalysisPanel"
+import { useAuthStore } from "@/lib/authStore"
 
 const Map = dynamic(() => import("@/components/map/Map"), { 
   ssr: false,
@@ -33,6 +34,7 @@ type NominatimResult = {
 }
 
 export default function HaritaPage() {
+  const { user } = useAuthStore()
   const [incidents, setIncidents] = useState<Incident[]>([])
   const [hydrants, setHydrants] = useState<Hydrant[]>([])
   const [loading, setLoading] = useState(true)
@@ -75,6 +77,33 @@ export default function HaritaPage() {
       console.error(err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleUpdateHydrantStatus = async (id: string, newStatus: string) => {
+    try {
+      const { error } = await api.update('fire_hydrants', { durum: newStatus }, { id })
+      if (error) throw error
+      
+      // Update state locally immediately
+      setHydrants(prev => prev.map(hyd => hyd.id === id ? { ...hyd, durum: newStatus } : hyd))
+      
+      // Log event to audit logs
+      fetch('/api/audit-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action_type: 'hydrant_status_change',
+          actor_sicil_no: user?.sicilNo || 'unknown',
+          actor_name: user ? `${user.ad} ${user.soyad}` : 'Bilinmeyen',
+          target: id,
+          details: { id, newStatus },
+        }),
+      }).catch(err => console.error('[AuditLog] Hidrant logu gönderilemedi:', err))
+
+    } catch (error) {
+      console.error("Hidrant durumu güncellenirken hata oluştu:", error)
+      alert("Hidrant durumu güncellenemedi.")
     }
   }
 
@@ -349,6 +378,7 @@ export default function HaritaPage() {
             mode={interactionMode} 
             onMapClick={handleMapClick} 
             focusLocation={focusLocation}
+            onUpdateHydrantStatus={handleUpdateHydrantStatus}
           />
           
         </CardContent>

@@ -44,6 +44,7 @@ interface MapProps {
   mode: 'idle' | 'add_incident' | 'add_hydrant'
   onMapClick: (lat: number, lng: number) => void
   focusLocation: [number, number] | null
+  onUpdateHydrantStatus?: (id: string, newStatus: string) => void
 }
 
 const parseWKBPoint = (wkbHex: string): [number, number] | null => {
@@ -116,7 +117,7 @@ const parseLocation = (loc: any): [number, number] | null => {
   return null
 }
 
-export default function Map({ incidents, hydrants, mode, onMapClick, focusLocation }: MapProps) {
+export default function Map({ incidents, hydrants, mode, onMapClick, focusLocation, onUpdateHydrantStatus }: MapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const markersRef = useRef<maplibregl.Marker[]>([])
@@ -148,6 +149,30 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
       mapRef.current.getCanvas().style.cursor = mode !== 'idle' ? 'crosshair' : ''
     }
   }, [mode])
+
+  // Listen for hydrant status toggle clicks (event delegation on map container)
+  useEffect(() => {
+    const container = mapContainerRef.current
+    if (!container) return
+
+    const handlePopupClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      const btn = target.closest('.toggle-hydrant-btn') as HTMLButtonElement
+      if (btn) {
+        const id = btn.getAttribute('data-id')
+        const current = btn.getAttribute('data-current')
+        if (id && current && onUpdateHydrantStatus) {
+          const newStatus = (current === 'MEVCUT' || current === 'Aktif') ? 'DEVRE_DIŞI' : 'MEVCUT'
+          onUpdateHydrantStatus(id, newStatus)
+        }
+      }
+    }
+
+    container.addEventListener('click', handlePopupClick)
+    return () => {
+      container.removeEventListener('click', handlePopupClick)
+    }
+  }, [onUpdateHydrantStatus])
 
   // ─── Helper: draw buffer + highlight hydrants + route ─────
   const drawAnalysisLayers = useCallback((map: maplibregl.Map, targetLngLat: [number, number]) => {
@@ -561,7 +586,7 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
         const coords = parseLocation(hyd.location)
         if (!coords) return
 
-        const isMevcut = hyd.durum === 'MEVCUT'
+        const isMevcut = hyd.durum === 'MEVCUT' || hyd.durum === 'Aktif'
         
         const el = document.createElement('div')
         el.style.width = '32px'
@@ -620,6 +645,12 @@ export default function Map({ incidents, hydrants, mode, onMapClick, focusLocati
               <span style="color:#94a3b8;font-weight:500;grid-column:1/3;margin-top:4px;">Konum Detayı:</span>
               <span style="grid-column:1/3;color:#cbd5e1;background:rgba(255,255,255,0.05);padding:6px;border-radius:4px;font-size:11px;line-height:1.4;border:1px solid rgba(255,255,255,0.08);word-break:break-word;">${hyd.proje_adi}</span>
               ` : ''}
+
+              <div style="grid-column:1/3;margin-top:8px;">
+                <button class="toggle-hydrant-btn" data-id="${hyd.id}" data-current="${hyd.durum}" style="width:100%;background:${isMevcut ? '#ef4444' : '#22c55e'};color:#ffffff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;transition:all 0.2s;box-shadow:0 2px 4px rgba(0,0,0,0.2);">
+                  <span>🔧</span> ${isMevcut ? 'Arızalı / Devre Dışı Yap' : 'Çalışır / Mevcut Yap'}
+                </button>
+              </div>
             </div>
           </div>
         `)
