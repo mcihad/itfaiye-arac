@@ -496,10 +496,10 @@ export default function VehicleDetailPage() {
 
     if (isArazoz || hasLiquidTanks) {
       return (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 print:hidden">
+        <div className="flex flex-nowrap overflow-x-auto gap-3 pb-2 md:pb-0 print:hidden w-full max-w-full md:grid md:grid-cols-5 scrollbar-thin scrollbar-thumb-cyan-500/20" style={{ WebkitOverflowScrolling: "touch" }}>
           {/* Su Seviyesi or Taktik Malzeme HUD Kartı */}
           {suCapacity > 0 ? (
-            <Card className="bg-slate-955/45 backdrop-blur-md border border-cyan-500/20 hover:border-cyan-500/40 transition-all shadow-[0_0_15px_rgba(6,182,212,0.03)]">
+            <Card className="bg-slate-955/45 backdrop-blur-md border border-cyan-500/20 hover:border-cyan-500/40 transition-all shadow-[0_0_15px_rgba(6,182,212,0.03)] w-[165px] shrink-0 md:w-auto md:shrink">
               <CardContent className="p-3 flex flex-col justify-between h-full min-h-[92px]">
                 <div className="flex items-center gap-2">
                   <Droplet className="w-4 h-4 text-cyan-400 drop-shadow-[0_0_4px_rgba(34,211,238,0.4)] shrink-0" />
@@ -517,7 +517,7 @@ export default function VehicleDetailPage() {
               </CardContent>
             </Card>
           ) : (
-            <Card className="bg-slate-955/45 backdrop-blur-md border border-cyan-500/20 hover:border-cyan-500/40 transition-all shadow-[0_0_15px_rgba(6,182,212,0.03)]">
+            <Card className="bg-slate-955/45 backdrop-blur-md border border-cyan-500/20 hover:border-cyan-500/40 transition-all shadow-[0_0_15px_rgba(6,182,212,0.03)] w-[165px] shrink-0 md:w-auto md:shrink">
               <CardContent className="p-3 flex flex-col justify-between h-full min-h-[92px]">
                 <div className="flex items-center gap-2">
                   <PackageSearch className="w-4 h-4 text-cyan-400 drop-shadow-[0_0_4px_rgba(34,211,238,0.4)] shrink-0" />
@@ -538,7 +538,7 @@ export default function VehicleDetailPage() {
 
           {/* Köpük Tankı or Sorunlu Malzeme Sayacı */}
           {kopukCapacity > 0 ? (
-            <Card className="bg-slate-955/45 backdrop-blur-md border border-amber-500/20 hover:border-amber-500/40 transition-all shadow-[0_0_15px_rgba(245,158,11,0.03)]">
+            <Card className="bg-slate-955/45 backdrop-blur-md border border-amber-500/20 hover:border-amber-500/40 transition-all shadow-[0_0_15px_rgba(245,158,11,0.03)] w-[165px] shrink-0 md:w-auto md:shrink">
               <CardContent className="p-3 flex flex-col justify-between h-full min-h-[92px]">
                 <div className="flex items-center gap-2">
                   <Flame className="w-4 h-4 text-amber-400 drop-shadow-[0_0_4px_rgba(245,158,11,0.4)] shrink-0" />
@@ -557,7 +557,7 @@ export default function VehicleDetailPage() {
             </Card>
           ) : (
             <Card className={cn(
-              "backdrop-blur-md border transition-all h-full min-h-[92px]",
+              "backdrop-blur-md border transition-all h-full min-h-[92px] w-[165px] shrink-0 md:w-auto md:shrink",
               issueItemsCount > 0 
                 ? "bg-rose-950/20 border-rose-500/30 hover:border-rose-500/50 shadow-[0_0_15px_rgba(239,68,68,0.05)] animate-pulse" 
                 : "bg-slate-955/45 border-emerald-500/20 hover:border-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.03)]"
@@ -591,7 +591,7 @@ export default function VehicleDetailPage() {
           )}
 
           {/* Yakıt Seviyesi */}
-          <Card className="bg-slate-955/45 backdrop-blur-md border border-emerald-500/20 hover:border-emerald-500/40 transition-all shadow-[0_0_15px_rgba(16,185,129,0.03)]">
+          <Card className="bg-slate-955/45 backdrop-blur-md border border-emerald-500/20 hover:border-emerald-500/40 transition-all shadow-[0_0_15px_rgba(16,185,129,0.03)] w-[165px] shrink-0 md:w-auto md:shrink">
             <CardContent className="p-3 flex flex-col justify-between h-full min-h-[92px]">
               <div className="flex items-center gap-2">
                 <Gauge className="w-4 h-4 text-emerald-400 drop-shadow-[0_0_4px_rgba(16,185,129,0.4)] shrink-0" />
@@ -610,7 +610,7 @@ export default function VehicleDetailPage() {
           </Card>
 
           {/* Kilometre */}
-          <Card className="bg-slate-955/45 backdrop-blur-md border border-slate-500/10 hover:border-slate-500/30 transition-all">
+          <Card className="bg-slate-955/45 backdrop-blur-md border border-slate-500/10 hover:border-slate-500/30 transition-all w-[165px] shrink-0 md:w-auto md:shrink">
             <CardContent className="p-3 flex flex-col justify-between h-full min-h-[92px]">
               <div className="flex items-center gap-2">
                 <Compass className="w-4 h-4 text-slate-400 shrink-0" />
@@ -624,7 +624,7 @@ export default function VehicleDetailPage() {
           </Card>
 
           {/* Motor Saati */}
-          <Card className="bg-slate-955/45 backdrop-blur-md border border-slate-500/10 hover:border-slate-500/30 transition-all">
+          <Card className="bg-slate-955/45 backdrop-blur-md border border-slate-500/10 hover:border-slate-500/30 transition-all w-[165px] shrink-0 md:w-auto md:shrink">
             <CardContent className="p-3 flex flex-col justify-between h-full min-h-[92px]">
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-slate-400 shrink-0" />
@@ -642,9 +642,9 @@ export default function VehicleDetailPage() {
 
     if (isKurtarma) {
       return (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 print:hidden">
+        <div className="flex flex-nowrap overflow-x-auto gap-3 pb-2 md:pb-0 print:hidden w-full max-w-full md:grid md:grid-cols-5 scrollbar-thin scrollbar-thumb-cyan-500/20" style={{ WebkitOverflowScrolling: "touch" }}>
           {/* Jeneratör Durumu */}
-          <Card className="bg-slate-955/45 backdrop-blur-md border border-rose-500/20 hover:border-rose-500/40 transition-all shadow-[0_0_15px_rgba(244,63,94,0.03)]">
+          <Card className="bg-slate-955/45 backdrop-blur-md border border-rose-500/20 hover:border-rose-500/40 transition-all shadow-[0_0_15px_rgba(244,63,94,0.03)] w-[165px] shrink-0 md:w-auto md:shrink">
             <CardContent className="p-3 flex flex-col justify-between h-full min-h-[92px]">
               <div className="flex items-center gap-2">
                 <Zap className="w-4 h-4 text-rose-400 drop-shadow-[0_0_4px_rgba(244,63,94,0.4)] shrink-0" />
@@ -663,7 +663,7 @@ export default function VehicleDetailPage() {
           </Card>
 
           {/* Ekipman Sağlığı */}
-          <Card className="bg-slate-955/45 backdrop-blur-md border border-cyan-500/20 hover:border-cyan-500/40 transition-all shadow-[0_0_15px_rgba(6,182,212,0.03)]">
+          <Card className="bg-slate-955/45 backdrop-blur-md border border-cyan-500/20 hover:border-cyan-500/40 transition-all shadow-[0_0_15px_rgba(6,182,212,0.03)] w-[165px] shrink-0 md:w-auto md:shrink">
             <CardContent className="p-3 flex flex-col justify-between h-full min-h-[92px]">
               <div className="flex items-center gap-2">
                 <Wrench className="w-4 h-4 text-cyan-400 drop-shadow-[0_0_4px_rgba(6,182,212,0.4)] shrink-0" />
@@ -682,7 +682,7 @@ export default function VehicleDetailPage() {
           </Card>
 
           {/* Yakıt Seviyesi */}
-          <Card className="bg-slate-955/45 backdrop-blur-md border border-emerald-500/20 hover:border-emerald-500/40 transition-all shadow-[0_0_15px_rgba(16,185,129,0.03)]">
+          <Card className="bg-slate-955/45 backdrop-blur-md border border-emerald-500/20 hover:border-emerald-500/40 transition-all shadow-[0_0_15px_rgba(16,185,129,0.03)] w-[165px] shrink-0 md:w-auto md:shrink">
             <CardContent className="p-3 flex flex-col justify-between h-full min-h-[92px]">
               <div className="flex items-center gap-2">
                 <Gauge className="w-4 h-4 text-emerald-400 drop-shadow-[0_0_4px_rgba(16,185,129,0.4)] shrink-0" />
@@ -701,7 +701,7 @@ export default function VehicleDetailPage() {
           </Card>
 
           {/* Kilometre */}
-          <Card className="bg-slate-955/45 backdrop-blur-md border border-slate-500/10 hover:border-slate-500/30 transition-all">
+          <Card className="bg-slate-955/45 backdrop-blur-md border border-slate-500/10 hover:border-slate-500/30 transition-all w-[165px] shrink-0 md:w-auto md:shrink">
             <CardContent className="p-3 flex flex-col justify-between h-full min-h-[92px]">
               <div className="flex items-center gap-2">
                 <Compass className="w-4 h-4 text-slate-400 shrink-0" />
@@ -715,7 +715,7 @@ export default function VehicleDetailPage() {
           </Card>
 
           {/* Motor Saati */}
-          <Card className="bg-slate-955/45 backdrop-blur-md border-slate-500/10 hover:border-slate-500/30 transition-all">
+          <Card className="bg-slate-955/45 backdrop-blur-md border-slate-500/10 hover:border-slate-500/30 transition-all w-[165px] shrink-0 md:w-auto md:shrink">
             <CardContent className="p-3 flex flex-col justify-between h-full min-h-[92px]">
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-slate-400 shrink-0" />
@@ -733,9 +733,9 @@ export default function VehicleDetailPage() {
 
     if (isMerdivenli) {
       return (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 print:hidden">
+        <div className="flex flex-nowrap overflow-x-auto md:grid md:grid-cols-5 gap-3 pb-2 md:pb-0 print:hidden scrollbar-thin scrollbar-thumb-cyan-500/20">
           {/* Bom Kontrolü */}
-          <Card className="bg-slate-955/45 backdrop-blur-md border border-cyan-500/20 hover:border-cyan-500/40 transition-all shadow-[0_0_15px_rgba(6,182,212,0.03)]">
+          <Card className="bg-slate-955/45 backdrop-blur-md border border-cyan-500/20 hover:border-cyan-500/40 transition-all shadow-[0_0_15px_rgba(6,182,212,0.03)] w-[165px] shrink-0 md:w-auto md:shrink">
             <CardContent className="p-3 flex flex-col justify-between h-full min-h-[92px]">
               <div className="flex items-center gap-2">
                 <Maximize className="w-4 h-4 text-cyan-400 drop-shadow-[0_0_4px_rgba(6,182,212,0.4)] shrink-0" />
@@ -754,7 +754,7 @@ export default function VehicleDetailPage() {
           </Card>
 
           {/* Hidrolik Basınç */}
-          <Card className="bg-slate-955/45 backdrop-blur-md border border-amber-500/20 hover:border-amber-500/40 transition-all shadow-[0_0_15px_rgba(245,158,11,0.03)]">
+          <Card className="bg-slate-955/45 backdrop-blur-md border border-amber-500/20 hover:border-amber-500/40 transition-all shadow-[0_0_15px_rgba(245,158,11,0.03)] w-[165px] shrink-0 md:w-auto md:shrink">
             <CardContent className="p-3 flex flex-col justify-between h-full min-h-[92px]">
               <div className="flex items-center gap-2">
                 <Activity className="w-4 h-4 text-amber-400 drop-shadow-[0_0_4px_rgba(245,158,11,0.4)] shrink-0" />
@@ -773,7 +773,7 @@ export default function VehicleDetailPage() {
           </Card>
 
           {/* Yakıt Seviyesi */}
-          <Card className="bg-slate-955/45 backdrop-blur-md border border-emerald-500/20 hover:border-emerald-500/40 transition-all shadow-[0_0_15px_rgba(16,185,129,0.03)]">
+          <Card className="bg-slate-955/45 backdrop-blur-md border border-emerald-500/20 hover:border-emerald-500/40 transition-all shadow-[0_0_15px_rgba(16,185,129,0.03)] w-[165px] shrink-0 md:w-auto md:shrink">
             <CardContent className="p-3 flex flex-col justify-between h-full min-h-[92px]">
               <div className="flex items-center gap-2">
                 <Gauge className="w-4 h-4 text-emerald-400 drop-shadow-[0_0_4px_rgba(16,185,129,0.4)] shrink-0" />
@@ -792,7 +792,7 @@ export default function VehicleDetailPage() {
           </Card>
 
           {/* Kilometre */}
-          <Card className="bg-slate-955/45 backdrop-blur-md border border-slate-500/10 hover:border-slate-500/30 transition-all">
+          <Card className="bg-slate-955/45 backdrop-blur-md border border-slate-500/10 hover:border-slate-500/30 transition-all w-[165px] shrink-0 md:w-auto md:shrink">
             <CardContent className="p-3 flex flex-col justify-between h-full min-h-[92px]">
               <div className="flex items-center gap-2">
                 <Compass className="w-4 h-4 text-slate-400 shrink-0" />
@@ -806,7 +806,7 @@ export default function VehicleDetailPage() {
           </Card>
 
           {/* Motor Saati */}
-          <Card className="bg-slate-955/45 backdrop-blur-md border border-slate-500/10 hover:border-slate-500/30 transition-all">
+          <Card className="bg-slate-955/45 backdrop-blur-md border border-slate-500/10 hover:border-slate-500/30 transition-all w-[165px] shrink-0 md:w-auto md:shrink">
             <CardContent className="p-3 flex flex-col justify-between h-full min-h-[92px]">
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-slate-400 shrink-0" />
@@ -824,9 +824,9 @@ export default function VehicleDetailPage() {
 
     // Default / Diğer (Siber Taktik HUD fallback)
     return (
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 print:hidden">
+      <div className="flex flex-nowrap overflow-x-auto gap-3 pb-2 md:pb-0 print:hidden w-full max-w-full md:grid md:grid-cols-5 scrollbar-thin scrollbar-thumb-cyan-500/20" style={{ WebkitOverflowScrolling: "touch" }}>
         {/* Ekipman Sağlığı */}
-        <Card className="bg-slate-955/45 backdrop-blur-md border border-cyan-500/20 hover:border-cyan-500/40 transition-all shadow-[0_0_15px_rgba(6,182,212,0.03)]">
+        <Card className="bg-slate-955/45 backdrop-blur-md border border-cyan-500/20 hover:border-cyan-500/40 transition-all shadow-[0_0_15px_rgba(6,182,212,0.03)] w-[165px] shrink-0 md:w-auto md:shrink">
           <CardContent className="p-3 flex flex-col justify-between h-full min-h-[92px]">
             <div className="flex items-center gap-2">
               <Wrench className="w-4 h-4 text-cyan-400 drop-shadow-[0_0_4px_rgba(6,182,212,0.4)] shrink-0" />
@@ -845,7 +845,7 @@ export default function VehicleDetailPage() {
         </Card>
 
         {/* Jeneratör */}
-        <Card className="bg-slate-955/45 backdrop-blur-md border border-rose-500/20 hover:border-rose-500/40 transition-all shadow-[0_0_15px_rgba(244,63,94,0.03)]">
+        <Card className="bg-slate-955/45 backdrop-blur-md border border-rose-500/20 hover:border-rose-500/40 transition-all shadow-[0_0_15px_rgba(244,63,94,0.03)] w-[165px] shrink-0 md:w-auto md:shrink">
           <CardContent className="p-3 flex flex-col justify-between h-full min-h-[92px]">
             <div className="flex items-center gap-2">
               <Zap className="w-4 h-4 text-rose-400 drop-shadow-[0_0_4px_rgba(244,63,94,0.4)] shrink-0" />
@@ -864,7 +864,7 @@ export default function VehicleDetailPage() {
         </Card>
 
         {/* Yakıt Durumu */}
-        <Card className="bg-slate-955/45 backdrop-blur-md border border-emerald-500/20 hover:border-emerald-500/40 transition-all shadow-[0_0_15px_rgba(16,185,129,0.03)]">
+        <Card className="bg-slate-955/45 backdrop-blur-md border border-emerald-500/20 hover:border-emerald-500/40 transition-all shadow-[0_0_15px_rgba(16,185,129,0.03)] w-[165px] shrink-0 md:w-auto md:shrink">
           <CardContent className="p-3 flex flex-col justify-between h-full min-h-[92px]">
             <div className="flex items-center gap-2">
               <Gauge className="w-4 h-4 text-emerald-400 drop-shadow-[0_0_4px_rgba(16,185,129,0.4)] shrink-0" />
@@ -883,7 +883,7 @@ export default function VehicleDetailPage() {
         </Card>
 
         {/* Kilometre */}
-        <Card className="bg-slate-955/45 backdrop-blur-md border border-slate-500/10 hover:border-slate-500/30 transition-all">
+        <Card className="bg-slate-955/45 backdrop-blur-md border border-slate-500/10 hover:border-slate-500/30 transition-all w-[165px] shrink-0 md:w-auto md:shrink">
           <CardContent className="p-3 flex flex-col justify-between h-full min-h-[92px]">
             <div className="flex items-center gap-2">
               <Compass className="w-4 h-4 text-slate-400 shrink-0" />
@@ -897,7 +897,7 @@ export default function VehicleDetailPage() {
         </Card>
 
         {/* Motor Saati */}
-        <Card className="bg-slate-955/45 backdrop-blur-md border border-slate-500/10 hover:border-slate-500/30 transition-all">
+        <Card className="bg-slate-955/45 backdrop-blur-md border border-slate-500/10 hover:border-slate-500/30 transition-all w-[165px] shrink-0 md:w-auto md:shrink">
           <CardContent className="p-3 flex flex-col justify-between h-full min-h-[92px]">
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-slate-400 shrink-0" />
@@ -918,7 +918,7 @@ export default function VehicleDetailPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0 border-b border-border/50 pb-4 print:hidden">
         <div className="flex items-center space-x-4">
-          <Link href="/araclar" className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-muted transition-colors sm:mr-2 shrink-0">
+          <Link href="/araclar" className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-muted transition-colors sm:mr-2 shrink-0 min-h-[44px] min-w-[44px]">
               <ArrowLeft className="w-5 h-5" />
           </Link>
           <div className="bg-primary/10 p-3 rounded-xl border border-primary/20 shrink-0 w-fit">
@@ -937,7 +937,7 @@ export default function VehicleDetailPage() {
         
         <button 
           onClick={handlePrint}
-          className="flex items-center justify-center gap-2 px-4 py-2 bg-primary text-white font-bold rounded-lg hover:bg-primary/90 transition-colors shadow-md active:scale-95 shrink-0"
+          className="min-h-[44px] flex items-center justify-center gap-2 px-4 py-2 bg-primary text-white font-bold rounded-lg hover:bg-primary/90 transition-colors shadow-md active:scale-95 shrink-0"
         >
           <Printer className="w-5 h-5" />
           <span>Toplu Etiket Yazdır</span>
@@ -955,12 +955,12 @@ export default function VehicleDetailPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => setIsSearchFocused(true)}
             onBlur={() => setTimeout(() => setIsSearchFocused(false), 250)}
-            className="w-full bg-transparent border-0 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:ring-0 h-10 font-mono tracking-wider"
+            className="w-full bg-transparent border-0 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:ring-0 h-11 min-h-[44px] font-mono tracking-wider"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="text-slate-400 hover:text-slate-200 p-1 rounded-full hover:bg-slate-800/50"
+              className="text-slate-400 hover:text-slate-200 p-1.5 rounded-full hover:bg-slate-800/50 min-h-[44px] min-w-[44px] flex items-center justify-center"
             >
               <X className="w-4 h-4" />
             </button>
@@ -1034,7 +1034,7 @@ export default function VehicleDetailPage() {
             </CardTitle>
             <button
               onClick={() => setIsConfigPanelOpen(!isConfigPanelOpen)}
-              className="px-4 py-1.5 text-xs font-bold border border-cyan-500/30 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 font-mono transition-all uppercase tracking-wider self-end sm:self-auto"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center px-4 py-1.5 text-xs font-bold border border-cyan-500/30 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 font-mono transition-all uppercase tracking-wider self-end sm:self-auto"
             >
               {isConfigPanelOpen ? "PANELİ KAPAT" : "PANELİ AÇ"}
             </button>
@@ -1106,7 +1106,7 @@ export default function VehicleDetailPage() {
                   </div>
                   <button
                     onClick={handleAddCompartment}
-                    className="px-4 py-2 bg-cyan-600/20 hover:bg-cyan-600/40 border border-cyan-500/40 text-cyan-300 font-bold rounded-lg text-xs font-mono tracking-wider transition-all h-[38px] flex items-center justify-center gap-1.5 shadow-[0_0_12px_rgba(6,182,212,0.1)]"
+                    className="px-4 py-2 bg-cyan-600/20 hover:bg-cyan-600/40 border border-cyan-500/40 text-cyan-300 font-bold rounded-lg text-xs font-mono tracking-wider transition-all min-h-[44px] h-auto flex items-center justify-center gap-1.5 shadow-[0_0_12px_rgba(6,182,212,0.1)]"
                   >
                     <Plus className="w-4 h-4 text-cyan-400" />
                     BÖLME EKLE
@@ -1119,7 +1119,7 @@ export default function VehicleDetailPage() {
                 <h3 className="text-xs font-bold font-mono text-cyan-400 uppercase tracking-widest">
                   Mevcut Bölme Konfigürasyonu
                 </h3>
-                <div className="border border-cyan-500/10 rounded-xl overflow-hidden bg-slate-950/60 max-h-72 overflow-y-auto">
+                <div className="w-full overflow-x-auto border border-cyan-500/10 rounded-xl bg-slate-950/60 max-h-72 overflow-y-auto" style={{ WebkitOverflowScrolling: "touch" }}>
                   <table className="w-full text-left border-collapse text-xs font-mono">
                     <thead>
                       <tr className="bg-slate-900/80 border-b border-cyan-500/10 text-slate-400 font-bold">
@@ -1155,7 +1155,7 @@ export default function VehicleDetailPage() {
                                 <button
                                   onClick={() => applyRename(key)}
                                   disabled={renameVal.trim() === getCompartmentLabel(key) || !renameVal.trim()}
-                                  className="px-3 py-1 bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 rounded-lg text-[10px] font-bold hover:bg-emerald-500/30 transition-colors disabled:opacity-30 shrink-0"
+                                  className="min-h-[44px] min-w-[44px] flex items-center justify-center px-3 py-1 bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 rounded-lg text-[10px] font-bold hover:bg-emerald-500/30 transition-colors disabled:opacity-30 shrink-0"
                                 >
                                   Uygula
                                 </button>
@@ -1164,7 +1164,7 @@ export default function VehicleDetailPage() {
                             <td className="p-3 text-right">
                               <button
                                 onClick={() => handleDeleteCompartment(key)}
-                                className="p-2 bg-rose-500/10 hover:bg-rose-500/25 border border-rose-500/30 text-rose-400 rounded-lg hover:text-rose-300 transition-colors"
+                                className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center p-2 bg-rose-500/10 hover:bg-rose-500/25 border border-rose-500/30 text-rose-400 rounded-lg hover:text-rose-300 transition-colors"
                                 title="Bölmeyi Tamamen Sil"
                               >
                                 <X className="w-3.5 h-3.5" />
@@ -1196,14 +1196,14 @@ export default function VehicleDetailPage() {
                       setIsConfigPanelOpen(false)
                     }
                   }}
-                  className="px-4 py-2 border border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-slate-400 font-bold rounded-lg text-xs font-mono tracking-wider transition-all"
+                  className="min-h-[44px] flex items-center justify-center px-4 py-2 border border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-slate-400 font-bold rounded-lg text-xs font-mono tracking-wider transition-all"
                 >
                   İPTAL ET / SIFIRLA
                 </button>
                 <button
                   onClick={handleSaveConfig}
                   disabled={savingConfig}
-                  className="px-5 py-2 bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-slate-100 font-bold rounded-lg text-xs font-mono tracking-wider transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)] disabled:opacity-50 flex items-center gap-2"
+                  className="min-h-[44px] flex items-center justify-center px-5 py-2 bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-slate-100 font-bold rounded-lg text-xs font-mono tracking-wider transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)] disabled:opacity-50 gap-2"
                 >
                   {savingConfig ? (
                     <>
@@ -1223,9 +1223,9 @@ export default function VehicleDetailPage() {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 relative">
+      <div className="flex flex-col md:grid md:grid-cols-3 gap-6 relative">
         {/* Bölme Listesi */}
-        <Card className="lg:col-span-1 h-fit lg:sticky lg:top-4">
+        <Card className="md:col-span-1 h-fit md:sticky md:top-4">
           <CardHeader className="pb-3 border-b border-border/50 bg-muted/10">
             <CardTitle className="text-base flex items-center justify-between">
               <span className="flex items-center space-x-2">
@@ -1237,7 +1237,7 @@ export default function VehicleDetailPage() {
               </span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent className="p-0 max-h-[350px] md:max-h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-cyan-500/20" style={{ WebkitOverflowScrolling: "touch" }}>
              <div className="flex flex-col">
                {compartKeys.map(key => {
                  const isActive = activeCompartment === key
@@ -1249,7 +1249,7 @@ export default function VehicleDetailPage() {
                      key={key}
                      onClick={() => handleSelectCompartment(key)}
                      className={cn(
-                       "flex items-center justify-between px-5 py-3 border-b border-border/30 last:border-0 hover:bg-muted/50 transition-colors text-left w-full",
+                       "flex items-center justify-between px-5 py-3 border-b border-border/30 last:border-0 hover:bg-muted/50 transition-colors text-left w-full min-h-[44px]",
                        isActive && "bg-primary/5 text-primary border-l-4 border-l-primary font-bold shadow-sm"
                      )}
                    >
@@ -1279,9 +1279,9 @@ export default function VehicleDetailPage() {
         </Card>
 
         {/* Envanter Listesi + Audit Trail */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="md:col-span-2 space-y-4">
           <Card className="shadow-sm">
-             <CardHeader className="pb-3 border-b border-border/50 bg-muted/10">
+             <CardHeader className="pb-3 border-b border-border/50 bg-slate-950/95 backdrop-blur-md sticky top-0 z-40 shadow-[0_4px_12px_rgba(0,0,0,0.4)]">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base flex items-center space-x-2">
                     <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
@@ -1293,7 +1293,7 @@ export default function VehicleDetailPage() {
                         <>
                           <button
                             onClick={handleOpenAddModal}
-                            className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-cyan-500/15 text-cyan-300 border border-cyan-500/50 shadow-[0_0_12px_rgba(6,182,212,0.3)] hover:shadow-[0_0_20px_rgba(6,182,212,0.6)] hover:bg-cyan-500/30 hover:text-cyan-200 transition-all font-mono uppercase tracking-wider"
+                            className="min-h-[44px] flex items-center justify-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-cyan-500/15 text-cyan-300 border border-cyan-500/50 shadow-[0_0_12px_rgba(6,182,212,0.3)] hover:shadow-[0_0_20px_rgba(6,182,212,0.6)] hover:bg-cyan-500/30 hover:text-cyan-200 transition-all font-mono uppercase tracking-wider"
                           >
                             <Plus className="w-3.5 h-3.5 text-cyan-400 drop-shadow-[0_0_3px_rgba(6,182,212,0.6)]" />
                             Yeni Ekipman
@@ -1301,7 +1301,7 @@ export default function VehicleDetailPage() {
                           <button
                             onClick={() => setIsEditingList(!isEditingList)}
                             className={cn(
-                              "flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition-all font-mono uppercase tracking-wider border shadow-md",
+                              "min-h-[44px] flex items-center justify-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition-all font-mono uppercase tracking-wider border shadow-md",
                               isEditingList
                                 ? "bg-amber-500/25 text-amber-300 border-amber-500/60 shadow-[0_0_12px_rgba(245,158,11,0.4)] hover:shadow-[0_0_20px_rgba(245,158,11,0.7)] hover:bg-amber-500/35 hover:text-amber-200"
                                 : "bg-slate-900/60 text-slate-300 border-slate-700 hover:bg-slate-800 hover:border-slate-600 shadow-[0_0_8px_rgba(0,0,0,0.3)]"
@@ -1315,7 +1315,7 @@ export default function VehicleDetailPage() {
                       <button
                         onClick={() => setShowTimeline(!showTimeline)}
                         className={cn(
-                          "flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors",
+                          "min-h-[44px] flex items-center justify-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors",
                           showTimeline
                             ? "bg-cyan-500/15 text-cyan-400 border border-cyan-500/20"
                             : "bg-muted/50 text-muted-foreground hover:bg-muted border border-border/50"

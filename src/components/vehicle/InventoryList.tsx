@@ -111,7 +111,7 @@ export function InventoryList({
 
   return (
     <div className="space-y-4">
-      <ul className="divide-y divide-white/5 bg-slate-950/20 rounded-xl overflow-hidden border border-white/5">
+      <ul className="divide-y divide-white/5 bg-slate-950/20 rounded-xl overflow-hidden border border-white/5 pb-[72px] md:pb-0">
         {paginatedItems.map((item, idx) => {
           const isOk = item.durum === 'Tam'
           return (
@@ -138,17 +138,17 @@ export function InventoryList({
                   <div className="flex items-center gap-1.5 border-l border-white/10 pl-3">
                     <button
                       onClick={() => onEditItem?.(item)}
-                      className="p-1.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors"
+                      className="p-1.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                       title="Düzenle"
                     >
-                      <Wrench className="w-3 h-3" />
+                      <Wrench className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => onDeleteItem?.(item)}
-                      className="p-1.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/25 transition-colors"
+                      className="p-1.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/25 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                       title="Sil"
                     >
-                      <Trash2 className="w-3 h-3" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 )}
@@ -159,25 +159,25 @@ export function InventoryList({
       </ul>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-between px-4 py-2 bg-slate-900/40 backdrop-blur-md border border-white/5 rounded-lg font-mono text-xs select-none">
+        <div className="fixed bottom-0 left-0 right-0 z-40 px-4 py-4 bg-slate-950/95 backdrop-blur-md border-t border-cyan-500/40 shadow-[0_-5px_25px_rgba(6,182,212,0.25)] md:relative md:bottom-auto md:left-auto md:right-auto md:z-auto md:bg-slate-900/40 md:border md:border-white/5 md:rounded-lg md:py-2 md:px-4 md:shadow-none flex items-center justify-between font-mono text-xs select-none gap-3">
           <button
             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded bg-slate-950/60 border border-white/5 hover:bg-cyan-500/10 hover:text-cyan-400 disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-inherit transition-all"
+            className="flex-1 md:flex-initial min-h-[48px] md:min-h-[44px] flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl border border-cyan-500/50 bg-cyan-500/15 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.2)] md:shadow-none hover:bg-cyan-500/25 hover:text-cyan-200 disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-inherit transition-all font-bold"
           >
-            <ChevronLeft className="w-3.5 h-3.5" />
-            Önceki
+            <ChevronLeft className="w-4 h-4" />
+            ÖNCEKİ
           </button>
-          <span className="text-slate-400 font-semibold tracking-wider">
-            SAYFA <span className="text-cyan-400">{currentPage}</span> / <span className="text-slate-300">{totalPages}</span>
+          <span className="text-slate-400 font-bold tracking-widest px-2 shrink-0 text-center text-[10px] uppercase">
+            SAYFA <span className="text-cyan-400 font-extrabold">{currentPage}</span> / <span className="text-slate-300">{totalPages}</span>
           </span>
           <button
             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
             disabled={currentPage === totalPages}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded bg-slate-950/60 border border-white/5 hover:bg-cyan-500/10 hover:text-cyan-400 disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-inherit transition-all"
+            className="flex-1 md:flex-initial min-h-[48px] md:min-h-[44px] flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl border border-cyan-500/50 bg-cyan-500/15 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.2)] md:shadow-none hover:bg-cyan-500/25 hover:text-cyan-200 disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-inherit transition-all font-bold"
           >
-            Sonraki
-            <ChevronRight className="w-3.5 h-3.5" />
+            SONRAKİ
+            <ChevronRight className="w-4 h-4" />
           </button>
         </div>
       )}

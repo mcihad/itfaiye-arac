@@ -160,7 +160,7 @@ export function Vehicle3DSchematic({
   }
 
   return (
-    <div className={cn("w-full flex flex-col xl:flex-row gap-5 p-4 rounded-xl border border-cyan-500/10 bg-slate-950/80 backdrop-blur-xl select-none text-slate-100", className)}>
+    <div className={cn("w-full max-w-full overflow-hidden flex flex-col xl:flex-row gap-5 p-4 rounded-xl border border-cyan-500/10 bg-slate-950/80 backdrop-blur-xl select-none text-slate-100", className)}>
       
       {/* 1. SOL PANEL: Taktiksel Telemetri & Profil Kontrolü */}
       <div className="w-full xl:w-72 shrink-0 flex flex-col justify-between border border-cyan-500/10 rounded-lg p-4 bg-slate-950/90 relative overflow-hidden">
@@ -190,7 +190,7 @@ export function Vehicle3DSchematic({
               <button
                 onClick={() => setProfile("sol")}
                 className={cn(
-                  "py-2 px-3 rounded font-mono text-xs font-bold border transition-all flex items-center justify-center gap-1.5",
+                  "min-h-[44px] min-w-[44px] py-2 px-3 rounded font-mono text-xs font-bold border transition-all flex items-center justify-center gap-1.5",
                   profile === "sol"
                     ? "bg-cyan-500/15 border-cyan-500 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.15)]"
                     : "bg-slate-900/60 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700"
@@ -202,7 +202,7 @@ export function Vehicle3DSchematic({
               <button
                 onClick={() => setProfile("sag")}
                 className={cn(
-                  "py-2 px-3 rounded font-mono text-xs font-bold border transition-all flex items-center justify-center gap-1.5",
+                  "min-h-[44px] min-w-[44px] py-2 px-3 rounded font-mono text-xs font-bold border transition-all flex items-center justify-center gap-1.5",
                   profile === "sag"
                     ? "bg-cyan-500/15 border-cyan-500 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.15)]"
                     : "bg-slate-900/60 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700"
@@ -278,7 +278,7 @@ export function Vehicle3DSchematic({
           <button
             onClick={() => setHudActive(!hudActive)}
             className={cn(
-              "py-1.5 px-3 rounded font-mono text-[9px] font-bold border transition-colors flex items-center gap-1",
+              "min-h-[44px] min-w-[44px] py-1.5 px-3 rounded font-mono text-[9px] font-bold border transition-colors flex items-center gap-1",
               hudActive ? "bg-cyan-500/10 border-cyan-500/30 text-cyan-400" : "bg-slate-900 border-slate-800 text-slate-500"
             )}
           >
@@ -294,7 +294,7 @@ export function Vehicle3DSchematic({
       </div>
 
       {/* 2. SAĞ PANEL: İnteraktif SVG Şeması */}
-      <div className="flex-1 bg-slate-950 border border-cyan-500/10 rounded-lg relative overflow-hidden flex items-center justify-center p-3 select-none min-h-[300px] sm:min-h-[380px] lg:min-h-[420px]">
+      <div className="flex-1 bg-slate-950 border border-cyan-500/10 rounded-lg relative overflow-hidden flex items-center justify-center p-3 select-none min-h-[300px] sm:min-h-[380px] lg:min-h-[420px] max-w-full w-full">
         {/* Cyber Holographic Grid */}
         <div className="absolute inset-0 bg-grid-pattern opacity-[0.06] pointer-events-none" />
         
@@ -310,7 +310,7 @@ export function Vehicle3DSchematic({
         {/* Master Interactive SVG */}
         <svg
           viewBox="0 0 800 360"
-          className="w-full h-auto max-w-[760px] relative z-10 filter drop-shadow-[0_0_15px_rgba(6,182,212,0.05)]"
+          className="w-full h-auto max-w-full relative z-10 filter drop-shadow-[0_0_15px_rgba(6,182,212,0.05)]"
         >
           {/* DEFINITIONS FOR GRADIENTS AND GLOWS */}
           <defs>
