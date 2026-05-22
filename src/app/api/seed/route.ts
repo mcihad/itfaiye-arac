@@ -147,12 +147,13 @@ function extractPlate(str: string): string | null {
   if (s.includes('ACCENT') || s.includes('HYUNDAI ACCENT') || s.includes('TD 315')) return '58 TD 315';
   if (s.includes('58 AY 164') || s.includes('AY 164')) return '58 AY 164';
   if (s.includes('1936 MODEL') || s.includes('58 AC 113') || s.includes('AC 113')) return '58 AC 113';
-  if (s.includes('JENERATOR')) return 'JENERATOR';
   
   const match = s.match(/(\d{2})\s*([A-Z]{1,3})\s*(\d{2,4})/);
   if (match) {
     return `${match[1]} ${match[2]} ${match[3]}`;
   }
+
+  if (s.includes('JENERATOR')) return 'JENERATOR';
   return null;
 }
 
@@ -179,8 +180,8 @@ export async function GET() {
            ON CONFLICT (sicil_no) DO UPDATE SET ad = $2, soyad = $3, unvan = $4, rol = $5, password_hash = $9`,
           [p.sicil_no, p.ad, p.soyad, p.unvan, p.rol, p.rol === 'User', p.rol === 'Shift_Leader' || p.rol === 'Admin', p.rol !== 'User', defaultPasswordHash]
         );
-      } catch (err: any) {
-        logs.push(`✗ Personel ${p.sicil_no}: ${err.message}`);
+      } catch (err: unknown) {
+        logs.push(`✗ Personel ${p.sicil_no}: ${(err as Error).message}`);
       }
     }
     logs.push(`✓ Personeller sisteme başarıyla mühürlendi.`);
@@ -231,8 +232,8 @@ export async function GET() {
             v.yil > 2018 ? 450 : 2100 // Gerçekçi PTO
           ]
         );
-      } catch (err: any) {
-        logs.push(`✗ Araç (${v.plaka}) hatası: ${err.message}`);
+      } catch (err: unknown) {
+        logs.push(`✗ Araç (${v.plaka}) hatası: ${(err as Error).message}`);
       }
     }
     logs.push(`✓ 24 adet gerçek Sivas İtfaiye taktik aracı veritabanına mühürlendi.`);
@@ -247,7 +248,7 @@ export async function GET() {
 
     // 4.1. ARAC TAMİR TAKİP PARSER
     if (fs.existsSync(tamirPath)) {
-      const tamirWb = xlsx.readFile(tamirPath);
+      const tamirWb = xlsx.read(fs.readFileSync(tamirPath));
       const tamirSheet = tamirWb.Sheets[tamirWb.SheetNames[0]];
       const tamirRange = xlsx.utils.decode_range(tamirSheet['!ref'] || "A1");
 
@@ -255,7 +256,7 @@ export async function GET() {
         const headerVal = tamirSheet[xlsx.utils.encode_cell({ r: 0, c })]?.v;
         if (!headerVal) continue;
         const plate = extractPlate(String(headerVal));
-        if (!plate) continue;
+        if (!plate || plate === 'JENERATOR') continue;
 
         for (let r = 1; r <= tamirRange.e.r; r++) {
           const cellVal = tamirSheet[xlsx.utils.encode_cell({ r, c })]?.v;
@@ -282,8 +283,79 @@ export async function GET() {
     }
 
     // 4.2. YAĞ BAKIM TAKİP PARSER
+    const saveYagLog = async (logPlate: string, logDate: string, logText: string) => {
+      const txt = logText.trim();
+      if (!txt || txt === '(empty)') return;
+
+      // If the log is for 'JENERATOR', let's check if it contains a list of multiple vehicle generator oil changes!
+      if (logPlate === 'JENERATOR') {
+        const lines = txt.split('\n');
+        for (const line of lines) {
+          const linePlate = extractPlate(line);
+          if (linePlate && linePlate !== 'JENERATOR') {
+            const cleanedLine = line.replace(/^\s*\*?\s*/, '').trim();
+            if (cleanedLine) {
+              await query(
+                `INSERT INTO arac_bakim_gecmisi (plaka, tarih, tip, aciklama, maliyet)
+                 VALUES ($1, $2, 'yag_bakimi', $3, 0)`,
+                [linePlate, logDate, cleanedLine]
+              );
+              totalYagLogs++;
+            }
+          }
+        }
+        // Never save 'JENERATOR' plate log itself
+        return;
+      }
+
+      // Otherwise, insert normally
+      await query(
+        `INSERT INTO arac_bakim_gecmisi (plaka, tarih, tip, aciklama, maliyet)
+         VALUES ($1, $2, 'yag_bakimi', $3, 0)`,
+        [logPlate, logDate, txt]
+      );
+      totalYagLogs++;
+    };
+
+    const processCell = async (cellPlate: string, defaultDate: string, cellVal: unknown) => {
+      if (!cellVal) return;
+      const txt = String(cellVal).trim();
+      if (!txt || txt === '(empty)') return;
+
+      // Split cell into multiple logs by dates using regex
+      const dateRegex = /(\d{2})[./-](\d{2})[./-](\d{4})/g;
+      const matches = [];
+      let match;
+      while ((match = dateRegex.exec(txt)) !== null) {
+        matches.push({
+          index: match.index,
+          dateStr: match[0],
+          formattedDate: `${match[3]}-${match[2]}-${match[1]}`
+        });
+      }
+
+      if (matches.length === 0) {
+        await saveYagLog(cellPlate, defaultDate, txt);
+      } else {
+        for (let i = 0; i < matches.length; i++) {
+          const current = matches[i];
+          const next = matches[i + 1];
+          const start = current.index + current.dateStr.length;
+          const end = next ? next.index : txt.length;
+          let blockText = txt.substring(start, end).trim();
+          blockText = blockText.replace(/^[\s*:*,*-]*|[\s*:*,*-]*$/g, '').trim();
+
+          if (!blockText) {
+            blockText = `Yağ/Antifriz periyodik kontrolü gerçekleştirildi.`;
+          }
+
+          await saveYagLog(cellPlate, current.formattedDate, blockText);
+        }
+      }
+    };
+
     if (fs.existsSync(yagPath)) {
-      const yagWb = xlsx.readFile(yagPath);
+      const yagWb = xlsx.read(fs.readFileSync(yagPath));
       const yagSheet = yagWb.Sheets[yagWb.SheetNames[0]];
       const yagRange = xlsx.utils.decode_range(yagSheet['!ref'] || "A1");
 
@@ -296,67 +368,15 @@ export async function GET() {
         // Row 1 is baseline oil maintenance info
         const baselineVal = yagSheet[xlsx.utils.encode_cell({ r: 1, c })]?.v;
         if (baselineVal) {
-          const txt = String(baselineVal).trim();
-          if (txt && txt !== '(empty)') {
-            const date = parseDate(String(headerVal)) || "2024-09-01";
-            await query(
-              `INSERT INTO arac_bakim_gecmisi (plaka, tarih, tip, aciklama, maliyet)
-               VALUES ($1, $2, 'yag_bakimi', $3, 0)`,
-              [plate, date, txt]
-            );
-            totalYagLogs++;
-          }
+          const date = parseDate(String(headerVal)) || "2024-09-01";
+          await processCell(plate, date, baselineVal);
         }
 
         // Rows 2 to 9 are follow-up logs with multiple entries
         for (let r = 2; r <= yagRange.e.r; r++) {
           const cellVal = yagSheet[xlsx.utils.encode_cell({ r, c })]?.v;
-          if (!cellVal) continue;
-
-          const txt = String(cellVal).trim();
-          if (!txt || txt === '(empty)') continue;
-
-          // Split cell into multiple logs by dates using regex
-          const dateRegex = /(\d{2})[./-](\d{2})[./-](\d{4})/g;
-          const matches = [];
-          let match;
-          while ((match = dateRegex.exec(txt)) !== null) {
-            matches.push({
-              index: match.index,
-              dateStr: match[0],
-              formattedDate: `${match[3]}-${match[2]}-${match[1]}`
-            });
-          }
-
-          if (matches.length === 0) {
-            const date = parseDate(String(headerVal)) || "2024-09-01";
-            await query(
-              `INSERT INTO arac_bakim_gecmisi (plaka, tarih, tip, aciklama, maliyet)
-               VALUES ($1, $2, 'yag_bakimi', $3, 0)`,
-              [plate, date, txt]
-            );
-            totalYagLogs++;
-          } else {
-            for (let i = 0; i < matches.length; i++) {
-              const current = matches[i];
-              const next = matches[i + 1];
-              const start = current.index + current.dateStr.length;
-              const end = next ? next.index : txt.length;
-              let blockText = txt.substring(start, end).trim();
-              blockText = blockText.replace(/^[\s*:*,*-]*|[\s*:*,*-]*$/g, '').trim();
-
-              if (!blockText) {
-                blockText = `Yağ/Antifriz periyodik kontrolü gerçekleştirildi.`;
-              }
-
-              await query(
-                `INSERT INTO arac_bakim_gecmisi (plaka, tarih, tip, aciklama, maliyet)
-                 VALUES ($1, $2, 'yag_bakimi', $3, 0)`,
-                [plate, current.formattedDate, blockText]
-              );
-              totalYagLogs++;
-            }
-          }
+          const date = parseDate(String(headerVal)) || "2024-09-01";
+          await processCell(plate, date, cellVal);
         }
       }
       logs.push(`✓ Yağ bakım dosyasından ${totalYagLogs} adet log seed edildi.`);
@@ -380,8 +400,8 @@ export async function GET() {
       logs
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Seed hatası:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: (error as Error).message }, { status: 500 });
   }
 }

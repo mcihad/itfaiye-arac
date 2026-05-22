@@ -339,13 +339,16 @@ export default function AracBakimPage() {
       let antifrizLitre = 0
 
       // Search for "7 Litre motor yağı" or "15 LT motor yağı" or "yağı 7lt" etc.
-      const yagMatch = text.match(/(\d+)\s*(LİTRE|LT|L)?\s*(MOTOR)?\s*YAĞ/i) || text.match(/YAĞ[I]?\s*(\d+)/i)
+      // High-precision regex requiring volume unit (LİTRE, LT, L) to avoid license plate codes (e.g., 58) or years (e.g., 2025)
+      const yagMatch = text.match(/(\d+(?:[.,]\d+)?)\s*(LİTRE|LT|L)\s*(?:MOT[OR]*\.?\s*)?YAĞ/i) || 
+                       text.match(/(?:MOTOR\s*)?YAĞ[I]?[\s:]*(\d+(?:[.,]\d+)?)\s*(LİTRE|LT|L)/i)
       if (yagMatch) {
-        const val = parseInt(yagMatch[1], 10)
+        const valStr = yagMatch[1].replace(',', '.')
+        const val = parseFloat(valStr)
         if (val > 0 && val <= 80) {
           yagLitre = val
         } else {
-          // If value is unreasonably high (>80), it is likely a year or KM (e.g., 2025, 2035)
+          // If value is unreasonably high (>80), standard fallback for change/addition
           yagLitre = (text.includes("DEĞİŞİMİ") || text.includes("EKLENDİ")) ? 15 : 0
         }
       } else if (text.includes("YAĞ DEĞİŞİMİ") || text.includes("YAĞ EKLENDİ")) {
@@ -353,15 +356,17 @@ export default function AracBakimPage() {
       }
 
       // Search for "5 Litre antifriz" or "3 L ANTİFRİZ" etc.
-      const antiMatch = text.match(/(\d+)\s*(LİTRE|LT|L)?\s*(ANTİFRİZ|ANTIFRIZ)/i) || text.match(/(ANTİFRİZ|ANTIFRIZ)\s*(\d+)/i)
+      const antiMatch = text.match(/(\d+(?:[.,]\d+)?)\s*(LİTRE|LT|L)\s*(?:ANTİFRİZ|ANTIFRIZ)/i) || 
+                        text.match(/(?:ANTİFRİZ|ANTIFRIZ)[\s:]*(\d+(?:[.,]\d+)?)\s*(LİTRE|LT|L)/i)
       if (antiMatch) {
-        const val = parseInt(antiMatch[1], 10)
+        const valStr = antiMatch[1].replace(',', '.')
+        const val = parseFloat(valStr)
         if (val > 0 && val <= 80) {
           antifrizLitre = val
         } else {
           antifrizLitre = (text.includes("DEĞİŞİMİ") || text.includes("EKLENDİ") || text.includes("KONULDU")) ? 10 : 0
         }
-      } else if (text.includes("ANTİFRİZ EKLENDİ") || text.includes("ANTİFRİZ KONULDU")) {
+      } else if (text.includes("ANTİFRİZ EKLENDİ") || text.includes("ANTİFRİZ KONULDU") || text.includes("ANTİFRİZ DEĞİŞİMİ")) {
         antifrizLitre = 10 // standard fallback
       }
 
