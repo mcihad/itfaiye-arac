@@ -12,14 +12,14 @@ import {
   Wrench, 
   Wind, 
   ClipboardList, 
-  Camera, 
   History, 
   ShieldAlert, 
   LayoutDashboard, 
   Map, 
   Building, 
   FileText,
-  GraduationCap
+  GraduationCap,
+  Combine
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
@@ -64,7 +64,7 @@ export function MobileNav() {
       title: "FİLO & LOJİSTİK YÖNETİMİ",
       items: [
         { href: "/araclar", label: "Araç Filosu & Envanter", icon: Truck, visible: !isEr, matchStart: '/arac/' },
-        { href: "/yonetim/tarayici", label: "QR Araç Tara", icon: Camera, visible: true },
+        { href: "/envanter-yonetimi", label: "Envanter Yönetimi", icon: Combine, visible: !isEr },
         { href: "/barkod", label: "Barkod Oku", icon: ScanLine, visible: true },
         { href: "/yonetim/arac-bakim", label: "Araç Bakım & Yakıt", icon: Wrench, visible: !isEr },
         { href: "/scba", label: "SCBA Tüp Takibi", icon: Wind, visible: !isEr },
@@ -199,7 +199,7 @@ export function MobileNav() {
           )}>Barkod</span>
         </Link>
 
-        {!isEr && navLink("/envanter-yonetimi", <Truck size={22} />, "Envanter")}
+        {!isEr && navLink("/envanter-yonetimi", <Combine size={22} />, "Envanter")}
         
         <button 
           onClick={() => setMenuOpen(!menuOpen)}

@@ -1,4 +1,5 @@
 export interface InventoryItem {
+  id?: string;
   malzeme: string;
   adet: number;
   durum: "Tam" | "Eksik" | "Kayıp/Yok" | string;

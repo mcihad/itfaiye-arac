@@ -7,7 +7,6 @@ import {
   LayoutDashboard, 
   Map, 
   Truck, 
-  Camera, 
   ScanLine, 
   Wrench, 
   Wind, 
@@ -17,7 +16,8 @@ import {
   Building, 
   FileText, 
   ShieldAlert, 
-  History 
+  History,
+  Combine
 } from 'lucide-react'
 import { ThemeToggle } from '@/components/theme/ThemeToggle'
 import { useAuthStore } from '@/lib/authStore'
@@ -48,7 +48,7 @@ export function Sidebar() {
       title: "FİLO & LOJİSTİK YÖNETİMİ",
       items: [
         { href: "/araclar", label: "Araç Filosu & Envanter", icon: Truck, visible: !isEr, matchStart: '/arac/' },
-        { href: "/yonetim/tarayici", label: "QR Araç Tara", icon: Camera, visible: true },
+        { href: "/envanter-yonetimi", label: "Envanter Yönetimi", icon: Combine, visible: !isEr },
         { href: "/barkod", label: "Barkod Oku", icon: ScanLine, visible: true },
         { href: "/yonetim/arac-bakim", label: "Araç Bakım & Yakıt", icon: Wrench, visible: !isEr },
         { href: "/scba", label: "SCBA Tüp Takibi", icon: Wind, visible: !isEr },

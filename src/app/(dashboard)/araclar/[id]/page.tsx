@@ -26,7 +26,8 @@ import {
   Maximize,
   Gauge as GaugeIcon,
   FolderOpen,
-  Box
+  Box,
+  Plus
 } from "lucide-react"
 import { InventoryList } from "@/components/vehicle/InventoryList"
 import { Vehicle3DSchematic } from "@/components/vehicle/Vehicle3DSchematic"
@@ -37,6 +38,9 @@ import Link from "next/link"
 import { api } from "@/lib/api"
 import { QRCodeSVG } from "qrcode.react"
 import { APP_BASE_URL } from "@/lib/constants"
+import { useAuthStore } from "@/lib/authStore"
+import { InventoryAddEditModal } from "@/components/inventory/InventoryAddEditModal"
+import { InventoryItem, Vehicle } from "@/types"
 
 function buildQrUrl(plaka: string, compartment: string): string {
   const slug = plaka.replace(/\s+/g, "-").toLowerCase()
@@ -80,17 +84,24 @@ export default function VehicleDetailPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const idStr = params.id as string
+  const { user } = useAuthStore()
+  const isEr = user?.rol === 'User'
   
-  const [vehicle, setVehicle] = useState<any>(null)
+  const [vehicle, setVehicle] = useState<Vehicle | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeCompartment, setActiveCompartment] = useState<string | null>(null)
   const [showTimeline, setShowTimeline] = useState(false)
 
+  // Envanter Add/Edit modal states
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [modalItem, setModalItem] = useState<InventoryItem | null>(null)
+  const [isEditingList, setIsEditingList] = useState(false)
+
   useEffect(() => {
     async function fetchVehicle() {
-      const { data: vehicles } = await api.from('vehicles').select('*')
-      const found = (vehicles || []).find((v: any) => v.plaka.replace(/\s+/g, '-').toLowerCase() === idStr)
-      setVehicle(found)
+      const { data: vehicles } = await api.from<Vehicle>('vehicles').select('*') as { data: Vehicle[] | null; error: any }
+      const found = (vehicles || []).find((v: Vehicle) => v.plaka.replace(/\s+/g, '-').toLowerCase() === idStr)
+      setVehicle(found || null)
       setLoading(false)
     }
     fetchVehicle()
@@ -110,6 +121,147 @@ export default function VehicleDetailPage() {
       setActiveCompartment(keys[0])
     }
   }, [searchParams, vehicle])
+
+  const handleSaveEquipment = async (item: InventoryItem, targetCompartment: string) => {
+    if (!vehicle) return
+
+    const updatedBolmeler = JSON.parse(JSON.stringify(vehicle.bolmeler || {}))
+
+    if (!updatedBolmeler[targetCompartment]) {
+      updatedBolmeler[targetCompartment] = []
+    }
+
+    const isEdit = modalItem !== null
+
+    if (isEdit && modalItem) {
+      let foundOriginalComp: string | null = null
+      let originalIndex = -1
+
+      for (const compKey of Object.keys(updatedBolmeler)) {
+        const idx = updatedBolmeler[compKey].findIndex((i: any) => i.id === item.id || (i.malzeme === modalItem.malzeme && i.adet === modalItem.adet))
+        if (idx !== -1) {
+          foundOriginalComp = compKey
+          originalIndex = idx
+          break
+        }
+      }
+
+      if (foundOriginalComp !== null && originalIndex !== -1) {
+        if (foundOriginalComp === targetCompartment) {
+          updatedBolmeler[targetCompartment][originalIndex] = {
+            id: item.id,
+            malzeme: item.malzeme,
+            adet: item.adet,
+            durum: item.durum
+          }
+        } else {
+          updatedBolmeler[foundOriginalComp].splice(originalIndex, 1)
+          updatedBolmeler[targetCompartment].push({
+            id: item.id,
+            malzeme: item.malzeme,
+            adet: item.adet,
+            durum: item.durum
+          })
+        }
+      } else {
+        updatedBolmeler[targetCompartment].push({
+          id: item.id,
+          malzeme: item.malzeme,
+          adet: item.adet,
+          durum: item.durum
+        })
+      }
+    } else {
+      updatedBolmeler[targetCompartment].push({
+        id: item.id,
+        malzeme: item.malzeme,
+        adet: item.adet,
+        durum: item.durum
+      })
+    }
+
+    const { error: updateErr } = await api.update('vehicles', { bolmeler: updatedBolmeler }, { plaka: vehicle.plaka })
+
+    if (updateErr) {
+      throw updateErr
+    }
+
+    setVehicle({
+      ...vehicle,
+      bolmeler: updatedBolmeler
+    })
+
+    fetch('/api/audit-log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action_type: isEdit ? 'inventory_update' : 'inventory_add',
+        actor_sicil_no: user?.sicilNo || 'unknown',
+        actor_name: user ? `${user.ad} ${user.soyad}` : 'Bilinmeyen',
+        target: vehicle.plaka,
+        details: {
+          action: isEdit ? 'edit_item' : 'add_item',
+          item: item,
+          compartment: targetCompartment,
+          original_compartment: isEdit ? modalItem.id : undefined
+        },
+      }),
+    }).catch(err => console.error('[AuditLog] Envanter logu gönderilemedi:', err))
+  }
+
+  const handleDeleteEquipment = async (item: InventoryItem) => {
+    if (!vehicle || !activeCompartment) return
+
+    if (!window.confirm(`"${item.malzeme}" malzemesini envanterden silmek istediğinize emin misiniz?`)) {
+      return
+    }
+
+    const updatedBolmeler = JSON.parse(JSON.stringify(vehicle.bolmeler || {}))
+    if (!updatedBolmeler[activeCompartment]) return
+
+    const idx = updatedBolmeler[activeCompartment].findIndex((i: any) => i.id === item.id || (i.malzeme === item.malzeme && i.adet === item.adet))
+    if (idx === -1) return
+
+    updatedBolmeler[activeCompartment].splice(idx, 1)
+
+    const { error: updateErr } = await api.update('vehicles', { bolmeler: updatedBolmeler }, { plaka: vehicle.plaka })
+
+    if (updateErr) {
+      alert("Hata: " + updateErr.message)
+      return
+    }
+
+    setVehicle({
+      ...vehicle,
+      bolmeler: updatedBolmeler
+    })
+
+    fetch('/api/audit-log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action_type: 'inventory_delete',
+        actor_sicil_no: user?.sicilNo || 'unknown',
+        actor_name: user ? `${user.ad} ${user.soyad}` : 'Bilinmeyen',
+        target: vehicle.plaka,
+        details: {
+          action: 'delete_item',
+          item: item,
+          compartment: activeCompartment
+        },
+      }),
+    }).catch(err => console.error('[AuditLog] Envanter silme logu gönderilemedi:', err))
+  }
+
+  const handleOpenAddModal = () => {
+    setModalItem(null)
+    setIsModalOpen(true)
+  }
+
+  const handleOpenEditModal = (item: InventoryItem) => {
+    setModalItem(item)
+    setIsModalOpen(true)
+  }
 
   const handleSelectCompartment = (key: string) => {
     setActiveCompartment(key)
@@ -148,11 +300,11 @@ export default function VehicleDetailPage() {
     ...Object.keys(vehicle.bolmeler || {})
   ]))
 
-  const activeItems: any[] = activeCompartment ? (vehicle.bolmeler?.[activeCompartment] || []) : []
+  const activeItems: InventoryItem[] = activeCompartment ? (vehicle.bolmeler?.[activeCompartment] || []) : []
 
   // Count total items and issues safely
   const totalItems = Object.values(vehicle.bolmeler || {}).flat().length
-  const issueItems = Object.values(vehicle.bolmeler || {}).flat().filter((i: any) => i?.durum !== "Tam").length
+  const issueItems = Object.values(vehicle.bolmeler || {}).flat().filter((i: unknown) => (i as InventoryItem)?.durum !== "Tam").length
 
   return (
     <div className="space-y-6">
@@ -282,32 +434,62 @@ export default function VehicleDetailPage() {
         <div className="lg:col-span-2 space-y-4">
           <Card className="shadow-sm">
              <CardHeader className="pb-3 border-b border-border/50 bg-muted/10">
-               <div className="flex items-center justify-between">
-                 <CardTitle className="text-base flex items-center space-x-2">
-                   <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-                   <span>{activeCompartment ? COMPARTMENT_NAMES[activeCompartment] || activeCompartment : "Bölme Seçin"} Envanteri</span>
-                 </CardTitle>
-                 {activeCompartment && (
-                   <button
-                     onClick={() => setShowTimeline(!showTimeline)}
-                     className={cn(
-                       "flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors",
-                       showTimeline
-                         ? "bg-cyan-500/15 text-cyan-400 border border-cyan-500/20"
-                         : "bg-muted/50 text-muted-foreground hover:bg-muted border border-border/50"
-                     )}
-                   >
-                     <History className="w-3.5 h-3.5" />
-                     Geçmiş
-                   </button>
-                 )}
-               </div>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center space-x-2">
+                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+                    <span>{activeCompartment ? COMPARTMENT_NAMES[activeCompartment] || activeCompartment : "Bölme Seçin"} Envanteri</span>
+                  </CardTitle>
+                  {activeCompartment && (
+                    <div className="flex items-center gap-2">
+                      {!isEr && (
+                        <>
+                          <button
+                            onClick={handleOpenAddModal}
+                            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/20 transition-all"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            Yeni Ekipman
+                          </button>
+                          <button
+                            onClick={() => setIsEditingList(!isEditingList)}
+                            className={cn(
+                              "flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all",
+                              isEditingList
+                                ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                                : "bg-muted/50 text-slate-300 border border-border/50 hover:bg-muted"
+                            )}
+                          >
+                            <Wrench className="w-3.5 h-3.5" />
+                            {isEditingList ? "Kapat" : "Düzenle"}
+                          </button>
+                        </>
+                      )}
+                      <button
+                        onClick={() => setShowTimeline(!showTimeline)}
+                        className={cn(
+                          "flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors",
+                          showTimeline
+                            ? "bg-cyan-500/15 text-cyan-400 border border-cyan-500/20"
+                            : "bg-muted/50 text-muted-foreground hover:bg-muted border border-border/50"
+                        )}
+                      >
+                        <History className="w-3.5 h-3.5" />
+                        Geçmiş
+                      </button>
+                    </div>
+                  )}
+                </div>
              </CardHeader>
              <CardContent className="pt-0 px-0">
                 {activeCompartment ? (
-                  <InventoryList items={activeItems} />
+                   <InventoryList 
+                     items={activeItems} 
+                     isEditingList={isEditingList}
+                     onEditItem={handleOpenEditModal}
+                     onDeleteItem={handleDeleteEquipment}
+                   />
                 ) : (
-                  <div className="p-8 text-center text-muted-foreground">Lütfen sol menüden veya şemadan bir araç bölmesi seçin.</div>
+                   <div className="p-8 text-center text-muted-foreground">Lütfen sol menüden veya şemadan bir araç bölmesi seçin.</div>
                 )}
              </CardContent>
           </Card>
@@ -328,6 +510,16 @@ export default function VehicleDetailPage() {
           )}
         </div>
       </div>
+
+      {vehicle && (
+        <InventoryAddEditModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSave={handleSaveEquipment}
+          initialItem={modalItem}
+          currentCompartment={activeCompartment || ""}
+        />
+      )}
 
       {/* Hidden Print Area */}
       <div id="vehicle-print-area" className="hidden print:block print:w-full">
