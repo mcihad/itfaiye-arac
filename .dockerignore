@@ -1,0 +1,40 @@
+node_modules
+.next
+out
+build
+coverage
+.git
+.gitignore
+.vscode
+.idea
+.DS_Store
+
+# Env (Dokploy üzerinden enjekte edilecek)
+.env
+.env.*
+!.env.example
+
+# Lokal geliştirme / scratch dosyaları
+scratch/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Yedekler ve büyük dosyalar
+*.zip
+itfaiye-arac-yedek.zip
+
+# Docs / misc
+README.md
+AGENTS.md
+CLAUDE.md
+master_system_prompt.md
+
+# Test / TS build artifacts
+*.tsbuildinfo
+next-env.d.ts
+
+# Public uploads runtime'da volume olarak bağlanacak
+public/uploads
