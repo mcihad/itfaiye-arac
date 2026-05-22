@@ -2,9 +2,9 @@
 import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
-import { Badge } from "@/components/ui/Badge"
 import { Loader2, X, AlertTriangle, Save, Package } from "lucide-react"
 import { InventoryItem } from "@/types"
+import { COMPARTMENT_NAMES } from "@/lib/constants"
 
 interface InventoryAddEditModalProps {
   isOpen: boolean
@@ -12,6 +12,7 @@ interface InventoryAddEditModalProps {
   onSave: (item: InventoryItem, targetCompartment: string) => Promise<void>
   initialItem?: InventoryItem | null
   currentCompartment: string
+  availableCompartments?: string[]
 }
 
 const TACTICAL_COMPARTMENTS = [
@@ -33,10 +34,20 @@ export function InventoryAddEditModal({
   onClose,
   onSave,
   initialItem,
-  currentCompartment
+  currentCompartment,
+  availableCompartments = []
 }: InventoryAddEditModalProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const getCompartmentLabel = (key: string): string => {
+    if (!key) return ""
+    if (COMPARTMENT_NAMES[key]) return COMPARTMENT_NAMES[key]
+    return key
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ')
+  }
 
   const [formData, setFormData] = useState({
     malzeme: "",
@@ -45,26 +56,31 @@ export function InventoryAddEditModal({
     bolme: ""
   })
 
+  const compartmentList = availableCompartments.length > 0 
+    ? availableCompartments 
+    : TACTICAL_COMPARTMENTS.map(c => c.key)
+
   useEffect(() => {
     if (isOpen) {
       setError(null)
+      const defaultCompartment = currentCompartment || compartmentList[0] || ""
       if (initialItem) {
         setFormData({
           malzeme: initialItem.malzeme || "",
           adet: initialItem.adet || 1,
           durum: initialItem.durum || "Tam",
-          bolme: currentCompartment || TACTICAL_COMPARTMENTS[0].key
+          bolme: defaultCompartment
         })
       } else {
         setFormData({
           malzeme: "",
           adet: 1,
           durum: "Tam",
-          bolme: currentCompartment || TACTICAL_COMPARTMENTS[0].key
+          bolme: defaultCompartment
         })
       }
     }
-  }, [isOpen, initialItem, currentCompartment])
+  }, [isOpen, initialItem, currentCompartment, compartmentList])
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -84,9 +100,10 @@ export function InventoryAddEditModal({
       }
       await onSave(savedItem, formData.bolme)
       onClose()
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err)
-      setError("İşlem gerçekleştirilemedi: " + (err.message || "Bilinmeyen hata"))
+      const errMsg = err instanceof Error ? err.message : "Bilinmeyen hata"
+      setError("İşlem gerçekleştirilemedi: " + errMsg)
     } finally {
       setLoading(false)
     }
@@ -181,8 +198,8 @@ export function InventoryAddEditModal({
               value={formData.bolme} 
               onChange={e => setFormData({...formData, bolme: e.target.value})}
             >
-              {TACTICAL_COMPARTMENTS.map(c => (
-                <option key={c.key} value={c.key}>{c.label}</option>
+              {compartmentList.map(key => (
+                <option key={key} value={key}>{getCompartmentLabel(key)}</option>
               ))}
             </select>
             <p className="text-[10px] text-slate-500 font-mono leading-relaxed mt-1">
@@ -215,3 +232,4 @@ export function InventoryAddEditModal({
     </div>
   )
 }
+
