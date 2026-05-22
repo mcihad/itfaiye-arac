@@ -1,10 +1,33 @@
 "use client"
 
-import { useParams } from "next/navigation"
+import { useParams, useSearchParams, useRouter } from "next/navigation"
 import { COMPARTMENT_NAMES } from "@/lib/constants"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
-import { Truck, PackageSearch, ChevronRight, ArrowLeft, Gauge, Clock, ShieldCheck, CalendarDays, History, Printer } from "lucide-react"
+import { 
+  Truck, 
+  PackageSearch, 
+  ChevronRight, 
+  ArrowLeft, 
+  Gauge, 
+  Clock, 
+  ShieldCheck, 
+  CalendarDays, 
+  History, 
+  Printer,
+  Compass,
+  Layers,
+  Zap,
+  Wrench,
+  Droplet,
+  Flame,
+  Hammer,
+  Activity,
+  Maximize,
+  Gauge as GaugeIcon,
+  FolderOpen,
+  Box
+} from "lucide-react"
 import { InventoryList } from "@/components/vehicle/InventoryList"
 import { Vehicle3DSchematic } from "@/components/vehicle/Vehicle3DSchematic"
 import { AuditTimeline } from "@/components/inventory/AuditTimeline"
@@ -20,8 +43,42 @@ function buildQrUrl(plaka: string, compartment: string): string {
   return `${APP_BASE_URL}/arac/${slug}/${compartment}`
 }
 
+const STANDARD_11_COMPARTMENTS = [
+  "sol_on_kapak",
+  "sol_orta_kapak",
+  "sol_arka_kapak",
+  "sag_on_kapak",
+  "sag_orta_kapak",
+  "sag_arka_kapak",
+  "arac_ustu",
+  "kabin_ici",
+  "arac_ici",
+  "arka_bolme",
+  "arka_kapak"
+];
+
+const TACTICAL_ICONS: Record<string, any> = {
+  kabin_ici: Compass,
+  arac_ici: Layers,
+  sol_on_kapak: Zap,
+  sol_orta_kapak: Wrench,
+  sol_arka_kapak: Droplet,
+  sag_on_kapak: Flame,
+  sag_orta_kapak: Hammer,
+  sag_arka_kapak: Activity,
+  arac_ustu: Maximize,
+  arka_bolme: GaugeIcon,
+  arka_kapak: FolderOpen,
+  sol_dolap: Box,
+  sag_dolap: Box,
+  bagaj_ici: Box,
+  kasa_ici: Layers,
+};
+
 export default function VehicleDetailPage() {
   const params = useParams()
+  const searchParams = useSearchParams()
+  const router = useRouter()
   const idStr = params.id as string
   
   const [vehicle, setVehicle] = useState<any>(null)
@@ -34,20 +91,33 @@ export default function VehicleDetailPage() {
       const { data: vehicles } = await api.from('vehicles').select('*')
       const found = (vehicles || []).find((v: any) => v.plaka.replace(/\s+/g, '-').toLowerCase() === idStr)
       setVehicle(found)
-      if (found && Object.keys(found.bolmeler).length > 0) {
-        const urlParams = new URLSearchParams(window.location.search)
-        const bolmeParam = urlParams.get("bolme")
-        if (bolmeParam && found.bolmeler[bolmeParam]) {
-          setActiveCompartment(bolmeParam)
-        } else {
-          setActiveCompartment(Object.keys(found.bolmeler)[0])
-        }
-      }
       setLoading(false)
     }
     fetchVehicle()
   }, [idStr])
   
+  // Listen and sync searchParams (QR deep linking)
+  useEffect(() => {
+    if (!vehicle) return
+    const bolmeParam = searchParams.get("bolme")
+    const keys = Array.from(new Set([
+      ...STANDARD_11_COMPARTMENTS,
+      ...Object.keys(vehicle.bolmeler || {})
+    ]))
+    if (bolmeParam && (keys.includes(bolmeParam) || vehicle.bolmeler?.[bolmeParam])) {
+      setActiveCompartment(bolmeParam)
+    } else if (keys.length > 0) {
+      setActiveCompartment(keys[0])
+    }
+  }, [searchParams, vehicle])
+
+  const handleSelectCompartment = (key: string) => {
+    setActiveCompartment(key)
+    const nextParams = new URLSearchParams(window.location.search)
+    nextParams.set("bolme", key)
+    router.replace(`${window.location.pathname}?${nextParams.toString()}`)
+  }
+
   const handlePrint = () => {
     const printArea = document.getElementById('vehicle-print-area')
     if (!printArea) return
@@ -73,12 +143,16 @@ export default function VehicleDetailPage() {
   )
   if (!vehicle) return <div className="p-6">Araç bulunamadı.</div>
 
-  const compartKeys = Object.keys(vehicle?.bolmeler || {})
-  const activeItems: any[] = activeCompartment ? (vehicle.bolmeler[activeCompartment] || []) : []
+  const compartKeys = Array.from(new Set([
+    ...STANDARD_11_COMPARTMENTS,
+    ...Object.keys(vehicle.bolmeler || {})
+  ]))
 
-  // Count total items and issues
+  const activeItems: any[] = activeCompartment ? (vehicle.bolmeler?.[activeCompartment] || []) : []
+
+  // Count total items and issues safely
   const totalItems = Object.values(vehicle.bolmeler || {}).flat().length
-  const issueItems = Object.values(vehicle.bolmeler || {}).flat().filter((i: any) => i.durum !== "Tam").length
+  const issueItems = Object.values(vehicle.bolmeler || {}).flat().filter((i: any) => i?.durum !== "Tam").length
 
   return (
     <div className="space-y-6">
@@ -131,7 +205,7 @@ export default function VehicleDetailPage() {
         </CardContent></Card>
       </div>
 
-      {/* 3D İnteraktif Araç Şeması */}
+      {/* İnteraktif Araç Şeması */}
       <Card className="border-cyan-500/10 overflow-hidden">
         <CardHeader className="pb-2 border-b border-border/50 bg-gradient-to-r from-cyan-500/[0.03] to-transparent">
           <CardTitle className="text-base flex items-center gap-2">
@@ -143,7 +217,7 @@ export default function VehicleDetailPage() {
           <Vehicle3DSchematic
             compartmentKeys={compartKeys}
             activeCompartment={activeCompartment}
-            onSelect={setActiveCompartment}
+            onSelect={handleSelectCompartment}
             vehicleType={vehicle.aracTipi}
           />
         </CardContent>
@@ -167,20 +241,31 @@ export default function VehicleDetailPage() {
              <div className="flex flex-col">
                {compartKeys.map(key => {
                  const isActive = activeCompartment === key
-                 const itemCount = vehicle.bolmeler[key].length
-                 const issues = vehicle.bolmeler[key].filter((i: any) => i.durum !== "Tam").length
+                 const itemCount = vehicle.bolmeler?.[key]?.length || 0
+                 const issues = vehicle.bolmeler?.[key]?.filter((i: any) => i?.durum !== "Tam")?.length || 0
+                 const IconComponent = TACTICAL_ICONS[key] || Box
                  return (
                    <button
                      key={key}
-                     onClick={() => setActiveCompartment(key)}
+                     onClick={() => handleSelectCompartment(key)}
                      className={cn(
-                       "flex items-center justify-between px-5 py-3.5 border-b border-border/30 last:border-0 hover:bg-muted/50 transition-colors text-left",
+                       "flex items-center justify-between px-5 py-3 border-b border-border/30 last:border-0 hover:bg-muted/50 transition-colors text-left w-full",
                        isActive && "bg-primary/5 text-primary border-l-4 border-l-primary font-bold shadow-sm"
                      )}
                    >
-                     <div>
-                       <span className="block text-sm">{COMPARTMENT_NAMES[key] || key}</span>
-                       <span className="block text-[11px] text-muted-foreground mt-0.5">{itemCount} malzeme</span>
+                     <div className="flex items-center gap-3">
+                       <div className={cn(
+                         "p-2 rounded-lg border transition-colors shrink-0",
+                         isActive 
+                           ? "bg-primary/10 border-primary/20 text-primary" 
+                           : "bg-muted/40 border-border/50 text-muted-foreground"
+                       )}>
+                         <IconComponent className="w-4 h-4" />
+                       </div>
+                       <div>
+                         <span className="block text-sm font-semibold tracking-tight">{COMPARTMENT_NAMES[key] || key}</span>
+                         <span className="block text-[11px] text-muted-foreground mt-0.5">{itemCount} malzeme</span>
+                       </div>
                      </div>
                      <div className="flex items-center gap-2">
                        {issues > 0 && <Badge variant="danger" className="text-[9px] px-1.5">{issues}</Badge>}
@@ -272,7 +357,7 @@ export default function VehicleDetailPage() {
                  
                  <div className="text-center w-full bg-gray-100 py-3 rounded-lg border border-gray-300">
                    <p className="font-bold text-lg text-black">{COMPARTMENT_NAMES[comp] || comp}</p>
-                   <p className="text-xs text-gray-600 mt-1">{vehicle.bolmeler[comp]?.length || 0} Malzeme</p>
+                   <p className="text-xs text-gray-600 mt-1">{vehicle.bolmeler?.[comp]?.length || 0} Malzeme</p>
                  </div>
                  
                  <p className="text-[10px] text-gray-400 mt-4 text-center">Sivas İtfaiyesi Araç ve Envanter Yönetimi</p>

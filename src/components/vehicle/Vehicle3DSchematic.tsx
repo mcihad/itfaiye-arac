@@ -1,15 +1,28 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { COMPARTMENT_NAMES } from "@/lib/constants"
 import { 
-  RotateCcw, 
-  ZoomIn, 
-  ZoomOut, 
-  Play, 
-  Pause,
-  Activity
+  Activity, 
+  Compass, 
+  Layers, 
+  Zap, 
+  Wrench, 
+  Droplet, 
+  Flame, 
+  Hammer, 
+  Maximize, 
+  Gauge, 
+  FolderOpen,
+  Box,
+  RotateCcw,
+  ShieldAlert,
+  ShieldCheck,
+  Cpu,
+  Radio,
+  Eye,
+  RefreshCw
 } from "lucide-react"
 
 export interface ThreeSceneProps {
@@ -20,554 +33,25 @@ export interface ThreeSceneProps {
   className?: string;
 }
 
-export interface Point3D {
-  x: number;
-  y: number;
-  z: number;
-}
-
-export interface Point2D {
-  x: number;
-  y: number;
-  zDepth: number;
-}
-
-export interface HatchNode {
-  key: string;
-  label: string;
-  x: number;
-  y: number;
-  z: number;
-  side: "left" | "right" | "top" | "center";
-}
-
-export interface SolidFace {
-  indices: number[];
-  baseColor: [number, number, number];
-  type: 'cab' | 'body' | 'bumper' | 'siren' | 'ladder' | 'line';
-  outlineColor?: string;
-  lineWidth?: number;
-}
-
-export interface HitboxPolygon {
-  key: string;
-  points: { x: number; y: number }[];
-  zDepth: number;
-}
-
-interface CameraTarget {
-  yaw: number;
-  pitch: number;
-  zoom: number;
-}
-
-interface DrawItem {
-  zDepth: number;
-  draw: () => void;
-}
-
-// === 3D MODEL VERTICES ===
-const CAB_VERTICES: Point3D[] = [
-  { x: 80, y: -18, z: -27 }, // 0: cab front bottom left
-  { x: 80, y: -18, z: 27 },  // 1: cab front bottom right
-  { x: 78, y: 3, z: -27 },   // 2: cab hood front left
-  { x: 78, y: 3, z: 27 },    // 3: cab hood front right
-  { x: 60, y: 22, z: -27 },  // 4: cab roof front left
-  { x: 60, y: 22, z: 27 },   // 5: cab roof front right
-  { x: 38, y: 22, z: -27 },  // 6: cab roof back left
-  { x: 38, y: 22, z: 27 },   // 7: cab roof back right
-  { x: 38, y: -18, z: -27 }, // 8: cab bottom back left
-  { x: 38, y: -18, z: 27 },  // 9: cab bottom back right
-];
-
-const BODY_VERTICES: Point3D[] = [
-  { x: 36, y: 24, z: -28 },  // 10: body front top left
-  { x: 36, y: 24, z: 28 },   // 11: body front top right
-  { x: 36, y: -18, z: -28 }, // 12: body front bottom left
-  { x: 36, y: -18, z: 28 },  // 13: body front bottom right
-  { x: -80, y: 24, z: -28 }, // 14: body rear top left
-  { x: -80, y: 24, z: 28 },  // 15: body rear top right
-  { x: -80, y: -18, z: -28 },// 16: body rear bottom left
-  { x: -80, y: -18, z: 28 }, // 17: body rear bottom right
-];
-
-const LADDER_VERTICES: Point3D[] = [
-  { x: 25, y: 29, z: -7 },   // 18: ladder front left
-  { x: 25, y: 29, z: 7 },    // 19: ladder front right
-  { x: -75, y: 29, z: -7 },  // 20: ladder rear left
-  { x: -75, y: 29, z: 7 },   // 21: ladder rear right
-];
-
-const BUMPER_VERTICES: Point3D[] = [
-  { x: 86, y: -12, z: -25 }, // 22: bumper top left
-  { x: 86, y: -12, z: 25 },  // 23: bumper top right
-  { x: 86, y: -18, z: -25 }, // 24: bumper bottom left
-  { x: 86, y: -18, z: 25 },  // 25: bumper bottom right
-];
-
-const SIREN_VERTICES: Point3D[] = [
-  { x: 55, y: 26, z: -15 },  // 26: siren left front top
-  { x: 45, y: 26, z: -15 },  // 27: siren left back top
-  { x: 55, y: 23, z: -18 },  // 28: siren left base front
-  { x: 45, y: 23, z: -18 },  // 29: siren left base back
-  { x: 55, y: 26, z: 15 },   // 30: siren right front top
-  { x: 45, y: 26, z: 15 },   // 31: siren right back top
-  { x: 55, y: 23, z: 18 },   // 32: siren right base front
-  { x: 45, y: 23, z: 18 },   // 33: siren right base back
-];
-
-const ARMOR_VERTICES: Point3D[] = [
-  // Body side armor plates
-  { x: 30, y: 16, z: -28.1 },  // 34: Left armor front top
-  { x: -75, y: 16, z: -28.1 }, // 35: Left armor rear top
-  { x: -75, y: -10, z: -28.1 },// 36: Left armor rear bottom
-  { x: 30, y: -10, z: -28.1 }, // 37: Left armor front bottom
-  
-  { x: 30, y: 16, z: 28.1 },   // 38: Right armor front top
-  { x: -75, y: 16, z: 28.1 },  // 39: Right armor rear top
-  { x: -75, y: -10, z: 28.1 }, // 40: Right armor rear bottom
-  { x: 30, y: -10, z: 28.1 },  // 41: Right armor front bottom
-
-  // Cab door armor plates
-  { x: 56, y: 14, z: -27.1 },  // 42: Left cab front top
-  { x: 40, y: 14, z: -27.1 },  // 43: Left cab rear top
-  { x: 40, y: -8,  z: -27.1 }, // 44: Left cab rear bottom
-  { x: 56, y: -8,  z: -27.1 }, // 45: Left cab front bottom
-
-  { x: 56, y: 14, z: 27.1 },   // 46: Right cab front top
-  { x: 40, y: 14, z: 27.1 },   // 47: Right cab rear top
-  { x: 40, y: -8,  z: 27.1 },  // 48: Right cab rear bottom
-  { x: 56, y: -8,  z: 27.1 },  // 49: Right cab front bottom
-];
-
-const VERTICES: Point3D[] = [
-  ...CAB_VERTICES,
-  ...BODY_VERTICES,
-  ...LADDER_VERTICES,
-  ...BUMPER_VERTICES,
-  ...SIREN_VERTICES,
-  ...ARMOR_VERTICES,
-];
-
-// === SOLID 3D FACES & WIREFRAME LINES ===
-const SOLID_FACES: SolidFace[] = [
-  // --- CAB FACES ---
-  { indices: [0, 1, 3, 2], baseColor: [30, 41, 59], type: 'cab' }, // front hood
-  { indices: [2, 3, 5, 4], baseColor: [15, 76, 129], type: 'cab', outlineColor: 'rgba(34, 211, 238, 0.45)' }, // windshield (glowing blue-cyan tint)
-  { indices: [4, 5, 7, 6], baseColor: [15, 23, 42], type: 'cab' }, // roof
-  { indices: [6, 7, 9, 8], baseColor: [15, 23, 42], type: 'cab' }, // back wall
-  { indices: [0, 8, 9, 1], baseColor: [8, 12, 20], type: 'cab' },   // bottom
-  { indices: [0, 2, 4, 6, 8], baseColor: [20, 30, 48], type: 'cab' }, // left wall
-  { indices: [1, 3, 5, 7, 9], baseColor: [20, 30, 48], type: 'cab' }, // right wall
-
-  // --- CAB ARMOR PLATES ---
-  { indices: [42, 43, 44, 45], baseColor: [32, 45, 75], type: 'cab', outlineColor: 'rgba(34, 211, 238, 0.55)' }, // left cab armor plate
-  { indices: [46, 47, 48, 49], baseColor: [32, 45, 75], type: 'cab', outlineColor: 'rgba(34, 211, 238, 0.55)' }, // right cab armor plate
-
-  // --- BODY FACES ---
-  { indices: [10, 11, 13, 12], baseColor: [15, 23, 42], type: 'body' }, // front wall
-  { indices: [14, 15, 17, 16], baseColor: [20, 30, 48], type: 'body', outlineColor: 'rgba(6, 182, 212, 0.3)' }, // rear wall
-  { indices: [10, 11, 15, 14], baseColor: [12, 18, 30], type: 'body' }, // top deck
-  { indices: [12, 13, 17, 16], baseColor: [8, 12, 22], type: 'body' },  // bottom frame
-  { indices: [10, 14, 16, 12], baseColor: [16, 26, 44], type: 'body' }, // left side
-  { indices: [11, 15, 17, 13], baseColor: [16, 26, 44], type: 'body' }, // right side
-
-  // --- BODY ARMOR PLATES ---
-  { indices: [34, 35, 36, 37], baseColor: [30, 48, 80], type: 'body', outlineColor: 'rgba(34, 211, 238, 0.55)' }, // left side armor plate
-  { indices: [38, 39, 40, 41], baseColor: [30, 48, 80], type: 'body', outlineColor: 'rgba(34, 211, 238, 0.55)' }, // right side armor plate
-
-  // --- BUMPER ---
-  { indices: [22, 23, 25, 24], baseColor: [71, 85, 105], type: 'bumper' }, // bumper front face
-
-  // --- SIRENS ---
-  { indices: [26, 27, 29, 28], baseColor: [220, 38, 38], type: 'siren', outlineColor: 'rgba(239, 68, 68, 0.5)' }, // left red siren
-  { indices: [30, 31, 33, 32], baseColor: [37, 99, 235], type: 'siren', outlineColor: 'rgba(59, 130, 246, 0.5)' }, // right blue siren
-
-  // --- LADDER RAILS (rendered as lines) ---
-  { indices: [18, 20], baseColor: [6, 182, 212], type: 'line', outlineColor: 'rgba(6, 182, 212, 0.5)', lineWidth: 1.5 },
-  { indices: [19, 21], baseColor: [6, 182, 212], type: 'line', outlineColor: 'rgba(6, 182, 212, 0.5)', lineWidth: 1.5 },
-  { indices: [18, 19], baseColor: [6, 182, 212], type: 'line', outlineColor: 'rgba(6, 182, 212, 0.4)' },
-  { indices: [20, 21], baseColor: [6, 182, 212], type: 'line', outlineColor: 'rgba(6, 182, 212, 0.4)' },
-
-  // --- BUMPER MOUNTS (rendered as lines) ---
-  { indices: [0, 24], baseColor: [6, 182, 212], type: 'line', outlineColor: 'rgba(6, 182, 212, 0.4)' },
-  { indices: [1, 25], baseColor: [6, 182, 212], type: 'line', outlineColor: 'rgba(6, 182, 212, 0.4)' },
-];
-
-// === COMPARTMENT HITBOX POLYGONS IN 3D SPACE ===
-const COMPARTMENT_PANELS: Record<string, Point3D[]> = {
-  sol_on_kapak: [
-    { x: 30, y: -12, z: -28.2 },
-    { x: 5, y: -12, z: -28.2 },
-    { x: 5, y: 15, z: -28.2 },
-    { x: 30, y: 15, z: -28.2 }
-  ],
-  sol_orta_kapak: [
-    { x: -2, y: -12, z: -28.2 },
-    { x: -27, y: -12, z: -28.2 },
-    { x: -27, y: 15, z: -28.2 },
-    { x: -2, y: 15, z: -28.2 }
-  ],
-  sol_arka_kapak: [
-    { x: -35, y: -12, z: -28.2 },
-    { x: -75, y: -12, z: -28.2 },
-    { x: -75, y: 15, z: -28.2 },
-    { x: -35, y: 15, z: -28.2 }
-  ],
-  sag_on_kapak: [
-    { x: 30, y: -12, z: 28.2 },
-    { x: 5, y: -12, z: 28.2 },
-    { x: 5, y: 15, z: 28.2 },
-    { x: 30, y: 15, z: 28.2 }
-  ],
-  sag_orta_kapak: [
-    { x: -2, y: -12, z: 28.2 },
-    { x: -27, y: -12, z: 28.2 },
-    { x: -27, y: 15, z: 28.2 },
-    { x: -2, y: 15, z: 28.2 }
-  ],
-  sag_arka_kapak: [
-    { x: -35, y: -12, z: 28.2 },
-    { x: -75, y: -12, z: 28.2 },
-    { x: -75, y: 15, z: 28.2 },
-    { x: -35, y: 15, z: 28.2 }
-  ],
-  kabin_ici: [
-    { x: 72, y: -10, z: -27.2 },
-    { x: 42, y: -10, z: -27.2 },
-    { x: 42, y: 18, z: -27.2 },
-    { x: 58, y: 18, z: -27.2 }
-  ],
-  arac_ustu: [
-    { x: 30, y: 22.2, z: -20 },
-    { x: -70, y: 22.2, z: -20 },
-    { x: -70, y: 22.2, z: 20 },
-    { x: 30, y: 22.2, z: 20 }
-  ],
-  arac_ici: [
-    { x: 25, y: -8, z: 0 },
-    { x: -25, y: -8, z: 0 },
-    { x: -25, y: 10, z: 0 },
-    { x: 25, y: 10, z: 0 }
-  ],
-  arka_bolme: [
-    { x: -80.2, y: -12, z: -22 },
-    { x: -80.2, y: 14, z: -22 },
-    { x: -80.2, y: 14, z: 22 },
-    { x: -80.2, y: -12, z: 22 }
-  ],
-  arka_kapak: [
-    { x: -80.4, y: -8, z: -16 },
-    { x: -80.4, y: 10, z: -16 },
-    { x: -80.4, y: 10, z: 16 },
-    { x: -80.4, y: -8, z: 16 }
-  ],
-  sol_dolap: [
-    { x: 30, y: -12, z: -28.2 },
-    { x: -75, y: -12, z: -28.2 },
-    { x: -75, y: 15, z: -28.2 },
-    { x: 30, y: 15, z: -28.2 }
-  ],
-  sag_dolap: [
-    { x: 30, y: -12, z: 28.2 },
-    { x: -75, y: -12, z: 28.2 },
-    { x: -75, y: 15, z: 28.2 },
-    { x: 30, y: 15, z: 28.2 }
-  ],
-  bagaj_ici: [
-    { x: -80.3, y: -10, z: -20 },
-    { x: -80.3, y: 12, z: -20 },
-    { x: -80.3, y: 12, z: 20 },
-    { x: -80.3, y: -10, z: 20 }
-  ],
-  kasa_ici: [
-    { x: 25, y: -8, z: 0 },
-    { x: -25, y: -8, z: 0 },
-    { x: -25, y: 10, z: 0 },
-    { x: 25, y: 10, z: 0 }
-  ]
+// Tactical Icon Mapping for SVG overlay nodes
+const TACTICAL_ICONS: Record<string, React.ComponentType<any>> = {
+  kabin_ici: Compass,
+  arac_ici: Layers,
+  sol_on_kapak: Zap,
+  sol_orta_kapak: Wrench,
+  sol_arka_kapak: Droplet,
+  sag_on_kapak: Flame,
+  sag_orta_kapak: Hammer,
+  sag_arka_kapak: Activity,
+  arac_ustu: Maximize,
+  arka_bolme: Gauge,
+  arka_kapak: FolderOpen,
+  sol_dolap: Box,
+  sag_dolap: Box,
+  bagaj_ici: Box,
+  kasa_ici: Layers,
 };
 
-// === HOTSPOT CENTERS (mainly for floating labels and leader lines) ===
-const HOTSPOT_3D: Record<string, HatchNode> = {
-  kabin_ici:      { key: "kabin_ici",      x: 57,  y: 4,   z: -27.2, label: "Kabin İçi",   side: "center" },
-  arac_ici:       { key: "arac_ici",       x: 0,   y: 0,   z: 0,     label: "Araç İçi",    side: "center" },
-  sol_on_kapak:   { key: "sol_on_kapak",   x: 17.5,y: 1.5, z: -28.2, label: "Sol Ön",      side: "left" },
-  sol_orta_kapak: { key: "sol_orta_kapak", x: -14.5,y: 1.5,z: -28.2, label: "Sol Orta",    side: "left" },
-  sol_arka_kapak: { key: "sol_arka_kapak", x: -55, y: 1.5, z: -28.2, label: "Sol Arka",    side: "left" },
-  sag_on_kapak:   { key: "sag_on_kapak",   x: 17.5,y: 1.5, z: 28.2,  label: "Sağ Ön",      side: "right" },
-  sag_orta_kapak: { key: "sag_orta_kapak", x: -14.5,y: 1.5,z: 28.2,  label: "Sağ Orta",    side: "right" },
-  sag_arka_kapak: { key: "sag_arka_kapak", x: -55, y: 1.5, z: 28.2,  label: "Sağ Arka",    side: "right" },
-  arac_ustu:      { key: "arac_ustu",      x: -20, y: 22.5, z: 0,    label: "Araç Üstü",   side: "top" },
-  arka_bolme:     { key: "arka_bolme",     x: -80, y: 1,   z: 0,     label: "Arka Bölme",  side: "center" },
-  arka_kapak:     { key: "arka_kapak",     x: -80.2,y: 1,   z: 0,     label: "Arka Kapak",  side: "center" },
-  sol_dolap:      { key: "sol_dolap",      x: -22.5,y: 1.5, z: -28.2, label: "Sol Dolap",   side: "left" },
-  sag_dolap:      { key: "sag_dolap",      x: -22.5,y: 1.5, z: 28.2,  label: "Sağ Dolap",   side: "right" },
-  bagaj_ici:      { key: "bagaj_ici",      x: -80.1,y: 1,   z: 0,     label: "Bagaj İçi",   side: "center" },
-  kasa_ici:       { key: "kasa_ici",       x: 0,   y: 1,   z: 0,     label: "Kasa İçi",    side: "center" },
-};
-
-// === CAMERA FOCUS TARGETS FOR EACH COMPARTMENT ===
-const COMPARTMENT_CAMERA_TARGETS: Record<string, CameraTarget> = {
-  sol_on_kapak:   { yaw: -Math.PI / 2, pitch: 0.05, zoom: 120 },
-  sol_orta_kapak: { yaw: -Math.PI / 2, pitch: 0.05, zoom: 120 },
-  sol_arka_kapak: { yaw: -Math.PI / 2, pitch: 0.05, zoom: 120 },
-  sag_on_kapak:   { yaw: Math.PI / 2,  pitch: 0.05, zoom: 120 },
-  sag_orta_kapak: { yaw: Math.PI / 2,  pitch: 0.05, zoom: 120 },
-  sag_arka_kapak: { yaw: Math.PI / 2,  pitch: 0.05, zoom: 120 },
-  kabin_ici:      { yaw: -Math.PI / 5, pitch: 0.22, zoom: 130 },
-  arac_ici:       { yaw: -Math.PI / 4, pitch: 0.35, zoom: 115 },
-  arac_ustu:      { yaw: 0,            pitch: Math.PI / 3, zoom: 130 },
-  arka_bolme:     { yaw: -Math.PI,     pitch: 0.1,  zoom: 125 },
-  arka_kapak:     { yaw: -Math.PI,     pitch: 0.1,  zoom: 125 },
-  sol_dolap:      { yaw: -Math.PI / 2, pitch: 0.05, zoom: 120 },
-  sag_dolap:      { yaw: Math.PI / 2,  pitch: 0.05, zoom: 120 },
-  bagaj_ici:      { yaw: -Math.PI,     pitch: 0.1,  zoom: 125 },
-  kasa_ici:       { yaw: -Math.PI / 4, pitch: 0.35, zoom: 115 },
-};
-
-// === Point-in-Polygon (Ray-casting Algorithm) ===
-function isPointInPolygon(px: number, py: number, polygon: { x: number; y: number }[]): boolean {
-  let inside = false;
-  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-    const xi = polygon[i].x, yi = polygon[i].y;
-    const xj = polygon[j].x, yj = polygon[j].y;
-    
-    const intersect = ((yi > py) !== (yj > py))
-        && (px < (xj - xi) * (py - yi) / (yj - yi) + xi);
-    if (intersect) inside = !inside;
-  }
-  return inside;
-}
-
-// === 3D TO 2D PERSPECTIVE PROJECTION ===
-function project(
-  p: Point3D,
-  yaw: number,
-  pitch: number,
-  zoom: number,
-  width: number,
-  height: number
-): Point2D {
-  // Rotate around Y-axis (Yaw)
-  const cosY = Math.cos(yaw);
-  const sinY = Math.sin(yaw);
-  const x1 = p.x * cosY - p.z * sinY;
-  const z1 = p.x * sinY + p.z * cosY;
-
-  // Rotate around X-axis (Pitch)
-  const cosP = Math.cos(pitch);
-  const sinP = Math.sin(pitch);
-  const y2 = p.y * cosP - z1 * sinP;
-  const z2 = p.y * sinP + z1 * cosP;
-
-  // Camera settings
-  const distance = 210;
-  const fov = 350;
-  const scale = fov / (distance + z2);
-
-  const cx = width / 2;
-  const cy = height / 2;
-
-  // Apply zoom scaling
-  const projX = cx + x1 * scale * (zoom / 100);
-  const projY = cy - y2 * scale * (zoom / 100);
-
-  return { x: projX, y: projY, zDepth: z2 };
-}
-
-// === ROTATE 3D POINT ONLY (for Z-sorting math) ===
-function rotatePoint(p: Point3D, yaw: number, pitch: number): Point3D {
-  const cosY = Math.cos(yaw);
-  const sinY = Math.sin(yaw);
-  const x1 = p.x * cosY - p.z * sinY;
-  const z1 = p.x * sinY + p.z * cosY;
-
-  const cosP = Math.cos(pitch);
-  const sinP = Math.sin(pitch);
-  const y2 = p.y * cosP - z1 * sinP;
-  const z2 = p.y * sinP + z1 * cosP;
-
-  return { x: x1, y: y2, z: z2 };
-}
-
-// === HELPER DRAWING FUNCTIONS ===
-function drawWheel(
-  ctx: CanvasRenderingContext2D,
-  centerX: number,
-  centerY: number,
-  centerZ: number,
-  yaw: number,
-  pitch: number,
-  zoom: number,
-  w: number,
-  h: number
-) {
-  const radius = 9.5;
-  const segments = 12;
-  const outerPoints: Point3D[] = [];
-  const innerPoints: Point3D[] = [];
-  const thickness = centerZ > 0 ? -4.5 : 4.5;
-  
-  for (let i = 0; i < segments; i++) {
-    const angle = (i / segments) * Math.PI * 2;
-    outerPoints.push({
-      x: centerX + Math.cos(angle) * radius,
-      y: centerY + Math.sin(angle) * radius,
-      z: centerZ
-    });
-    innerPoints.push({
-      x: centerX + Math.cos(angle) * radius,
-      y: centerY + Math.sin(angle) * radius,
-      z: centerZ + thickness
-    });
-  }
-
-  const projOuter = outerPoints.map(p => project(p, yaw, pitch, zoom, w, h));
-  const projInner = innerPoints.map(p => project(p, yaw, pitch, zoom, w, h));
-
-  // 1. Draw solid connector faces (tire tread)
-  ctx.fillStyle = "rgb(12, 16, 26)";
-  for (let i = 0; i < segments; i++) {
-    const next = (i + 1) % segments;
-    ctx.beginPath();
-    ctx.moveTo(projOuter[i].x, projOuter[i].y);
-    ctx.lineTo(projOuter[next].x, projOuter[next].y);
-    ctx.lineTo(projInner[next].x, projInner[next].y);
-    ctx.lineTo(projInner[i].x, projInner[i].y);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-  }
-
-  // 2. Draw outer face
-  ctx.fillStyle = "rgb(20, 28, 44)";
-  ctx.beginPath();
-  ctx.moveTo(projOuter[0].x, projOuter[0].y);
-  for (let i = 1; i < segments; i++) {
-    ctx.lineTo(projOuter[i].x, projOuter[i].y);
-  }
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-
-  // 3. Draw inner face
-  ctx.fillStyle = "rgb(10, 15, 24)";
-  ctx.beginPath();
-  ctx.moveTo(projInner[0].x, projInner[0].y);
-  for (let i = 1; i < segments; i++) {
-    ctx.lineTo(projInner[i].x, projInner[i].y);
-  }
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-}
-
-function drawLadderRungs(
-  ctx: CanvasRenderingContext2D,
-  yaw: number,
-  pitch: number,
-  zoom: number,
-  w: number,
-  h: number
-) {
-  const steps = 8;
-  for (let i = 1; i < steps; i++) {
-    const t = i / steps;
-    const leftP = {
-      x: 25 * (1 - t) + -75 * t,
-      y: 29,
-      z: -7
-    };
-    const rightP = {
-      x: 25 * (1 - t) + -75 * t,
-      y: 29,
-      z: 7
-    };
-
-    const projL = project(leftP, yaw, pitch, zoom, w, h);
-    const projR = project(rightP, yaw, pitch, zoom, w, h);
-
-    ctx.beginPath();
-    ctx.moveTo(projL.x, projL.y);
-    ctx.lineTo(projR.x, projR.y);
-    ctx.stroke();
-  }
-}
-
-function drawWaterCannon(
-  ctx: CanvasRenderingContext2D,
-  yaw: number,
-  pitch: number,
-  zoom: number,
-  w: number,
-  h: number
-) {
-  const base = { x: 28, y: 24, z: 0 };
-  const neck = { x: 28, y: 27, z: 0 };
-  const nozzle = { x: 36, y: 28, z: 0 };
-
-  const projBase = project(base, yaw, pitch, zoom, w, h);
-  const projNeck = project(neck, yaw, pitch, zoom, w, h);
-  const projNozzle = project(nozzle, yaw, pitch, zoom, w, h);
-
-  ctx.beginPath();
-  ctx.moveTo(projBase.x, projBase.y);
-  ctx.lineTo(projNeck.x, projNeck.y);
-  ctx.lineTo(projNozzle.x, projNozzle.y);
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  ctx.lineWidth = 1; // restore
-}
-
-function drawHeadlightBeams(
-  ctx: CanvasRenderingContext2D,
-  yaw: number,
-  pitch: number,
-  zoom: number,
-  w: number,
-  h: number
-) {
-  const leftHeadlight = { x: 80, y: -8, z: -20 };
-  const rightHeadlight = { x: 80, y: -8, z: 20 };
-
-  const leftBeamEnd = { x: 125, y: -12, z: -35 };
-  const rightBeamEnd = { x: 125, y: -12, z: 35 };
-
-  const projLStart = project(leftHeadlight, yaw, pitch, zoom, w, h);
-  const projLEnd = project(leftBeamEnd, yaw, pitch, zoom, w, h);
-
-  const projRStart = project(rightHeadlight, yaw, pitch, zoom, w, h);
-  const projREnd = project(rightBeamEnd, yaw, pitch, zoom, w, h);
-
-  // Light cones
-  ctx.fillStyle = "rgba(250, 204, 21, 0.05)";
-  
-  ctx.beginPath();
-  ctx.moveTo(projLStart.x, projLStart.y);
-  ctx.lineTo(projLEnd.x, projLEnd.y - 14);
-  ctx.lineTo(projLEnd.x, projLEnd.y + 14);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.beginPath();
-  ctx.moveTo(projRStart.x, projRStart.y);
-  ctx.lineTo(projREnd.x, projREnd.y - 14);
-  ctx.lineTo(projREnd.x, projREnd.y + 14);
-  ctx.closePath();
-  ctx.fill();
-
-  // Headlight flares
-  ctx.fillStyle = "rgba(250, 204, 21, 0.9)";
-  ctx.beginPath();
-  ctx.arc(projLStart.x, projLStart.y, 3.5, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(projRStart.x, projRStart.y, 3.5, 0, Math.PI * 2);
-  ctx.fill();
-}
-
-// === COMPONENT ===
 export function Vehicle3DSchematic({
   compartmentKeys,
   activeCompartment,
@@ -575,683 +59,776 @@ export function Vehicle3DSchematic({
   vehicleType,
   className
 }: ThreeSceneProps) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  // Sol/Sağ profile selection
+  const [profile, setProfile] = useState<"sol" | "sag">("sol")
+  const [hudActive, setHudActive] = useState<boolean>(true)
+  const [radarPulse, setRadarPulse] = useState<number>(0)
 
-  // UI Control states
-  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
-  const [autoRotate, setAutoRotate] = useState<boolean>(true);
-  const [hudActive, setHudActive] = useState<boolean>(true);
-
-  // Rotation, pitch and zoom states in refs to maintain 60fps draw loops
-  const yawRef = useRef<number>(-Math.PI / 4);
-  const pitchRef = useRef<number>(0.25);
-  const zoomRef = useRef<number>(100);
-
-  const targetYawRef = useRef<number>(-Math.PI / 4);
-  const targetPitchRef = useRef<number>(0.25);
-  const targetZoomRef = useRef<number>(100);
-
-  // Drag states
-  const isDraggingRef = useRef<boolean>(false);
-  const dragStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const dragStartYawRef = useRef<number>(-Math.PI / 4);
-  const dragStartPitchRef = useRef<number>(0.25);
-  const isDragClickRef = useRef<boolean>(true);
-  
-  const lastInteractionRef = useRef<number>(0);
-  
-  // Hitbox polygon coordinates (populated dynamically during render loop)
-  const projectedPanelsRef = useRef<HitboxPolygon[]>([]);
-
-  // Orbit transition LERP target locking on active compartment change
+  // Listen and sync profile from active compartment selection
   useEffect(() => {
-    if (activeCompartment && COMPARTMENT_CAMERA_TARGETS[activeCompartment]) {
-      const target = COMPARTMENT_CAMERA_TARGETS[activeCompartment];
-      targetYawRef.current = target.yaw;
-      targetPitchRef.current = target.pitch;
-      targetZoomRef.current = target.zoom;
-      lastInteractionRef.current = 0; // lock immediately
+    if (!activeCompartment) return
+    if (activeCompartment.startsWith("sag_") || activeCompartment === "sag_dolap") {
+      setProfile("sag")
+    } else if (activeCompartment.startsWith("sol_") || activeCompartment === "sol_dolap") {
+      setProfile("sol")
     }
-  }, [activeCompartment]);
+  }, [activeCompartment])
 
-  // Unified Mouse & Touch coordinate helper
-  const getMousePos = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement> | MouseEvent | TouchEvent) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
-    const rect = canvas.getBoundingClientRect();
-    
-    if ('touches' in e && e.touches && e.touches.length > 0) {
-      const touchList = e.touches as unknown as TouchList;
-      const touch = touchList[0];
-      return {
-        x: touch.clientX - rect.left,
-        y: touch.clientY - rect.top
-      };
-    } else if ('changedTouches' in e && e.changedTouches && e.changedTouches.length > 0) {
-      const touchList = e.changedTouches as unknown as TouchList;
-      const touch = touchList[0];
-      return {
-        x: touch.clientX - rect.left,
-        y: touch.clientY - rect.top
-      };
-    } else {
-      const mouseEvent = e as MouseEvent | React.MouseEvent<HTMLCanvasElement>;
-      return {
-        x: mouseEvent.clientX - rect.left,
-        y: mouseEvent.clientY - rect.top
-      };
-    }
-  };
-
-  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if ('button' in e && e.button !== 0) return;
-    
-    isDraggingRef.current = true;
-    isDragClickRef.current = true;
-    const pos = getMousePos(e);
-    dragStartRef.current = pos;
-    dragStartYawRef.current = yawRef.current;
-    dragStartPitchRef.current = pitchRef.current;
-    lastInteractionRef.current = Date.now();
-  };
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    const pos = getMousePos(e);
-    
-    if (isDraggingRef.current) {
-      const dx = pos.x - dragStartRef.current.x;
-      const dy = pos.y - dragStartRef.current.y;
-      
-      // Increased drag sensitivity (0.011)
-      if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
-        isDragClickRef.current = false;
-      }
-      
-      targetYawRef.current = dragStartYawRef.current + dx * 0.011;
-      targetPitchRef.current = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, dragStartPitchRef.current - dy * 0.011));
-      lastInteractionRef.current = Date.now();
-    } else {
-      // Ray-cast Hitbox Check
-      let foundHover: string | null = null;
-      const hits: { key: string; zDepth: number }[] = [];
-      
-      projectedPanelsRef.current.forEach(panel => {
-        if (isPointInPolygon(pos.x, pos.y, panel.points)) {
-          hits.push({ key: panel.key, zDepth: panel.zDepth });
-        }
-      });
-      
-      if (hits.length > 0) {
-        // Sort by Z-depth to target the closest panel (Raycast hit)
-        hits.sort((a, b) => a.zDepth - b.zDepth);
-        foundHover = hits[0].key;
-      }
-      
-      if (foundHover !== hoveredKey) {
-        setHoveredKey(foundHover);
-      }
-    }
-  };
-
-  const handleMouseUp = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (!isDraggingRef.current) return;
-    isDraggingRef.current = false;
-    
-    if (isDragClickRef.current) {
-      const pos = getMousePos(e);
-      const hits: { key: string; zDepth: number }[] = [];
-      
-      projectedPanelsRef.current.forEach(panel => {
-        if (isPointInPolygon(pos.x, pos.y, panel.points)) {
-          hits.push({ key: panel.key, zDepth: panel.zDepth });
-        }
-      });
-      
-      if (hits.length > 0) {
-        hits.sort((a, b) => a.zDepth - b.zDepth);
-        const clickedKey = hits[0].key;
-        if (compartmentKeys.includes(clickedKey)) {
-          onSelect(clickedKey);
-        }
-      }
-    }
-    lastInteractionRef.current = Date.now();
-  };
-
-  const handleMouseLeave = () => {
-    isDraggingRef.current = false;
-    setHoveredKey(null);
-  };
-
-  // Main 60fps render loop
+  // Radar pulse animation simulator
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    const timer = setInterval(() => {
+      setRadarPulse(p => (p + 1) % 100)
+    }, 100)
+    return () => clearInterval(timer)
+  }, [])
 
-    let animationId: number;
+  // Helper to check if a compartment key is active or has issue
+  const getCompStatus = (key: string) => {
+    const isActive = activeCompartment === key
+    const isAvailable = compartmentKeys.includes(key)
+    return { isActive, isAvailable }
+  }
 
-    const render = () => {
-      const w = 800;
-      const h = 450;
-      
-      if (canvas.width !== w || canvas.height !== h) {
-        canvas.width = w;
-        canvas.height = h;
+  // Active compartment side name
+  const sideLabel = profile === "sol" ? "SOL PROFİL (GARAJI)" : "SAĞ PROFİL (GARAJI)"
+
+  // Handle Hotspot clicks
+  const handleHotspotClick = (key: string) => {
+    if (compartmentKeys.includes(key)) {
+      onSelect(key)
+    }
+  }
+
+  // Get active key based on profile for dynamic shutters
+  const getShutterKey = (position: "on" | "orta" | "arka") => {
+    return profile === "sol" ? `sol_${position}_kapak` : `sag_${position}_kapak`
+  }
+
+  const activeShutterOn = getShutterKey("on")
+  const activeShutterOrta = getShutterKey("orta")
+  const activeShutterArka = getShutterKey("arka")
+
+  const onStatus = getCompStatus(activeShutterOn)
+  const ortaStatus = getCompStatus(activeShutterOrta)
+  const arkaStatus = getCompStatus(activeShutterArka)
+  const kabinStatus = getCompStatus("kabin_ici")
+  const ustuStatus = getCompStatus("arac_ustu")
+  const iciStatus = getCompStatus("arac_ici")
+  const arkaBolmeStatus = getCompStatus("arka_bolme")
+  const arkaKapakStatus = getCompStatus("arka_kapak")
+
+  // Generate glowing outline or fill color
+  const getColors = (status: { isActive: boolean; isAvailable: boolean }) => {
+    if (!status.isAvailable) return { fill: "rgba(15, 23, 42, 0.4)", stroke: "rgba(100, 116, 139, 0.2)", glow: "" }
+    if (status.isActive) {
+      return {
+        fill: "rgba(34, 197, 94, 0.18)",
+        stroke: "#22c55e",
+        glow: "url(#glow-green)"
       }
-
-      ctx.clearRect(0, 0, w, h);
-
-      const now = Date.now();
-      const timeSinceLastInteraction = now - lastInteractionRef.current;
-
-      // Inactivity Auto-orbit and lock transitions
-      if (timeSinceLastInteraction > 3000 && autoRotate) {
-        if (activeCompartment && COMPARTMENT_CAMERA_TARGETS[activeCompartment]) {
-          const target = COMPARTMENT_CAMERA_TARGETS[activeCompartment];
-          targetYawRef.current = target.yaw;
-          targetPitchRef.current = target.pitch;
-          targetZoomRef.current = target.zoom;
-        } else {
-          targetYawRef.current += 0.002;
-          targetPitchRef.current = 0.25;
-          targetZoomRef.current = 100;
-        }
-      }
-
-      // Smooth camera süzülme (LERP factor = 0.05 for extremely smooth transitions)
-      yawRef.current += (targetYawRef.current - yawRef.current) * 0.05;
-      pitchRef.current += (targetPitchRef.current - pitchRef.current) * 0.05;
-      zoomRef.current += (targetZoomRef.current - zoomRef.current) * 0.05;
-
-      const yaw = yawRef.current;
-      const pitch = pitchRef.current;
-      const zoom = zoomRef.current;
-
-      // 1. Perspective grid on Y = -18 floor with glowing holographic fade
-      if (hudActive) {
-        ctx.lineWidth = 0.8;
-        const gridY = -18;
-        const spacing = 20;
-        const range = 6;
-        
-        // Z direction lines
-        for (let i = -range; i <= range; i++) {
-          const gridX = i * spacing;
-          const p1 = { x: gridX, y: gridY, z: -spacing * range };
-          const p2 = { x: gridX, y: gridY, z: spacing * range };
-          const pr1 = project(p1, yaw, pitch, zoom, w, h);
-          const pr2 = project(p2, yaw, pitch, zoom, w, h);
-          
-          const opacity = Math.max(0, 0.12 - Math.abs(i) * 0.016);
-          ctx.strokeStyle = `rgba(6, 182, 212, ${opacity})`;
-          
-          ctx.beginPath();
-          ctx.moveTo(pr1.x, pr1.y);
-          ctx.lineTo(pr2.x, pr2.y);
-          ctx.stroke();
-        }
-        // X direction lines
-        for (let i = -range; i <= range; i++) {
-          const gridZ = i * spacing;
-          const p1 = { x: -spacing * range, y: gridY, z: gridZ };
-          const p2 = { x: spacing * range, y: gridY, z: gridZ };
-          const pr1 = project(p1, yaw, pitch, zoom, w, h);
-          const pr2 = project(p2, yaw, pitch, zoom, w, h);
-          
-          const opacity = Math.max(0, 0.12 - Math.abs(i) * 0.016);
-          ctx.strokeStyle = `rgba(6, 182, 212, ${opacity})`;
-          
-          ctx.beginPath();
-          ctx.moveTo(pr1.x, pr1.y);
-          ctx.lineTo(pr2.x, pr2.y);
-          ctx.stroke();
-        }
-      }
-
-      // --- 3D ROTATION PRE-COMPUTATION ---
-      const rotatedVertices = VERTICES.map(v => rotatePoint(v, yaw, pitch));
-      const projectedVertices = rotatedVertices.map(rv => {
-        const distance = 210;
-        const fov = 350;
-        const scale = fov / (distance + rv.z);
-        const cx = w / 2;
-        const cy = h / 2;
-        return {
-          x: cx + rv.x * scale * (zoom / 100),
-          y: cy - rv.y * scale * (zoom / 100),
-          zDepth: rv.z
-        };
-      });
-
-      // --- PAINTER'S ALGORITHM DRAW ITEMS ASSEMBLY ---
-      const drawItems: DrawItem[] = [];
-
-      // 2. Add solid faces to rendering stack with flat ambient shading
-      SOLID_FACES.forEach(face => {
-        const zDepth = face.indices.reduce((sum, idx) => sum + rotatedVertices[idx].z, 0) / face.indices.length;
-        
-        drawItems.push({
-          zDepth,
-          draw: () => {
-            ctx.beginPath();
-            const p0 = projectedVertices[face.indices[0]];
-            ctx.moveTo(p0.x, p0.y);
-            for (let i = 1; i < face.indices.length; i++) {
-              const pi = projectedVertices[face.indices[i]];
-              ctx.lineTo(pi.x, pi.y);
-            }
-            ctx.closePath();
-            
-            if (face.type === 'line') {
-              ctx.strokeStyle = face.outlineColor || "rgba(6, 182, 212, 0.5)";
-              ctx.lineWidth = face.lineWidth || 1;
-              ctx.stroke();
-            } else {
-              // Calculate normal and light shading
-              const A = rotatedVertices[face.indices[0]];
-              const B = rotatedVertices[face.indices[1]];
-              const C = rotatedVertices[face.indices[2]];
-              
-              const v1 = { x: B.x - A.x, y: B.y - A.y, z: B.z - A.z };
-              const v2 = { x: C.x - A.x, y: C.y - A.y, z: C.z - A.z };
-              const nx = v1.y * v2.z - v1.z * v2.y;
-              const ny = v1.z * v2.x - v1.x * v2.z;
-              const nz = v1.x * v2.y - v1.y * v2.x;
-              const len = Math.hypot(nx, ny, nz);
-              let intensity = 0.65;
-              
-              if (len > 0) {
-                const normX = nx / len;
-                const normY = ny / len;
-                const normZ = nz / len;
-                
-                // Light direction
-                const lx = 0.3;
-                const ly = 0.8;
-                const lz = -0.5;
-                const lenL = Math.hypot(lx, ly, lz);
-                const dot = (normX * lx + normY * ly + normZ * lz) / lenL;
-                intensity = 0.28 + 0.72 * Math.abs(dot);
-              }
-              
-              const r = Math.floor(face.baseColor[0] * intensity);
-              const g = Math.floor(face.baseColor[1] * intensity);
-              const b = Math.floor(face.baseColor[2] * intensity);
-              
-              ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-              ctx.fill();
-              
-              ctx.strokeStyle = face.outlineColor || "rgba(6, 182, 212, 0.35)";
-              ctx.lineWidth = 0.8;
-              ctx.stroke();
-            }
-          }
-        });
-      });
-
-      // 3. Add solid cylinder wheels to rendering stack
-      const wheels = [
-        { x: 58, y: -18, z: -27.5 },
-        { x: 58, y: -18, z: 27.5 },
-        { x: -25, y: -18, z: -28.5 },
-        { x: -25, y: -18, z: 28.5 },
-        { x: -58, y: -18, z: -28.5 },
-        { x: -58, y: -18, z: 28.5 },
-      ];
-      
-      wheels.forEach(wCenter => {
-        const rotCenter = rotatePoint(wCenter, yaw, pitch);
-        drawItems.push({
-          zDepth: rotCenter.z,
-          draw: () => {
-            ctx.strokeStyle = "rgba(6, 182, 212, 0.38)";
-            ctx.lineWidth = 0.8;
-            drawWheel(ctx, wCenter.x, wCenter.y, wCenter.z, yaw, pitch, zoom, w, h);
-          }
-        });
-      });
-
-      // 4. Add ladder rungs to rendering stack
-      const ladderZ = (rotatedVertices[18].z + rotatedVertices[19].z + rotatedVertices[20].z + rotatedVertices[21].z) / 4;
-      drawItems.push({
-        zDepth: ladderZ,
-        draw: () => {
-          ctx.strokeStyle = "rgba(6, 182, 212, 0.4)";
-          ctx.lineWidth = 0.8;
-          drawLadderRungs(ctx, yaw, pitch, zoom, w, h);
-        }
-      });
-
-      // 5. Add water cannon to rendering stack
-      const cannonRot = rotatePoint({ x: 28, y: 24, z: 0 }, yaw, pitch);
-      drawItems.push({
-        zDepth: cannonRot.z,
-        draw: () => {
-          ctx.strokeStyle = "rgba(6, 182, 212, 0.7)";
-          drawWaterCannon(ctx, yaw, pitch, zoom, w, h);
-        }
-      });
-
-      // 6. Gather and store hitbox polygon projections, add panels to rendering stack
-      const newProjectedPanels: HitboxPolygon[] = [];
-
-      Object.entries(COMPARTMENT_PANELS).forEach(([key, vertices]) => {
-        if (!compartmentKeys.includes(key)) return;
-        
-        const projPoints = vertices.map(v => project(v, yaw, pitch, zoom, w, h));
-        const zDepth = vertices.reduce((sum, v) => sum + rotatePoint(v, yaw, pitch).z, 0) / vertices.length;
-        
-        newProjectedPanels.push({
-          key,
-          points: projPoints,
-          zDepth
-        });
-
-        const isActive = activeCompartment === key;
-        const isHovered = hoveredKey === key;
-
-        drawItems.push({
-          zDepth: zDepth - 0.25, // Offset slightly forward to prevent z-fighting on body side
-          draw: () => {
-            if (isActive || isHovered) {
-              // Breathing glow calculation for Sivas İtfaiyesi Premium visual style
-              const pulseIntensity = Math.abs(Math.sin(now / 220));
-              const activeFillAlpha = 0.20 + pulseIntensity * 0.18; // Pulses between 0.20 and 0.38
-              const activeStrokeAlpha = 0.75 + pulseIntensity * 0.25; // Pulses between 0.75 and 1.00
-              const glowBlur = isActive ? (10 + pulseIntensity * 8) : 6;
-
-              ctx.fillStyle = isActive 
-                ? `rgba(34, 197, 94, ${activeFillAlpha})` 
-                : "rgba(34, 211, 238, 0.12)";
-              ctx.strokeStyle = isActive 
-                ? `rgba(34, 197, 94, ${activeStrokeAlpha})` 
-                : "#22d3ee";
-              ctx.lineWidth = isActive ? 3 : 1.5;
-
-              ctx.beginPath();
-              ctx.moveTo(projPoints[0].x, projPoints[0].y);
-              for (let i = 1; i < projPoints.length; i++) {
-                ctx.lineTo(projPoints[i].x, projPoints[i].y);
-              }
-              ctx.closePath();
-              ctx.fill();
-              
-              ctx.shadowBlur = glowBlur;
-              ctx.shadowColor = isActive ? "#22c55e" : "#22d3ee";
-              ctx.stroke();
-              ctx.shadowBlur = 0; // reset
-
-              // Centroid calculation for glowing targeting indicator & floating labels
-              const centroidX = projPoints.reduce((sum, p) => sum + p.x, 0) / projPoints.length;
-              const centroidY = projPoints.reduce((sum, p) => sum + p.y, 0) / projPoints.length;
-
-              const color = isActive ? "#22c55e" : "#22d3ee";
-              ctx.strokeStyle = color;
-              
-              // Pulsing centroid center
-              ctx.fillStyle = color;
-              ctx.beginPath();
-              ctx.arc(centroidX, centroidY, isActive ? 4 : 3, 0, Math.PI * 2);
-              ctx.fill();
-              ctx.beginPath();
-              const pulse = (isActive ? 7 : 5) + Math.sin(now / 120) * 2;
-              ctx.arc(centroidX, centroidY, pulse, 0, Math.PI * 2);
-              ctx.stroke();
-
-              // Radar leader line
-              ctx.lineWidth = 0.85;
-              ctx.beginPath();
-              ctx.moveTo(centroidX, centroidY);
-              const labelX = centroidX + (centroidX > w / 2 ? -95 : 35);
-              const labelY = centroidY - 25;
-              ctx.lineTo(centroidX + (centroidX > w / 2 ? -15 : 15), centroidY - 15);
-              ctx.lineTo(labelX, labelY);
-              ctx.stroke();
-
-              // Tactical HUD Info Box
-              ctx.fillStyle = "rgba(10, 15, 30, 0.94)";
-              ctx.lineWidth = 1;
-              
-              const hs = HOTSPOT_3D[key];
-              const labelText = hs ? hs.label.toUpperCase() : key.toUpperCase();
-              const subText = isActive ? "LOCK SECURED" : "HATCH FOCUS";
-              
-              ctx.font = "bold 9px monospace";
-              const textW = Math.max(ctx.measureText(labelText).width, ctx.measureText(subText).width) + 12;
-              const textH = 24;
-              const boxX = centroidX > w / 2 ? labelX - textW : labelX;
-
-              ctx.beginPath();
-              ctx.rect(boxX, labelY - 12, textW, textH);
-              ctx.fill();
-              ctx.stroke();
-
-              // Info Box Text
-              ctx.fillStyle = color;
-              ctx.fillText(labelText, boxX + 6, labelY - 2);
-              ctx.font = "7px monospace";
-              ctx.fillStyle = isActive ? "#22c55e" : "rgba(34, 211, 238, 0.75)";
-              ctx.fillText(subText, boxX + 6, labelY + 7);
-            } else {
-              // Subtle blueprint lines for inactive compartments
-              ctx.strokeStyle = "rgba(6, 182, 212, 0.28)";
-              ctx.lineWidth = 0.65;
-              ctx.fillStyle = "rgba(6, 182, 212, 0.02)";
-              
-              ctx.beginPath();
-              ctx.moveTo(projPoints[0].x, projPoints[0].y);
-              for (let i = 1; i < projPoints.length; i++) {
-                ctx.lineTo(projPoints[i].x, projPoints[i].y);
-              }
-              ctx.closePath();
-              ctx.fill();
-              ctx.stroke();
-            }
-          }
-        });
-      });
-
-      // Update projected panels ref for ray-cast mouse calculations
-      projectedPanelsRef.current = newProjectedPanels;
-
-      // 7. Headlight Beams Stack Entry (always rendered in front for transparency blending)
-      const headlightZ = rotatedVertices[0].z; // cab front Z
-      drawItems.push({
-        zDepth: headlightZ - 5,
-        draw: () => {
-          ctx.strokeStyle = "rgba(250, 204, 21, 0.35)";
-          drawHeadlightBeams(ctx, yaw, pitch, zoom, w, h);
-        }
-      });
-
-      // --- EXECUTE PAINTER'S ALGORITHM DRAW ORDER ---
-      drawItems.sort((a, b) => b.zDepth - a.zDepth); // Sort back-to-front (descending zDepth)
-      drawItems.forEach(item => item.draw());
-
-      // --- HUD OVERLAYS & TELEMETRY PANELS ---
-      if (hudActive) {
-        ctx.fillStyle = "rgba(6, 182, 212, 0.85)";
-        ctx.font = "bold 9px monospace";
-
-        // Four Corner Brackets
-        const chSize = 15;
-        ctx.strokeStyle = "rgba(6, 182, 212, 0.25)";
-        ctx.lineWidth = 1;
-        
-        ctx.beginPath(); // Top-Left
-        ctx.moveTo(chSize, 5); ctx.lineTo(5, 5); ctx.lineTo(5, chSize);
-        ctx.stroke();
-        ctx.beginPath(); // Top-Right
-        ctx.moveTo(w - chSize, 5); ctx.lineTo(w - 5, 5); ctx.lineTo(w - 5, chSize);
-        ctx.stroke();
-        ctx.beginPath(); // Bottom-Left
-        ctx.moveTo(chSize, h - 5); ctx.lineTo(5, h - 5); ctx.lineTo(5, h - chSize);
-        ctx.stroke();
-        ctx.beginPath(); // Bottom-Right
-        ctx.moveTo(w - chSize, h - 5); ctx.lineTo(w - 5, h - 5); ctx.lineTo(w - 5, h - chSize);
-        ctx.stroke();
-
-        // Top Left Telemetry Readout
-        ctx.fillText("TACTICAL HUD GARAJI v23.1", 15, 20);
-        ctx.fillStyle = "rgba(6, 182, 212, 0.55)";
-        ctx.font = "8px monospace";
-        ctx.fillText("MESH MODE: SOLID FLAT SHADING", 15, 30);
-        ctx.fillText(`AZIMUTH:   ${((yaw * 180) / Math.PI).toFixed(1)}°`, 15, 42);
-        ctx.fillText(`ELEVATION: ${((pitch * 180) / Math.PI).toFixed(1)}°`, 15, 52);
-        ctx.fillText(`ZOOM:      ${zoom.toFixed(1)}%`, 15, 62);
-
-        // Top Right Target Readout
-        ctx.textAlign = "right";
-        ctx.fillStyle = "rgba(6, 182, 212, 0.85)";
-        ctx.font = "bold 9px monospace";
-        ctx.fillText("RADAR LINK: OPERATIONAL", w - 15, 20);
-        
-        ctx.font = "8px monospace";
-        ctx.fillStyle = activeCompartment ? "#22c55e" : "rgba(6, 182, 212, 0.5)";
-        const activeName = activeCompartment ? (COMPARTMENT_NAMES[activeCompartment] || activeCompartment).toUpperCase() : "NONE";
-        ctx.fillText(`LOCKED TARGET: [${activeName}]`, w - 15, 32);
-
-        ctx.fillStyle = "rgba(6, 182, 212, 0.5)";
-        ctx.fillText(`CAMERA MODE:   [${autoRotate ? "AUTO-ORBIT" : "MANUAL-DRAG"}]`, w - 15, 42);
-        ctx.fillText(`VEHICLE TYPE:  [${(vehicleType || "Taktiksel").toUpperCase()}]`, w - 15, 52);
-        ctx.textAlign = "left";
-
-        // Bottom Left Radar Sweep
-        const radarCx = 35;
-        const radarCy = h - 35;
-        const radarR = 18;
-        ctx.strokeStyle = "rgba(6, 182, 212, 0.2)";
-        ctx.lineWidth = 0.8;
-        ctx.beginPath();
-        ctx.arc(radarCx, radarCy, radarR, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(radarCx, radarCy, radarR / 2, 0, Math.PI * 2);
-        ctx.stroke();
-        
-        const sweepAngle = (now / 600) % (Math.PI * 2);
-        ctx.strokeStyle = "rgba(6, 182, 212, 0.7)";
-        ctx.beginPath();
-        ctx.moveTo(radarCx, radarCy);
-        ctx.lineTo(radarCx + Math.cos(sweepAngle) * radarR, radarCy + Math.sin(sweepAngle) * radarR);
-        ctx.stroke();
-
-        ctx.fillStyle = "rgba(6, 182, 212, 0.6)";
-        ctx.font = "8px monospace";
-        ctx.fillText("HITBOX SCAN ACTIVE", 60, h - 32);
-
-        // Bottom Right Status
-        ctx.textAlign = "right";
-        ctx.fillStyle = "rgba(6, 182, 212, 0.5)";
-        ctx.fillText("GRID_LOCK: TRUE", w - 15, h - 30);
-        ctx.fillText("COMM_LINK: 100%", w - 15, h - 20);
-        ctx.textAlign = "left";
-
-        // CRT Scanline filter
-        ctx.strokeStyle = "rgba(6, 182, 212, 0.03)";
-        ctx.lineWidth = 1;
-        for (let y = 0; y < h; y += 4) {
-          ctx.beginPath();
-          ctx.moveTo(0, y);
-          ctx.lineTo(w, y);
-          ctx.stroke();
-        }
-      }
-
-      animationId = requestAnimationFrame(render);
-    };
-
-    render();
-
-    return () => {
-      cancelAnimationFrame(animationId);
-    };
-  }, [compartmentKeys, activeCompartment, hoveredKey, autoRotate, hudActive, vehicleType]);
+    }
+    return {
+      fill: "rgba(6, 182, 212, 0.04)",
+      stroke: "rgba(6, 182, 212, 0.5)",
+      glow: "url(#glow-cyan)"
+    }
+  }
 
   return (
-    <div className="w-full relative rounded-xl border border-cyan-500/10 bg-slate-950/80 overflow-hidden select-none">
-      {/* 3D Solid Canvas */}
-      <canvas
-        ref={canvasRef}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseLeave}
-        onTouchStart={handleMouseDown}
-        onTouchMove={handleMouseMove}
-        onTouchEnd={handleMouseUp}
-        className="w-full aspect-[16/9] bg-slate-950/80 cursor-grab active:cursor-grabbing block"
-      />
+    <div className={cn("w-full flex flex-col xl:flex-row gap-5 p-4 rounded-xl border border-cyan-500/10 bg-slate-950/80 backdrop-blur-xl select-none text-slate-100", className)}>
+      
+      {/* 1. SOL PANEL: Taktiksel Telemetri & Profil Kontrolü */}
+      <div className="w-full xl:w-72 shrink-0 flex flex-col justify-between border border-cyan-500/10 rounded-lg p-4 bg-slate-950/90 relative overflow-hidden">
+        {/* Cyber Glass effect background lines */}
+        <div className="absolute inset-0 bg-grid-pattern opacity-[0.04] pointer-events-none" />
+        
+        <div>
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-cyan-500/20 pb-3 mb-4">
+            <div className="flex items-center gap-2">
+              <Cpu className="w-4 h-4 text-cyan-400 animate-pulse" />
+              <span className="font-mono text-xs font-bold tracking-widest text-cyan-400">HUD GARAJI v23.3</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span className="font-mono text-[9px] text-emerald-400 font-bold">GRID LOCK</span>
+            </div>
+          </div>
 
-      {/* Floating HUD Control Overlay */}
-      <div className="absolute bottom-4 right-4 flex items-center gap-2 z-20">
-        <button
-          onClick={() => setAutoRotate(!autoRotate)}
-          className={cn(
-            "p-2 rounded-lg border font-mono text-[9px] font-bold tracking-wider transition-all flex items-center gap-1.5",
-            autoRotate
-              ? "bg-cyan-500/15 border-cyan-500/30 text-cyan-400"
-              : "bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200"
-          )}
-          title="Auto-Orbit"
-        >
-          {autoRotate ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-          <span>DÖNDÜR</span>
-        </button>
+          {/* Profil Switcher */}
+          <div className="space-y-2 mb-5">
+            <label className="font-mono text-[10px] text-slate-500 font-bold tracking-wider uppercase block">AKTİF LOJİSTİK PROFİLİ</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setProfile("sol")}
+                className={cn(
+                  "py-2 px-3 rounded font-mono text-xs font-bold border transition-all flex items-center justify-center gap-1.5",
+                  profile === "sol"
+                    ? "bg-cyan-500/15 border-cyan-500 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.15)]"
+                    : "bg-slate-900/60 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700"
+                )}
+              >
+                <Radio className="w-3.5 h-3.5" />
+                <span>SOL PROFiL</span>
+              </button>
+              <button
+                onClick={() => setProfile("sag")}
+                className={cn(
+                  "py-2 px-3 rounded font-mono text-xs font-bold border transition-all flex items-center justify-center gap-1.5",
+                  profile === "sag"
+                    ? "bg-cyan-500/15 border-cyan-500 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.15)]"
+                    : "bg-slate-900/60 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700"
+                )}
+              >
+                <Radio className="w-3.5 h-3.5" />
+                <span>SAĞ PROFiL</span>
+              </button>
+            </div>
+          </div>
 
-        <button
-          onClick={() => setHudActive(!hudActive)}
-          className={cn(
-            "p-2 rounded-lg border font-mono text-[9px] font-bold tracking-wider transition-all flex items-center gap-1.5",
-            hudActive
-              ? "bg-cyan-500/15 border-cyan-500/30 text-cyan-400"
-              : "bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200"
-          )}
-          title="Toggle HUD Telemetry"
-        >
-          <Activity className="w-3.5 h-3.5" />
-          <span>HUD</span>
-        </button>
+          {/* Telemetri List */}
+          <div className="space-y-3 font-mono text-[11px]">
+            <div className="border border-slate-900 rounded p-2.5 bg-slate-950/60 space-y-2">
+              <div className="flex justify-between items-center text-slate-400">
+                <span>ARAÇ TİPİ:</span>
+                <span className="text-slate-200 font-bold">{vehicleType || "Taktiksel Arazöz"}</span>
+              </div>
+              <div className="flex justify-between items-center text-slate-400">
+                <span>AKTİF PROFiL:</span>
+                <span className="text-cyan-400 font-bold">{profile.toUpperCase()} GÖRÜNÜM</span>
+              </div>
+              <div className="flex justify-between items-center text-slate-400">
+                <span>SİNYAL SEVİYESİ:</span>
+                <span className="text-emerald-400 font-bold flex items-center gap-1">
+                  <Activity className="w-3 h-3 text-emerald-400" />
+                  100% (STABİL)
+                </span>
+              </div>
+            </div>
 
-        <button
-          onClick={() => {
-            targetYawRef.current = -Math.PI / 4;
-            targetPitchRef.current = 0.25;
-            targetZoomRef.current = 100;
-            lastInteractionRef.current = Date.now();
-          }}
-          className="p-2 rounded-lg border bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-900 font-mono text-[9px] font-bold tracking-wider transition-all flex items-center gap-1.5"
-          title="Reset Camera Angle"
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-          <span>SIFIRLA</span>
-        </button>
+            {/* Fictional Neon Progress Bars for Military feel */}
+            <div className="space-y-2">
+              <div className="space-y-1">
+                <div className="flex justify-between text-[10px] text-slate-500 font-bold">
+                  <span>SU DEPOSU SEVİYESİ</span>
+                  <span className="text-cyan-400">8.500 LT (%85)</span>
+                </div>
+                <div className="h-1.5 w-full bg-slate-900 rounded overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-cyan-600 to-cyan-400 rounded" style={{ width: "85%" }} />
+                </div>
+              </div>
 
-        <div className="flex items-center rounded-lg border border-slate-800 bg-slate-950/60 overflow-hidden">
+              <div className="space-y-1">
+                <div className="flex justify-between text-[10px] text-slate-500 font-bold">
+                  <span>KÖPÜK TANKI KAPASİTESİ</span>
+                  <span className="text-emerald-400">1.200 LT (%92)</span>
+                </div>
+                <div className="h-1.5 w-full bg-slate-900 rounded overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded" style={{ width: "92%" }} />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex justify-between text-[10px] text-slate-500 font-bold">
+                  <span>SAYILAN BÖLME</span>
+                  <span className="text-yellow-500">{compartmentKeys.length} / 11 MÜHÜRLÜ</span>
+                </div>
+                <div className="h-1.5 w-full bg-slate-900 rounded overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-yellow-600 to-yellow-400 rounded" style={{ width: `${(compartmentKeys.length / 11) * 100}%` }} />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Interactive HUD Switch */}
+        <div className="mt-6 pt-3 border-t border-slate-900 flex justify-between items-center">
           <button
-            onClick={() => {
-              targetZoomRef.current = Math.max(50, targetZoomRef.current - 15);
-              lastInteractionRef.current = Date.now();
-            }}
-            className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-900 border-r border-slate-800 transition-colors"
-            title="Zoom Out"
+            onClick={() => setHudActive(!hudActive)}
+            className={cn(
+              "py-1.5 px-3 rounded font-mono text-[9px] font-bold border transition-colors flex items-center gap-1",
+              hudActive ? "bg-cyan-500/10 border-cyan-500/30 text-cyan-400" : "bg-slate-900 border-slate-800 text-slate-500"
+            )}
           >
-            <ZoomOut className="w-3.5 h-3.5" />
+            <Eye className="w-3 h-3" />
+            HUD AKTİF
           </button>
-          <button
-            onClick={() => {
-              targetZoomRef.current = Math.min(200, targetZoomRef.current + 15);
-              lastInteractionRef.current = Date.now();
-            }}
-            className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-900 transition-colors"
-            title="Zoom In"
-          >
-            <ZoomIn className="w-3.5 h-3.5" />
-          </button>
+          
+          <div className="flex items-center gap-1.5 text-slate-500 text-[10px] font-mono">
+            <RefreshCw className="w-3 h-3 text-cyan-500 animate-spin" style={{ animationDuration: '4s' }} />
+            <span>RADAR TARANIYOR</span>
+          </div>
         </div>
       </div>
+
+      {/* 2. SAĞ PANEL: İnteraktif SVG Şeması */}
+      <div className="flex-1 bg-slate-950 border border-cyan-500/10 rounded-lg relative overflow-hidden flex items-center justify-center p-3 select-none min-h-[300px] sm:min-h-[380px] lg:min-h-[420px]">
+        {/* Cyber Holographic Grid */}
+        <div className="absolute inset-0 bg-grid-pattern opacity-[0.06] pointer-events-none" />
+        
+        {/* Glowing Radar Sweep Ring Background */}
+        <div className="absolute w-[400px] h-[400px] rounded-full border border-cyan-500/5 animate-pulse opacity-40 flex items-center justify-center pointer-events-none">
+          <div className="w-[300px] h-[300px] rounded-full border border-cyan-500/5" />
+          <div className="w-[200px] h-[200px] rounded-full border border-cyan-500/5" />
+        </div>
+
+        {/* CRT Scanline Filter Overlay */}
+        <div className="absolute inset-0 bg-scanline pointer-events-none opacity-[0.02]" />
+
+        {/* Master Interactive SVG */}
+        <svg
+          viewBox="0 0 800 360"
+          className="w-full h-auto max-w-[760px] relative z-10 filter drop-shadow-[0_0_15px_rgba(6,182,212,0.05)]"
+        >
+          {/* DEFINITIONS FOR GRADIENTS AND GLOWS */}
+          <defs>
+            {/* Hologram glass gradient */}
+            <linearGradient id="cyber-glass" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="rgba(15, 23, 42, 0.9)" />
+              <stop offset="100%" stopColor="rgba(8, 12, 24, 0.95)" />
+            </linearGradient>
+            
+            {/* Shutter carbon fiber pattern */}
+            <pattern id="shutter-pattern" width="8" height="6" patternUnits="userSpaceOnUse">
+              <line x1="0" y1="1" x2="8" y2="1" stroke="rgba(6, 182, 212, 0.15)" strokeWidth="1" />
+              <line x1="0" y1="4" x2="8" y2="4" stroke="rgba(15, 23, 42, 0.7)" strokeWidth="1" />
+            </pattern>
+
+            {/* Cyber Grid background */}
+            <pattern id="grid-pattern" width="20" height="20" patternUnits="userSpaceOnUse">
+              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(6, 182, 212, 0.08)" strokeWidth="1" />
+            </pattern>
+
+            {/* Glowing filter for active compartments (Cyan) */}
+            <filter id="glow-cyan" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="6" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+
+            {/* Glowing filter for selected compartment (Green) */}
+            <filter id="glow-green" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="8" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+
+            {/* Warning yellow lines pattern */}
+            <pattern id="hazard-pattern" width="20" height="20" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+              <line x1="0" y1="0" x2="0" y2="20" stroke="rgba(234, 179, 8, 0.4)" strokeWidth="8" />
+              <line x1="10" y1="0" x2="10" y2="20" stroke="rgba(15, 23, 42, 0.9)" strokeWidth="10" />
+            </pattern>
+          </defs>
+
+          {/* 2.1 TELEMETRY FRAME CORNERS */}
+          {hudActive && (
+            <g className="opacity-40">
+              <path d="M 20 40 L 20 20 L 40 20" fill="none" stroke="#06b6d4" strokeWidth="1.5" />
+              <path d="M 780 40 L 780 20 L 760 20" fill="none" stroke="#06b6d4" strokeWidth="1.5" />
+              <path d="M 20 320 L 20 340 L 40 340" fill="none" stroke="#06b6d4" strokeWidth="1.5" />
+              <path d="M 780 320 L 780 340 L 760 340" fill="none" stroke="#06b6d4" strokeWidth="1.5" />
+              
+              {/* Horizontal grid markings */}
+              <line x1="50" y1="20" x2="750" y2="20" stroke="rgba(6, 182, 212, 0.15)" strokeWidth="1" strokeDasharray="5,15" />
+              <line x1="50" y1="340" x2="750" y2="340" stroke="rgba(6, 182, 212, 0.15)" strokeWidth="1" strokeDasharray="5,15" />
+            </g>
+          )}
+
+          {/* 2.2 TACTICAL HUD INFO STRIPS */}
+          {hudActive && (
+            <g className="font-mono text-[9px] fill-cyan-400/60 select-none">
+              <text x="30" y="32" className="font-bold fill-cyan-400 uppercase tracking-widest">{sideLabel}</text>
+              <text x="770" y="32" textAnchor="end" className="fill-emerald-400 font-bold">SECURE NETWORK COMMS: 100%</text>
+              <text x="30" y="333" className="fill-slate-500">SİVAS BELEDİYESİ İTFAİYE BİLGİ HUD SİSTEMİ</text>
+              <text x="770" y="333" textAnchor="end" className="fill-slate-500">SYS_STATUS: ACTIVE_OK</text>
+            </g>
+          )}
+
+          {/* 2.3 VECTOR FIRE TRUCK SCHEMATIC OUTLINE */}
+          <g transform="translate(0, 20)">
+            {/* Ground grid shadow effect */}
+            <ellipse cx="380" cy="285" rx="340" ry="12" fill="rgba(8, 12, 24, 0.8)" filter="blur(6px)" />
+            <ellipse cx="380" cy="285" rx="300" ry="6" fill="rgba(6, 182, 212, 0.1)" />
+
+            {/* Rear bumper structure */}
+            <path d="M 38,245 L 30,245 L 30,265 L 38,265 Z" fill="rgba(71, 85, 105, 0.9)" stroke="#64748b" strokeWidth="1" />
+            
+            {/* Top water cannon nozzle */}
+            <path d="M 480,85 L 510,50 L 530,50 L 525,58 L 500,85 Z" fill="#1e293b" stroke="#06b6d4" strokeWidth="1.5" />
+            <line x1="530" y1="50" x2="570" y2="45" stroke="#22c55e" strokeWidth="2" strokeDasharray="4,4" className="animate-pulse" />
+            <circle cx="570" cy="45" r="4" fill="rgba(34, 197, 94, 0.4)" className="animate-ping" />
+            <circle cx="570" cy="45" r="2" fill="#22c55e" />
+
+            {/* Top roof ladder */}
+            <rect x="150" y="65" width="310" height="15" rx="2" fill="rgba(15, 23, 42, 0.8)" stroke="rgba(6, 182, 212, 0.5)" strokeWidth="1.2" />
+            {/* Ladder steps */}
+            {Array.from({ length: 18 }).map((_, idx) => (
+              <line key={idx} x1={165 + idx * 16} y1="65" x2={165 + idx * 16} y2="80" stroke="rgba(6, 182, 212, 0.4)" strokeWidth="1" />
+            ))}
+
+            {/* MAIN VEHICLE SHIELD BODY */}
+            <path
+              d="
+                M 80,105 
+                L 490,105 
+                L 500,85 
+                L 645,85 
+                L 690,150 
+                L 705,185 
+                L 705,245 
+                L 660,245 
+                C 655,215 605,215 600,245 
+                L 395,245 
+                C 390,215 340,215 335,245 
+                L 280,245 
+                C 275,215 225,215 220,245 
+                L 80,245 
+                Z
+              "
+              fill="url(#cyber-glass)"
+              stroke="rgba(6, 182, 212, 0.4)"
+              strokeWidth="2"
+            />
+
+            {/* Sleek cyber glass highlights */}
+            <path d="M 85,110 L 485,110 L 495,90 L 640,90" fill="none" stroke="rgba(255, 255, 255, 0.08)" strokeWidth="2" />
+
+            {/* High-visibility retroreflective warning panel (Arka Gövde Çizgileri) */}
+            <rect x="80" y="112" width="10" height="128" fill="url(#hazard-pattern)" />
+
+            {/* Front windshield panel (Cyan glowing cyber style) */}
+            <path
+              d="M 625,92 L 642,92 L 675,145 L 625,145 Z"
+              fill="rgba(6, 182, 212, 0.15)"
+              stroke="#06b6d4"
+              strokeWidth="1.5"
+              filter="drop-shadow(0 0 4px rgba(6,182,212,0.25))"
+            />
+            {/* Windshield glare line */}
+            <line x1="645" y1="96" x2="630" y2="135" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" />
+
+            {/* Cyber Side Windshield (Kabin camı) */}
+            <path
+              d="M 545,92 L 615,92 L 615,145 L 545,145 Z"
+              fill="rgba(6, 182, 212, 0.1)"
+              stroke="rgba(6, 182, 212, 0.5)"
+              strokeWidth="1.2"
+            />
+
+            {/* Front headlamp glow */}
+            <polygon points="705,188 718,188 718,202 705,202" fill="#eab308" filter="drop-shadow(0 0 5px #eab308)" />
+            <polygon points="705,206 718,206 718,218 705,218" fill="#eab308" />
+            <polygon points="718,188 760,175 760,225 718,218" fill="rgba(234, 179, 8, 0.05)" />
+
+            {/* Front heavy bumper */}
+            <path d="M 705,225 L 722,225 L 722,250 L 705,250 Z" fill="#475569" stroke="#64748b" strokeWidth="1.5" />
+            {/* Warning yellow lines on bumper */}
+            <line x1="708" y1="230" x2="719" y2="245" stroke="#eab308" strokeWidth="1.5" />
+            <line x1="713" y1="230" x2="721" y2="241" stroke="#eab308" strokeWidth="1.5" />
+
+            {/* Blue Siren light on cab roof */}
+            <path d="M 525,83 L 535,83 L 532,74 L 528,74 Z" fill="#3b82f6" filter="drop-shadow(0 0 8px #3b82f6)" />
+            <circle cx="530" cy="78" r="8" fill="rgba(59, 130, 246, 0.25)" className="animate-ping" style={{ animationDuration: '2s' }} />
+
+            {/* Red Siren light on rear body */}
+            <path d="M 125,103 L 135,103 L 132,95 L 128,95 Z" fill="#ef4444" filter="drop-shadow(0 0 8px #ef4444)" />
+            <circle cx="130" cy="99" r="8" fill="rgba(239, 68, 68, 0.25)" className="animate-ping" style={{ animationDuration: '3s' }} />
+
+            {/* 2.4 DETAILED WHEELS (Lastikler) */}
+            {/* Rear wheel 1 */}
+            <g transform="translate(250, 245)">
+              <circle cx="0" cy="0" r="32" fill="#090d16" stroke="rgba(6, 182, 212, 0.4)" strokeWidth="2.5" />
+              <circle cx="0" cy="0" r="22" fill="#1e293b" stroke="rgba(6, 182, 212, 0.2)" strokeWidth="1" />
+              <circle cx="0" cy="0" r="12" fill="#090d16" stroke="rgba(6, 182, 212, 0.5)" strokeWidth="1" />
+              {/* Rim holes */}
+              {Array.from({ length: 6 }).map((_, i) => (
+                <circle key={i} cx={Math.cos((i * Math.PI) / 3) * 16} cy={Math.sin((i * Math.PI) / 3) * 16} r="2.5" fill="#475569" />
+              ))}
+            </g>
+
+            {/* Rear wheel 2 */}
+            <g transform="translate(365, 245)">
+              <circle cx="0" cy="0" r="32" fill="#090d16" stroke="rgba(6, 182, 212, 0.4)" strokeWidth="2.5" />
+              <circle cx="0" cy="0" r="22" fill="#1e293b" stroke="rgba(6, 182, 212, 0.2)" strokeWidth="1" />
+              <circle cx="0" cy="0" r="12" fill="#090d16" stroke="rgba(6, 182, 212, 0.5)" strokeWidth="1" />
+              {/* Rim holes */}
+              {Array.from({ length: 6 }).map((_, i) => (
+                <circle key={i} cx={Math.cos((i * Math.PI) / 3) * 16} cy={Math.sin((i * Math.PI) / 3) * 16} r="2.5" fill="#475569" />
+              ))}
+            </g>
+
+            {/* Front wheel */}
+            <g transform="translate(628, 245)">
+              <circle cx="0" cy="0" r="32" fill="#090d16" stroke="rgba(6, 182, 212, 0.4)" strokeWidth="2.5" />
+              <circle cx="0" cy="0" r="22" fill="#1e293b" stroke="rgba(6, 182, 212, 0.2)" strokeWidth="1" />
+              <circle cx="0" cy="0" r="12" fill="#090d16" stroke="rgba(6, 182, 212, 0.5)" strokeWidth="1" />
+              {/* Rim holes */}
+              {Array.from({ length: 6 }).map((_, i) => (
+                <circle key={i} cx={Math.cos((i * Math.PI) / 3) * 16} cy={Math.sin((i * Math.PI) / 3) * 16} r="2.5" fill="#475569" />
+              ))}
+            </g>
+
+            {/* Decorative decals on cabin door */}
+            <text x="560" y="165" fill="rgba(6, 182, 212, 0.35)" fontSize="7" fontFamily="monospace" fontWeight="bold" letterSpacing="1">SİVAS İTFAİYESİ</text>
+            <text x="560" y="174" fill="rgba(6, 182, 212, 0.2)" fontSize="6" fontFamily="monospace" letterSpacing="0.5">FILO NO: 58-AC</text>
+
+            {/* 2.5 INTERACTIVE HOTSPOT OVERLAYS (COMPARTMENTS) */}
+            
+            {/* A. ARAÇ ÜSTÜ HOTSPOT */}
+            <g
+              onClick={() => handleHotspotClick("arac_ustu")}
+              className={cn("cursor-pointer transition-all duration-300", ustuStatus.isAvailable ? "opacity-100" : "opacity-35")}
+            >
+              <rect
+                x="145"
+                y="35"
+                width="320"
+                height="28"
+                rx="4"
+                fill={getColors(ustuStatus).fill}
+                stroke={getColors(ustuStatus).stroke}
+                strokeWidth={ustuStatus.isActive ? 2 : 1}
+                filter={getColors(ustuStatus).glow}
+              />
+              {/* Interactive Diagonal Strips when active */}
+              {ustuStatus.isActive && (
+                <g opacity="0.3">
+                  {Array.from({ length: 12 }).map((_, i) => (
+                    <line key={i} x1={155 + i * 26} y1="35" x2={165 + i * 26} y2="63" stroke="#22c55e" strokeWidth="2" />
+                  ))}
+                </g>
+              )}
+            </g>
+
+            {/* B. ARKA KAPAK (At the very rear shutter) */}
+            <g
+              onClick={() => handleHotspotClick("arka_kapak")}
+              className={cn("cursor-pointer transition-all duration-300", arkaKapakStatus.isAvailable ? "opacity-100" : "opacity-35")}
+            >
+              <rect
+                x="45"
+                y="115"
+                width="30"
+                height="125"
+                rx="2"
+                fill={getColors(arkaKapakStatus).fill}
+                stroke={getColors(arkaKapakStatus).stroke}
+                strokeWidth={arkaKapakStatus.isActive ? 2 : 1}
+                filter={getColors(arkaKapakStatus).glow}
+              />
+              {/* Shutter doors texture */}
+              <rect x="47" y="117" width="26" height="121" fill="url(#shutter-pattern)" opacity="0.45" />
+            </g>
+
+            {/* C. ARKA BÖLME (Rear compartment gate) */}
+            <g
+              onClick={() => handleHotspotClick("arka_bolme")}
+              className={cn("cursor-pointer transition-all duration-300", arkaBolmeStatus.isAvailable ? "opacity-100" : "opacity-35")}
+            >
+              <rect
+                x="85"
+                y="115"
+                width="50"
+                height="125"
+                rx="3"
+                fill={getColors(arkaBolmeStatus).fill}
+                stroke={getColors(arkaBolmeStatus).stroke}
+                strokeWidth={arkaBolmeStatus.isActive ? 2 : 1}
+                filter={getColors(arkaBolmeStatus).glow}
+              />
+              {/* Shutter doors texture */}
+              <rect x="88" y="118" width="44" height="119" fill="url(#shutter-pattern)" opacity="0.35" />
+            </g>
+
+            {/* D. ARKA KAPAK (Sol/Sağ Arka Shutter) */}
+            <g
+              onClick={() => handleHotspotClick(activeShutterArka)}
+              className={cn("cursor-pointer transition-all duration-300", arkaStatus.isAvailable ? "opacity-100" : "opacity-35")}
+            >
+              <rect
+                x="145"
+                y="115"
+                width="105"
+                height="125"
+                rx="3"
+                fill={getColors(arkaStatus).fill}
+                stroke={getColors(arkaStatus).stroke}
+                strokeWidth={arkaStatus.isActive ? 2.2 : 1}
+                filter={getColors(arkaStatus).glow}
+              />
+              {/* Roll Shutter Slats */}
+              <rect x="149" y="119" width="97" height="117" fill="url(#shutter-pattern)" opacity="0.75" />
+              {/* Door locking mechanism line */}
+              <line x1="145" y1="178" x2="250" y2="178" stroke="rgba(6, 182, 212, 0.4)" strokeWidth="1" />
+              <circle cx="197" cy="178" r="3" fill="rgba(6, 182, 212, 0.8)" />
+            </g>
+
+            {/* E. ORTA KAPAK (Sol/Sağ Orta Shutter) */}
+            <g
+              onClick={() => handleHotspotClick(activeShutterOrta)}
+              className={cn("cursor-pointer transition-all duration-300", ortaStatus.isAvailable ? "opacity-100" : "opacity-35")}
+            >
+              <rect
+                x="260"
+                y="115"
+                width="105"
+                height="125"
+                rx="3"
+                fill={getColors(ortaStatus).fill}
+                stroke={getColors(ortaStatus).stroke}
+                strokeWidth={ortaStatus.isActive ? 2.2 : 1}
+                filter={getColors(ortaStatus).glow}
+              />
+              {/* Roll Shutter Slats */}
+              <rect x="264" y="119" width="97" height="117" fill="url(#shutter-pattern)" opacity="0.75" />
+              {/* Door locking mechanism line */}
+              <line x1="260" y1="178" x2="365" y2="178" stroke="rgba(6, 182, 212, 0.4)" strokeWidth="1" />
+              <circle cx="312" cy="178" r="3" fill="rgba(6, 182, 212, 0.8)" />
+            </g>
+
+            {/* F. ÖN KAPAK (Sol/Sağ Ön Shutter) */}
+            <g
+              onClick={() => handleHotspotClick(activeShutterOn)}
+              className={cn("cursor-pointer transition-all duration-300", onStatus.isAvailable ? "opacity-100" : "opacity-35")}
+            >
+              <rect
+                x="375"
+                y="115"
+                width="105"
+                height="125"
+                rx="3"
+                fill={getColors(onStatus).fill}
+                stroke={getColors(onStatus).stroke}
+                strokeWidth={onStatus.isActive ? 2.2 : 1}
+                filter={getColors(onStatus).glow}
+              />
+              {/* Roll Shutter Slats */}
+              <rect x="379" y="119" width="97" height="117" fill="url(#shutter-pattern)" opacity="0.75" />
+              {/* Door locking mechanism line */}
+              <line x1="375" y1="178" x2="480" y2="178" stroke="rgba(6, 182, 212, 0.4)" strokeWidth="1" />
+              <circle cx="427" cy="178" r="3" fill="rgba(6, 182, 212, 0.8)" />
+            </g>
+
+            {/* G. KABİN İÇİ (Cabin Interior) */}
+            <g
+              onClick={() => handleHotspotClick("kabin_ici")}
+              className={cn("cursor-pointer transition-all duration-300", kabinStatus.isAvailable ? "opacity-100" : "opacity-35")}
+            >
+              <rect
+                x="490"
+                y="115"
+                width="155"
+                height="125"
+                rx="5"
+                fill={getColors(kabinStatus).fill}
+                stroke={getColors(kabinStatus).stroke}
+                strokeWidth={kabinStatus.isActive ? 2 : 1}
+                filter={getColors(kabinStatus).glow}
+              />
+              {/* Steering wheel vector representation */}
+              <circle cx="610" cy="165" r="9" fill="none" stroke="rgba(6, 182, 212, 0.4)" strokeWidth="2" />
+              <line x1="610" y1="156" x2="610" y2="174" stroke="rgba(6, 182, 212, 0.4)" strokeWidth="1.5" />
+              <line x1="601" y1="165" x2="619" y2="165" stroke="rgba(6, 182, 212, 0.4)" strokeWidth="1.5" />
+            </g>
+
+            {/* H. ARAÇ İÇİ (Under chassis/interior) */}
+            <g
+              onClick={() => handleHotspotClick("arac_ici")}
+              className={cn("cursor-pointer transition-all duration-300", iciStatus.isAvailable ? "opacity-100" : "opacity-35")}
+            >
+              <rect
+                x="145"
+                y="247"
+                width="335"
+                height="8"
+                rx="1.5"
+                fill={getColors(iciStatus).fill}
+                stroke={getColors(iciStatus).stroke}
+                strokeWidth={iciStatus.isActive ? 1.5 : 1}
+                filter={getColors(iciStatus).glow}
+              />
+            </g>
+
+            {/* 2.6 PULSING NEON NODE TARGETS ON SELECTED COMPARTMENTS */}
+            
+            {/* Araç Üstü Indicator */}
+            {ustuStatus.isAvailable && (
+              <g transform="translate(305, 49)" className="pointer-events-none">
+                <circle cx="0" cy="0" r={ustuStatus.isActive ? 10 : 7} fill="none" stroke={ustuStatus.isActive ? "#22c55e" : "#06b6d4"} strokeWidth={ustuStatus.isActive ? 2 : 1} />
+                <circle cx="0" cy="0" r="3" fill={ustuStatus.isActive ? "#22c55e" : "#06b6d4"} className={ustuStatus.isActive ? "animate-pulse" : ""} />
+                {ustuStatus.isActive && <circle cx="0" cy="0" r="16" fill="none" stroke="#22c55e" strokeWidth="0.8" className="animate-ping" style={{ animationDuration: '1.8s' }} />}
+              </g>
+            )}
+
+            {/* Arka Kapak Indicator */}
+            {arkaKapakStatus.isAvailable && (
+              <g transform="translate(60, 178)" className="pointer-events-none">
+                <circle cx="0" cy="0" r={arkaKapakStatus.isActive ? 9 : 7} fill="none" stroke={arkaKapakStatus.isActive ? "#22c55e" : "#06b6d4"} strokeWidth={arkaKapakStatus.isActive ? 2 : 1} />
+                <circle cx="0" cy="0" r="3" fill={arkaKapakStatus.isActive ? "#22c55e" : "#06b6d4"} />
+                {arkaKapakStatus.isActive && <circle cx="0" cy="0" r="16" fill="none" stroke="#22c55e" strokeWidth="0.8" className="animate-ping" style={{ animationDuration: '1.8s' }} />}
+              </g>
+            )}
+
+            {/* Arka Bölme Indicator */}
+            {arkaBolmeStatus.isAvailable && (
+              <g transform="translate(110, 178)" className="pointer-events-none">
+                <circle cx="0" cy="0" r={arkaBolmeStatus.isActive ? 9 : 7} fill="none" stroke={arkaBolmeStatus.isActive ? "#22c55e" : "#06b6d4"} strokeWidth={arkaBolmeStatus.isActive ? 2 : 1} />
+                <circle cx="0" cy="0" r="3" fill={arkaBolmeStatus.isActive ? "#22c55e" : "#06b6d4"} />
+                {arkaBolmeStatus.isActive && <circle cx="0" cy="0" r="16" fill="none" stroke="#22c55e" strokeWidth="0.8" className="animate-ping" style={{ animationDuration: '1.8s' }} />}
+              </g>
+            )}
+
+            {/* Arka Kapak Shutter Indicator */}
+            {arkaStatus.isAvailable && (
+              <g transform="translate(197, 178)" className="pointer-events-none">
+                <circle cx="0" cy="0" r={arkaStatus.isActive ? 11 : 8} fill="none" stroke={arkaStatus.isActive ? "#22c55e" : "#06b6d4"} strokeWidth={arkaStatus.isActive ? 2 : 1} />
+                <circle cx="0" cy="0" r="4" fill={arkaStatus.isActive ? "#22c55e" : "#06b6d4"} />
+                {arkaStatus.isActive && <circle cx="0" cy="0" r="18" fill="none" stroke="#22c55e" strokeWidth="0.8" className="animate-ping" style={{ animationDuration: '1.6s' }} />}
+              </g>
+            )}
+
+            {/* Orta Shutter Indicator */}
+            {ortaStatus.isAvailable && (
+              <g transform="translate(312, 178)" className="pointer-events-none">
+                <circle cx="0" cy="0" r={ortaStatus.isActive ? 11 : 8} fill="none" stroke={ortaStatus.isActive ? "#22c55e" : "#06b6d4"} strokeWidth={ortaStatus.isActive ? 2 : 1} />
+                <circle cx="0" cy="0" r="4" fill={ortaStatus.isActive ? "#22c55e" : "#06b6d4"} />
+                {ortaStatus.isActive && <circle cx="0" cy="0" r="18" fill="none" stroke="#22c55e" strokeWidth="0.8" className="animate-ping" style={{ animationDuration: '1.6s' }} />}
+              </g>
+            )}
+
+            {/* Ön Shutter Indicator */}
+            {onStatus.isAvailable && (
+              <g transform="translate(427, 178)" className="pointer-events-none">
+                <circle cx="0" cy="0" r={onStatus.isActive ? 11 : 8} fill="none" stroke={onStatus.isActive ? "#22c55e" : "#06b6d4"} strokeWidth={onStatus.isActive ? 2 : 1} />
+                <circle cx="0" cy="0" r="4" fill={onStatus.isActive ? "#22c55e" : "#06b6d4"} />
+                {onStatus.isActive && <circle cx="0" cy="0" r="18" fill="none" stroke="#22c55e" strokeWidth="0.8" className="animate-ping" style={{ animationDuration: '1.6s' }} />}
+              </g>
+            )}
+
+            {/* Kabin İçi Indicator */}
+            {kabinStatus.isAvailable && (
+              <g transform="translate(565, 178)" className="pointer-events-none">
+                <circle cx="0" cy="0" r={kabinStatus.isActive ? 10 : 7} fill="none" stroke={kabinStatus.isActive ? "#22c55e" : "#06b6d4"} strokeWidth={kabinStatus.isActive ? 2 : 1} />
+                <circle cx="0" cy="0" r="3" fill={kabinStatus.isActive ? "#22c55e" : "#06b6d4"} />
+                {kabinStatus.isActive && <circle cx="0" cy="0" r="16" fill="none" stroke="#22c55e" strokeWidth="0.8" className="animate-ping" style={{ animationDuration: '1.8s' }} />}
+              </g>
+            )}
+
+            {/* Araç İçi Indicator */}
+            {iciStatus.isAvailable && (
+              <g transform="translate(312, 251)" className="pointer-events-none">
+                <circle cx="0" cy="0" r={iciStatus.isActive ? 8 : 6} fill="none" stroke={iciStatus.isActive ? "#22c55e" : "#06b6d4"} strokeWidth={iciStatus.isActive ? 1.5 : 1} />
+                <circle cx="0" cy="0" r="2.5" fill={iciStatus.isActive ? "#22c55e" : "#06b6d4"} />
+                {iciStatus.isActive && <circle cx="0" cy="0" r="12" fill="none" stroke="#22c55e" strokeWidth="0.6" className="animate-ping" style={{ animationDuration: '2s' }} />}
+              </g>
+            )}
+
+            {/* 2.7 HIGH END TACTICAL LASER LEADER LINES FOR ACTIVE COMPARTMENT */}
+            {hudActive && activeCompartment && (
+              <g>
+                {/* Dynamically draw glowing cyber line from active centroid to telemetry boxes */}
+                {(() => {
+                  let startX = 0, startY = 0, labelX = 0, labelY = 0, align: "left" | "right" = "left";
+                  const name = (COMPARTMENT_NAMES[activeCompartment] || activeCompartment).toUpperCase();
+
+                  if (activeCompartment === "arac_ustu") {
+                    startX = 305; startY = 49; labelX = 305 + 80; labelY = 49 - 25; align = "left";
+                  } else if (activeCompartment === "arka_kapak") {
+                    startX = 60; startY = 178; labelX = 60 - 30; labelY = 178 - 60; align = "right";
+                  } else if (activeCompartment === "arka_bolme") {
+                    startX = 110; startY = 178; labelX = 110 - 60; labelY = 178 - 60; align = "right";
+                  } else if (activeCompartment === activeShutterArka) {
+                    startX = 197; startY = 178; labelX = 197 - 70; labelY = 178 - 70; align = "right";
+                  } else if (activeCompartment === activeShutterOrta) {
+                    startX = 312; startY = 178; labelX = 312 - 70; labelY = 178 - 70; align = "right";
+                  } else if (activeCompartment === activeShutterOn) {
+                    startX = 427; startY = 178; labelX = 427 + 70; labelY = 178 - 70; align = "left";
+                  } else if (activeCompartment === "kabin_ici") {
+                    startX = 565; startY = 178; labelX = 565 + 75; labelY = 178 - 70; align = "left";
+                  } else if (activeCompartment === "arac_ici") {
+                    startX = 312; startY = 251; labelX = 312 + 80; labelY = 251 + 30; align = "left";
+                  } else {
+                    return null; // Don't draw leader lines for unmapped/hidden keys
+                  }
+
+                  const midX = startX + (align === "left" ? 15 : -15);
+                  const midY = startY - (activeCompartment === "arac_ici" ? -15 : 15);
+
+                  return (
+                    <g>
+                      {/* Laser pointer line */}
+                      <path
+                        d={`M ${startX},${startY} L ${midX},${midY} L ${labelX},${labelY}`}
+                        fill="none"
+                        stroke="#22c55e"
+                        strokeWidth="1.2"
+                        filter="drop-shadow(0 0 3px rgba(34,197,94,0.6))"
+                      />
+                      
+                      {/* End node bracket anchor */}
+                      <circle cx={startX} cy={startY} r="1.5" fill="#22c55e" />
+                      
+                      {/* Callout box overlay */}
+                      <g transform={`translate(${align === "left" ? labelX : labelX - 110}, ${labelY - 12})`}>
+                        {/* Box background with high glassmorphism */}
+                        <rect
+                          x="0"
+                          y="0"
+                          width="120"
+                          height="26"
+                          rx="3"
+                          fill="rgba(8, 12, 24, 0.95)"
+                          stroke="#22c55e"
+                          strokeWidth="1"
+                          filter="drop-shadow(0 0 8px rgba(34,197,94,0.15))"
+                        />
+                        {/* Decorative glowing cyan bullet */}
+                        <circle cx="8" cy="13" r="2.5" fill="#22c55e" className="animate-pulse" />
+                        
+                        {/* Shutter key texts */}
+                        <text x="18" y="10" fill="#22c55e" fontSize="7.5" fontFamily="monospace" fontWeight="bold">{name}</text>
+                        <text x="18" y="20" fill="rgba(34, 197, 94, 0.75)" fontSize="6" fontFamily="monospace" letterSpacing="0.5">HEARTBEAT LOCK_SECURED</text>
+                      </g>
+                    </g>
+                  );
+                })()}
+              </g>
+            )}
+
+            {/* Radar scanner sweep laser effect */}
+            {hudActive && (
+              <g>
+                <line
+                  x1={radarPulse * 8}
+                  y1="25"
+                  x2={radarPulse * 8}
+                  y2="280"
+                  stroke="rgba(6, 182, 212, 0.08)"
+                  strokeWidth="2"
+                />
+                <line
+                  x1={radarPulse * 8 + 3}
+                  y1="25"
+                  x2={radarPulse * 8 + 3}
+                  y2="280"
+                  stroke="rgba(6, 182, 212, 0.04)"
+                  strokeWidth="1"
+                />
+              </g>
+            )}
+          </g>
+        </svg>
+
+        {/* Floating cyber lock details */}
+        {activeCompartment && (
+          <div className="absolute top-4 right-4 bg-slate-950/90 border border-green-500/30 rounded px-2.5 py-1.5 font-mono text-[9px] text-green-400 flex items-center gap-1.5 shadow-[0_0_12px_rgba(34,197,94,0.1)] z-20">
+            <ShieldCheck className="w-3.5 h-3.5 text-green-400" />
+            <span>SEÇİLİ BÖLME KİLİTLENDİ: [{(COMPARTMENT_NAMES[activeCompartment] || activeCompartment).toUpperCase()}]</span>
+          </div>
+        )}
+      </div>
+
     </div>
   )
 }
