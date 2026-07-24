@@ -37,7 +37,8 @@ export function HourlyShifts({ personnel, allPersonnel, activePosta }: HourlyShi
   // Matrix data state: { [hourRange]: { [place]: { id, sicil } } }
   const [matrix, setMatrix] = useState<Record<string, Record<string, { id?: number; sicil: string }>>>({})
 
-  const isAuthorized = user?.rol === 'Admin' || user?.rol === 'Editor'
+  // Admin/Editor (müdür/amir) ve Shift_Leader (çavuş/başçavuş) saatlik nöbeti düzenleyebilir
+  const isAuthorized = user?.rol === 'Admin' || user?.rol === 'Editor' || user?.rol === 'Shift_Leader'
 
   const todayStr = useMemo(() => {
     const shiftDate = new Date();

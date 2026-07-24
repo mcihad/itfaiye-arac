@@ -46,6 +46,8 @@ export function MobileNav() {
   const [menuOpen, setMenuOpen] = useState(false)
   const { user } = useAuthStore()
   const isEr = user?.rol === 'User' || user?.unvan === 'İtfaiye Eri' || user?.unvan?.toLowerCase().includes('er')
+  // Şoförler (Şoför, Pos.Baş.Şof.) "Er" olsalar bile Komuta Haritası'nı görebilir
+  const isSofor = !!user?.unvan?.toLowerCase().includes('şof')
   const isManager = !!(user?.rol === 'Admin' || user?.rol === 'Editor' || user?.rol === 'Shift_Leader' || 
                     user?.unvan === 'Müdür' || user?.unvan === 'Amir' || 
                     user?.unvan?.toLowerCase().includes('çavuş') || 
@@ -65,7 +67,7 @@ export function MobileNav() {
       title: "ANLIK DURUM & KOMUTA",
       items: [
         { href: "/yonetim", label: "Gösterge Paneli", icon: LayoutDashboard, visible: true },
-        { href: "/yonetim/harita", label: "Komuta Haritası (CBS)", icon: Map, visible: !isEr },
+        { href: "/yonetim/harita", label: "Komuta Haritası (CBS)", icon: Map, visible: !isEr || isSofor },
         { href: "/yonetim/telsiz", label: "Dijital Telsiz", icon: Radio, visible: true },
       ]
     },

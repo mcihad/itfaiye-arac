@@ -208,7 +208,13 @@ export async function proxy(request: NextRequest) {
       "/yonetim/egitimler"
     ];
 
-    const isBlocked = blockedPathsForEr.some((p) => pathname === p || pathname.startsWith(p + "/"));
+    // Şoförler (Şoför, Pos.Baş.Şof.) Komuta Haritası'na erişebilir; harita bloğundan muaf.
+    const isSofor = (session.unvan || "").toLowerCase().includes("şof");
+    const effectiveBlocked = isSofor
+      ? blockedPathsForEr.filter((p) => p !== "/yonetim/harita")
+      : blockedPathsForEr;
+
+    const isBlocked = effectiveBlocked.some((p) => pathname === p || pathname.startsWith(p + "/"));
     
     if (isBlocked) {
       console.warn(`[ACL proxy] ER rank user (${session.sicilNo}) attempted unauthorized access to: ${pathname}`);
