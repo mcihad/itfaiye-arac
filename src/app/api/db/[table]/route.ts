@@ -37,9 +37,9 @@ const ALLOWED_TABLES = [
   'citizen_requests', 'activities_and_trainings', 'personnel_activities',
   'vehicle_maintenances', 'fire_hydrants', 'spatial_addresses',
   'staff_certifications', 'vw_expiring_certifications', 'unified_system_logs', 'daily_vehicle_checks',
-  'role_permissions', 'duty_logs', 'arac_bakim_gecmisi', 'temp_passwords',
+  'role_permissions', 'duty_logs', 'arac_bakim_gecmisi',
   'baca_temizlik_basvurulari', 'yangin_rapor_basvurulari', 'inventory', 'vehicle_inventory',
-  'personnel_shifts_log', 'service_applications', 'temp_otps', 'hourly_shifts',
+  'personnel_shifts_log', 'service_applications', 'hourly_shifts',
   'temporary_assignments', 'daily_summary_reports', 'blacklist_institutions', 'external_educations', 'external_missions', 'radio_logs', 'egitim_mufredati', 'system_settings',
   'radio_recordings'
 ];
@@ -74,6 +74,49 @@ const PERSONNEL_SENSITIVE_COLUMNS = new Set<string>([
   'rol', 'unvan', 'view_only', 'can_approve', 'can_print',
   'password_hash', 'password', 'aktif', 'sicil_no', 'username', 'id',
 ]);
+
+// ─── Okuma (GET) Yetkilendirme Politikası ────────────────────────────────────
+// Yazma politikasının okuma karşılığı: oturumu olan herkesin hassas tabloları
+// çekebilmesini engeller.
+
+// Yalnızca Admin/Müdür seviyesinin okuyabileceği tablolar (kimlik doğrulama ve
+// denetim izleri).
+const ADMIN_READ_TABLES = new Set<string>([
+  'auth_logs', 'audit_logs',
+]);
+
+// Yönetici (Admin/Editor/Shift_Leader veya Müdür/Amir/Çavuş/Başçavuş) seviyesinin
+// okuyabileceği tablolar (KVKK kapsamındaki özlük verileri).
+const MANAGER_READ_TABLES = new Set<string>([
+  'personnel_details', 'personnel_records',
+]);
+
+// Yanıtlardan her koşulda ayıklanan kolonlar (SELECT *, RETURNING * dahil).
+const RESPONSE_STRIPPED_COLUMNS: Record<string, string[]> = {
+  personnel: ['password_hash'],
+};
+
+function authorizeRead(session: JWTPayload, table: string): { error: string; status: number } | null {
+  if (ADMIN_READ_TABLES.has(table) && !isAdminSession(session)) {
+    return { error: 'Bu tabloyu okumak için yönetici (Müdür/Admin) yetkisi gereklidir.', status: 403 };
+  }
+  if (MANAGER_READ_TABLES.has(table) && !isManagerSession(session)) {
+    return { error: 'Bu tabloyu okumak için yönetici yetkisi gereklidir.', status: 403 };
+  }
+  return null;
+}
+
+// Hassas kolonları yanıt satırlarından siler (rows dizisini yerinde değiştirir).
+function stripSensitiveColumns(table: string, rows: any[]): any[] {
+  const cols = RESPONSE_STRIPPED_COLUMNS[table];
+  if (!cols || !Array.isArray(rows)) return rows;
+  for (const row of rows) {
+    if (row && typeof row === 'object') {
+      for (const col of cols) delete row[col];
+    }
+  }
+  return rows;
+}
 
 /**
  * Bir yazma isteğinin yetkili olup olmadığını denetler.
@@ -184,6 +227,12 @@ export async function GET(
       return NextResponse.json({ error: 'Geçersiz tablo adı.' }, { status: 400 });
     }
 
+    // Okuma yetkilendirmesi (hassas tablolar için rol kontrolü)
+    const readError = authorizeRead(session, table);
+    if (readError) {
+      return NextResponse.json({ error: readError.error }, { status: readError.status });
+    }
+
     // Şema kurulumu (process başına bir kez, memoize)
     await ensureTableSchema(table);
 
@@ -228,7 +277,11 @@ export async function GET(
     }
 
     if (limitParam) {
-      sql += ` LIMIT ${parseInt(limitParam, 10)}`;
+      const limit = parseInt(limitParam, 10);
+      if (!Number.isFinite(limit) || limit < 0) {
+        return NextResponse.json({ error: 'Geçersiz limit parametresi.' }, { status: 400 });
+      }
+      sql += ` LIMIT ${limit}`;
     }
 
     const result = await query(sql, whereParams);
@@ -237,7 +290,7 @@ export async function GET(
       return NextResponse.json({ count: parseInt(result.rows[0]?.count || '0', 10) });
     }
 
-    return NextResponse.json({ data: result.rows, count: result.rowCount });
+    return NextResponse.json({ data: stripSensitiveColumns(table, result.rows), count: result.rowCount });
   } catch (error: any) {
     console.error(`[db/GET] Hata:`, error);
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -469,7 +522,7 @@ export async function POST(
       }
     }
 
-    return NextResponse.json({ data: insertedRows, error: null });
+    return NextResponse.json({ data: stripSensitiveColumns(table, insertedRows), error: null });
   } catch (error: unknown) {
     console.error(`[db/POST] Hata:`, error);
     const errMsg = error instanceof Error ? error.message : String(error);
@@ -647,7 +700,7 @@ export async function PATCH(
       }
     }
 
-    return NextResponse.json({ data: result.rows, error: null });
+    return NextResponse.json({ data: stripSensitiveColumns(table, result.rows), error: null });
   } catch (error: any) {
     console.error(`[db/PATCH] Hata:`, error);
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -666,14 +719,20 @@ export async function DELETE(
     if (!session) {
       return NextResponse.json({ error: 'Oturum açmanız gerekiyor.' }, { status: 401 });
     }
-    // Silme yetkisi sadece Admin ve Editor'da
-    if (!['Admin', 'Editor'].includes(session.rol)) {
-      return NextResponse.json({ error: 'Bu işlem için yetkiniz yok.' }, { status: 403 });
-    }
 
     const { table } = await params;
     if (!ALLOWED_TABLES.includes(table)) {
       return NextResponse.json({ error: 'Geçersiz tablo adı.' }, { status: 400 });
+    }
+    // Silme yetkisi: izin kayıtlarında yazma yetkisiyle hizalı (Çavuş/Shift_Leader
+    // izin oluşturabildiği için iptal de edebilmeli — aksi halde iptal akışı yarım
+    // kalıp izin bir sonraki yüklemede geri geliyordu). Diğer tablolarda Admin/Editor.
+    if (table === 'personnel_leaves') {
+      if (!isManagerSession(session)) {
+        return NextResponse.json({ error: 'Bu işlem için yönetici yetkisi gereklidir.' }, { status: 403 });
+      }
+    } else if (!['Admin', 'Editor'].includes(session.rol)) {
+      return NextResponse.json({ error: 'Bu işlem için yetkiniz yok.' }, { status: 403 });
     }
     // system_settings silme yalnızca Admin rolüne açıktır.
     if (table === 'system_settings' && session.rol !== 'Admin') {
@@ -702,7 +761,7 @@ export async function DELETE(
     const sql = `DELETE FROM ${table} ${clause} RETURNING *`;
 
     const result = await query(sql, whereParams);
-    return NextResponse.json({ data: result.rows, error: null });
+    return NextResponse.json({ data: stripSensitiveColumns(table, result.rows), error: null });
   } catch (error: any) {
     console.error(`[db/DELETE] Hata:`, error);
     return NextResponse.json({ error: error.message }, { status: 500 });
