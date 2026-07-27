@@ -33,6 +33,33 @@ export async function query<T extends QueryResultRow = any>(text: string, params
 }
 
 /**
+ * Bir dizi sorguyu GERÇEK bir transaction içinde çalıştırır.
+ * pool.query() ile atılan BEGIN/COMMIT'ler havuzdan farklı bağlantılara
+ * düşebildiği için atomiklik sağlamaz; transaction gerektiren her işlem
+ * bu yardımcıyı kullanmalıdır. Hata durumunda ROLLBACK yapıp hatayı fırlatır.
+ */
+export async function withTransaction<T>(
+  fn: (tx: <R extends QueryResultRow = any>(text: string, params?: any[]) => Promise<QueryResult<R>>) => Promise<T>
+): Promise<T> {
+  const client = await getPool().connect();
+  try {
+    await client.query('BEGIN');
+    const result = await fn((text, params) => client.query(text, params));
+    await client.query('COMMIT');
+    return result;
+  } catch (err) {
+    try {
+      await client.query('ROLLBACK');
+    } catch (rollbackErr) {
+      console.error('[DB] ROLLBACK hatası:', rollbackErr);
+    }
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+/**
  * Tek satır dönen sorgular için yardımcı.
  */
 export async function queryOne<T extends QueryResultRow = any>(text: string, params?: any[]): Promise<T | null> {
