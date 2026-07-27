@@ -1,4 +1,4 @@
-import { query } from "@/lib/db";
+import { query, withTransaction } from "@/lib/db";
 import {
   STATION_SHIFT_TIMES,
   normalizeStationName,
@@ -132,7 +132,7 @@ export async function runSayimUyari(dryRun = false): Promise<SayimUyariResult> {
       continue;
     }
 
-    // Idempotency: bugün bu istasyon için uyarı gönderildi mi?
+    // Idempotency ön kontrolü (hızlı yol; asıl güvence aşağıdaki kilitli bölümde)
     const damga = await query(
       `SELECT 1 FROM audit_logs WHERE action_type = 'sayim_uyari' AND target = $1 AND (details->>'gun') = $2 LIMIT 1`,
       [grup.label, today]
@@ -178,19 +178,40 @@ export async function runSayimUyari(dryRun = false): Promise<SayimUyariResult> {
       continue;
     }
 
+    // Gönderim + damga, advisory lock altında tek transaction'da yapılır:
+    //  - Eşzamanlı iki tetik (çoklu instance / manuel + zamanlayıcı) birbirini bekler;
+    //    kilidi alan ikinci tetik damgayı görüp gönderimi atlar → çift SMS olmaz.
+    //  - Damga YALNIZCA SMS başarılıysa yazılır; başarısız gönderim pencere içindeki
+    //    bir sonraki tetikte yeniden denenir (eskiden damga her koşulda atılıyordu).
     let smsOk = false;
-    if (phones.length > 0) smsOk = await sendSms(phones, icerik);
-
-    // Damga: yalnızca alıcı varsa yaz (alıcı yoksa telefon eklenince sonraki tetik yakalar)
+    let atlandi = false;
     if (phones.length > 0) {
-      await query(
-        `INSERT INTO audit_logs (action_type, actor_sicil_no, actor_name, target, details)
-         VALUES ('sayim_uyari', 'SYSTEM', 'Otomatik Uyarı', $1, $2)`,
-        [grup.label, JSON.stringify({ gun: today, posta: postaLabel, eksikGunluk, eksikEnvanter, aliciSayisi: phones.length, smsOk })]
-      );
+      await withTransaction(async (tx) => {
+        await tx(`SELECT pg_advisory_xact_lock(hashtext($1))`, [`sayim_uyari:${grup.label}:${today}`]);
+        const yeniden = await tx(
+          `SELECT 1 FROM audit_logs WHERE action_type = 'sayim_uyari' AND target = $1 AND (details->>'gun') = $2 LIMIT 1`,
+          [grup.label, today]
+        );
+        if (yeniden.rowCount && yeniden.rowCount > 0) {
+          atlandi = true;
+          return;
+        }
+        smsOk = await sendSms(phones, icerik);
+        if (smsOk) {
+          await tx(
+            `INSERT INTO audit_logs (action_type, actor_sicil_no, actor_name, target, details)
+             VALUES ('sayim_uyari', 'SYSTEM', 'Otomatik Uyarı', $1, $2)`,
+            [grup.label, JSON.stringify({ gun: today, posta: postaLabel, eksikGunluk, eksikEnvanter, aliciSayisi: phones.length, smsOk })]
+          );
+        }
+      });
     }
 
-    rapor.push({ istasyon: grup.label, postaLabel, eksikGunluk, eksikEnvanter, aliciSayisi: phones.length, smsOk });
+    if (atlandi) {
+      rapor.push({ istasyon: grup.label, atlandi: "bugün zaten gönderildi" });
+    } else {
+      rapor.push({ istasyon: grup.label, postaLabel, eksikGunluk, eksikEnvanter, aliciSayisi: phones.length, smsOk });
+    }
   }
 
   return { success: true, zaman: now.toISOString(), rapor };

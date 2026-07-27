@@ -17,18 +17,26 @@ export async function register() {
 
   const { runSayimUyari } = await import("@/lib/sayimUyari");
 
+  // Re-entrancy kilidi: önceki tick (ör. SMS API yavaşsa) bitmeden yenisi başlamaz.
+  let running = false;
   const tick = async () => {
+    if (running) return;
+    running = true;
     try {
       const r = await runSayimUyari(false);
       const gonderilen = r.rapor.filter((x: any) => x.smsOk).length;
       if (gonderilen > 0) console.log(`[sayim-uyari] ${gonderilen} istasyon için uyarı gönderildi.`);
     } catch (e) {
       console.error("[sayim-uyari] Zamanlayıcı hatası:", e);
+    } finally {
+      running = false;
     }
   };
 
   // Açılıştan 30 sn sonra ilk kontrol, ardından her 10 dakikada bir.
-  setTimeout(tick, 30_000);
+  // unref(): zamanlayıcı, süreç kapanışını (graceful shutdown) engellemesin.
+  setTimeout(tick, 30_000).unref?.();
   g.__sayimUyariTimer = setInterval(tick, 10 * 60 * 1000);
+  g.__sayimUyariTimer.unref?.();
   console.log("[sayim-uyari] Uygulama içi zamanlayıcı kuruldu (10 dk aralık).");
 }
