@@ -7,7 +7,7 @@ import * as turf from '@turf/turf'
 import { Layers, Building2, Map as MapIcon, Milestone, Droplets, X, Flame, Edit, Trash2, Loader2 } from 'lucide-react'
 import { getTriageInfo } from '@/lib/utils'
 import { Vehicle } from '@/types'
-import { api } from '@/lib/api'
+import { api, unwrap } from '@/lib/api'
 import { useAuthStore } from '@/lib/authStore'
 import { Badge } from '@/components/ui/Badge'
 import { useTheme } from 'next-themes'
@@ -3270,10 +3270,11 @@ export default function Map({
                       if (!window.confirm("Bu vaka kaydını silmek istediğinize emin misiniz? Bu işlem geri alınamaz.")) return;
                       try {
                         // Delete child records first to satisfy foreign key constraints
+                        // (unwrap: biri başarısız olursa ana vaka silinmeden işlem durur)
                         await Promise.all([
-                          api.remove('incident_vehicles', { incident_id: selectedIncident.id }),
-                          api.remove('incident_personnel', { incident_id: selectedIncident.id }),
-                          api.remove('incident_media', { incident_id: selectedIncident.id })
+                          api.remove('incident_vehicles', { incident_id: selectedIncident.id }).then(unwrap),
+                          api.remove('incident_personnel', { incident_id: selectedIncident.id }).then(unwrap),
+                          api.remove('incident_media', { incident_id: selectedIncident.id }).then(unwrap)
                         ]);
                         
                         // Delete main incident record

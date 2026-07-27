@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react"
 import jsPDF from "jspdf"
-import { api } from "@/lib/api"
+import { api, unwrap } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
 import { DataTable } from "@/components/ui/DataTable"
@@ -529,9 +529,9 @@ export default function EgitimlerPage() {
         yil: d.getFullYear()
       }
       if (mufredatEditRow) {
-        await api.update('egitim_mufredati', payload, { id: mufredatEditRow.id })
+        unwrap(await api.update('egitim_mufredati', payload, { id: mufredatEditRow.id }))
       } else {
-        await api.insert('egitim_mufredati', [payload])
+        unwrap(await api.insert('egitim_mufredati', [payload]))
         try {
           await fetch('/api/sms/notify', {
             method: 'POST',
@@ -560,10 +560,11 @@ export default function EgitimlerPage() {
   const handleDeleteMufredat = async (id: string) => {
     if (!window.confirm("Bu müfredat kaydını silmek istiyor musunuz?")) return
     try {
-      await api.remove('egitim_mufredati', { id })
+      unwrap(await api.remove('egitim_mufredati', { id }))
       await fetchMufredat(mufredatMonth, mufredatYear)
-    } catch (err) {
+    } catch (err: any) {
       console.error(err)
+      alert(`Müfredat kaydı silinemedi: ${err?.message || err}`)
     }
   }
 

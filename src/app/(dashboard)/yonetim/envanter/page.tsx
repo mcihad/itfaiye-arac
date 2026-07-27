@@ -218,7 +218,10 @@ function VehicleInventoryTab() {
 
       // Update in vehicle_inventory immediately
       if (assignmentRow.id) {
-        await api.update('vehicle_inventory', { durum: '🔄 GEÇİCİ ZİMMETTE' }, { id: assignmentRow.id });
+        const invUpd = await api.update('vehicle_inventory', { durum: '🔄 GEÇİCİ ZİMMETTE' }, { id: assignmentRow.id });
+        if (invUpd.error) {
+          alert(`Uyarı: Zimmet verildi ancak envanter durumu güncellenemedi: ${invUpd.error}`);
+        }
       }
 
       // Rebuild bolmeler JSON for vehicles
@@ -242,7 +245,10 @@ function VehicleInventoryTab() {
           });
         });
 
-      await api.update('vehicles', { bolmeler: newBolmeler }, { plaka: selectedPlaka });
+      const bolmeUpd = await api.update('vehicles', { bolmeler: newBolmeler }, { plaka: selectedPlaka });
+      if (bolmeUpd.error) {
+        alert(`Uyarı: Araç bölme listesi güncellenemedi: ${bolmeUpd.error}`);
+      }
 
       // Save audit log
       fetch('/api/audit-log', {
@@ -2049,7 +2055,10 @@ export default function EnvanterPage() {
         const targetItem = vehInvList[0]
         
         // Update vehicle_inventory status back to Tam
-        await api.update('vehicle_inventory', { durum: 'Tam' }, { id: targetItem.id })
+        const iadeUpd = await api.update('vehicle_inventory', { durum: 'Tam' }, { id: targetItem.id })
+        if (iadeUpd.error) {
+          alert(`Uyarı: İade alındı ancak envanter durumu 'Tam' yapılamadı: ${iadeUpd.error}`)
+        }
 
         // Fetch all items for this vehicle to rebuild bolmeler JSON cache
         const { data: allItems } = await api
@@ -2080,7 +2089,10 @@ export default function EnvanterPage() {
             })
           })
 
-          await api.update('vehicles', { bolmeler: newBolmeler }, { plaka: targetItem.plaka })
+          const iadeBolme = await api.update('vehicles', { bolmeler: newBolmeler }, { plaka: targetItem.plaka })
+          if (iadeBolme.error) {
+            alert(`Uyarı: Araç bölme listesi güncellenemedi: ${iadeBolme.error}`)
+          }
         }
       }
 

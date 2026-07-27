@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useCallback, useMemo } from "react"
-import { api } from "@/lib/api"
+import { api, unwrap } from "@/lib/api"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card"
 import { Input } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
@@ -111,7 +111,10 @@ export default function SCBAModulePage() {
 
     if (!logError) {
       // Update cylinder current pressure
-      await api.update('scba_cylinders', { guncel_basinc: parseInt(fillBasinc) }, { id: selectedCyl.id })
+      const upd = await api.update('scba_cylinders', { guncel_basinc: parseInt(fillBasinc) }, { id: selectedCyl.id })
+      if (upd.error) {
+        alert(`Dolum kaydedildi ancak tüpün güncel basıncı GÜNCELLENEMEDİ: ${upd.error}`)
+      }
       setSelectedCyl(null)
       setFillBasinc("")
       setFillNotlar("")
@@ -158,7 +161,7 @@ export default function SCBAModulePage() {
     setDeletingState(true)
     try {
       // First delete fill logs associated with this cylinder
-      await api.remove('scba_fill_logs', { cylinder_id: deletingCyl.id })
+      unwrap(await api.remove('scba_fill_logs', { cylinder_id: deletingCyl.id }))
       
       // Then delete the cylinder
       const { error } = await api.remove('scba_cylinders', { id: deletingCyl.id })

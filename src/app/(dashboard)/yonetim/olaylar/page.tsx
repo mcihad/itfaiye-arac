@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { api } from "@/lib/api"
+import { api, unwrap } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { Badge } from "@/components/ui/Badge"
@@ -73,10 +73,11 @@ export default function OlaylarPage() {
     
     try {
       // Önce ilişkili yabancı anahtar tablolarını temizleyelim
+      // (unwrap: biri başarısız olursa ana vaka silinmeden işlem durur)
       await Promise.all([
-        api.remove('incident_personnel', { incident_id: id }),
-        api.remove('incident_vehicles', { incident_id: id }),
-        api.remove('incident_media', { incident_id: id })
+        api.remove('incident_personnel', { incident_id: id }).then(unwrap),
+        api.remove('incident_vehicles', { incident_id: id }).then(unwrap),
+        api.remove('incident_media', { incident_id: id }).then(unwrap)
       ])
 
       // Ardından ana vakayı silelim

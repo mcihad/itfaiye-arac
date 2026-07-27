@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, Suspense, useMemo } from "react"
 import { useSearchParams } from "next/navigation"
 import PageGuard from "@/components/PageGuard"
 import dynamic from "next/dynamic"
-import { api } from "@/lib/api"
+import { api, unwrap } from "@/lib/api"
 import { Card, CardContent } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
@@ -792,9 +792,11 @@ function HaritaContent() {
       if (updErr) throw updErr
 
       // Delete existing vehicles and personnel linkages first to prevent unique constraint violations
+      // (unwrap: silme veya yeniden ekleme başarısız olursa işlem hatayla durur —
+      // eskiden sessizce yutulup olayın araç/personel bağı kaybolabiliyordu)
       await Promise.all([
-        api.remove('incident_vehicles', { incident_id: activeIncidentId }),
-        api.remove('incident_personnel', { incident_id: activeIncidentId })
+        api.remove('incident_vehicles', { incident_id: activeIncidentId }).then(unwrap),
+        api.remove('incident_personnel', { incident_id: activeIncidentId }).then(unwrap)
       ]);
 
       // Link vehicles to incident
@@ -804,7 +806,7 @@ function HaritaContent() {
           plaka,
           gorev_turu: "Müdahale Aracı"
         }))
-        await api.insert('incident_vehicles', vPayload)
+        unwrap(await api.insert('incident_vehicles', vPayload))
       }
 
       // Link personnel to incident
@@ -814,7 +816,7 @@ function HaritaContent() {
           sicil_no,
           gorev: "Müdahale Personeli"
         }))
-        await api.insert('incident_personnel', pPayload)
+        unwrap(await api.insert('incident_personnel', pPayload))
       }
 
       // SMS Tetikleme (Müfreze Çıkışı başlatıldığında)

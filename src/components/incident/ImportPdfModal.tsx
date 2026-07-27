@@ -5,7 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { Loader2, Upload, FileText, X, CheckCircle } from 'lucide-react'
-import { api } from '@/lib/api'
+import { api, unwrap } from '@/lib/api'
 
 interface ImportPdfModalProps {
   onClose: () => void
@@ -75,11 +75,11 @@ export function ImportPdfModal({ onClose, onSuccess }: ImportPdfModalProps) {
       }
 
       // 3. Save to incident_media
-      await api.insert('incident_media', [{
+      unwrap(await api.insert('incident_media', [{
         incident_id: incidentId,
         url: uploadResult.url,
         tip: 'pdf'
-      }])
+      }]))
 
       onSuccess()
     } catch (err: any) {

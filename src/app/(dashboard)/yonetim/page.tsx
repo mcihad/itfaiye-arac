@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { api, getAuthHeaders } from "@/lib/api"
+import { api, unwrap, getAuthHeaders } from "@/lib/api"
 import { Card, CardContent } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
 import {
@@ -435,12 +435,12 @@ export default function DashboardPage() {
   const handleSaveShiftTimes = async () => {
     setIsSavingShiftTimes(true)
     try {
-      await api.update('system_settings', { value: editMerkezTime }, { key: 'merkez_shift_time' })
-      await api.update('system_settings', { value: editEsentepeTime }, { key: 'esentepe_shift_time' })
-      await api.update('system_settings', { value: editOrganizeTime }, { key: 'organize_shift_time' })
+      unwrap(await api.update('system_settings', { value: editMerkezTime }, { key: 'merkez_shift_time' }))
+      unwrap(await api.update('system_settings', { value: editEsentepeTime }, { key: 'esentepe_shift_time' }))
+      unwrap(await api.update('system_settings', { value: editOrganizeTime }, { key: 'organize_shift_time' }))
       // Sabit görevli ayarları (satır yoksa oluşturulur)
-      await api.upsert('system_settings', { key: 'sabit_nizamiye_sicil', value: editSabitNizamiye }, 'key')
-      await api.upsert('system_settings', { key: 'sayim_uyari_sabit_sicil', value: editSayimUyari }, 'key')
+      unwrap(await api.upsert('system_settings', { key: 'sabit_nizamiye_sicil', value: editSabitNizamiye }, 'key'))
+      unwrap(await api.upsert('system_settings', { key: 'sayim_uyari_sabit_sicil', value: editSayimUyari }, 'key'))
 
       await fetchDashboardData()
       setIsShiftEditModalOpen(false)

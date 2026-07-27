@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
 import { Badge } from "@/components/ui/Badge"
 import { Search, Plus, UserPlus, Shield, ShieldAlert, Key, Loader2, Star, CheckCircle2, SlidersHorizontal, Settings2, AlertTriangle, RefreshCcw, ShieldCheck, Truck, HeartPulse, Wind, Activity, Copy, Printer, X, Calendar, Building2, Phone, MapPin, UserCircle2 } from "lucide-react"
-import { api } from "@/lib/api"
+import { api, unwrap } from "@/lib/api"
 import { type Personnel } from "@/types"
 import { cn, calculateRemainingDays } from "@/lib/utils"
 import { useAuthStore } from "@/lib/authStore"
@@ -748,10 +748,10 @@ export default function PersonelYonetimPage() {
         editUpdate.posta = postaNoVal ? `${postaNoVal}. Posta` : 'Karargah'
         editUpdate.birim = postaNoVal ? 'Posta' : 'Karargah'
       }
-      await api.update('personnel', editUpdate, { sicil_no: selectedPerson.sicil_no })
+      unwrap(await api.update('personnel', editUpdate, { sicil_no: selectedPerson.sicil_no }))
 
       // 1.5 Update Personnel Details (Özlük)
-      await api.upsert('personnel_details', {
+      unwrap(await api.upsert('personnel_details', {
         sicil_no: selectedPerson.sicil_no,
         telefon: editTelefon || null,
         adres: editAdres || null,
@@ -761,36 +761,38 @@ export default function PersonelYonetimPage() {
         dogum_tarihi: editDogumTarihi || null,
         ise_baslama_tarihi: editIseBaslama || null,
         updated_at: new Date().toISOString()
-      }, 'sicil_no')
+      }, 'sicil_no'))
 
       // 2. Delete existing certifications sequentially
-      await api.remove('staff_certifications', { sicil_no: selectedPerson.sicil_no, tip: 'Ehliyet' })
-      await api.remove('staff_certifications', { sicil_no: selectedPerson.sicil_no, tip: 'İlkyardım' })
-      await api.remove('staff_certifications', { sicil_no: selectedPerson.sicil_no, tip: 'SCBA' })
+      // (unwrap: silme/ekleme zinciri yarıda kalırsa hata görünür olur —
+      // eskiden sertifikalar silinip yenisi eklenemeden sessizce bitebiliyordu)
+      unwrap(await api.remove('staff_certifications', { sicil_no: selectedPerson.sicil_no, tip: 'Ehliyet' }))
+      unwrap(await api.remove('staff_certifications', { sicil_no: selectedPerson.sicil_no, tip: 'İlkyardım' }))
+      unwrap(await api.remove('staff_certifications', { sicil_no: selectedPerson.sicil_no, tip: 'SCBA' }))
 
       // 3. Insert new certifications if dates are provided
       if (ehliyetDate) {
-        await api.insert('staff_certifications', {
+        unwrap(await api.insert('staff_certifications', {
           sicil_no: selectedPerson.sicil_no,
           tip: 'Ehliyet',
           gecerlilik_tarihi: ehliyetDate
-        })
+        }))
       }
-      
+
       if (ilkyardimDate) {
-        await api.insert('staff_certifications', {
+        unwrap(await api.insert('staff_certifications', {
           sicil_no: selectedPerson.sicil_no,
           tip: 'İlkyardım',
           gecerlilik_tarihi: ilkyardimDate
-        })
+        }))
       }
 
       if (scbaDate) {
-        await api.insert('staff_certifications', {
+        unwrap(await api.insert('staff_certifications', {
           sicil_no: selectedPerson.sicil_no,
           tip: 'SCBA',
           gecerlilik_tarihi: scbaDate
-        })
+        }))
       }
 
       await fetchPersonnel() // Refresh all data

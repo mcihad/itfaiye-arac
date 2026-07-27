@@ -1,7 +1,7 @@
 "use client"
 import { useEffect, useState, useMemo } from "react"
 import Link from "next/link"
-import { api } from "@/lib/api"
+import { api, unwrap } from "@/lib/api"
 import { VehicleCard } from "@/components/vehicle/VehicleCard"
 import { QRLabelModal } from "@/components/vehicle/QRLabelModal"
 import { VehicleEditModal } from "@/components/vehicle/VehicleEditModal"
@@ -262,8 +262,8 @@ export default function VehiclesPage() {
 
     try {
       setDeleting(true);
-      await api.remove('vehicle_maintenances', { plaka: deletingPlaka });
-      await api.remove('fuel_logs', { plaka: deletingPlaka });
+      unwrap(await api.remove('vehicle_maintenances', { plaka: deletingPlaka }));
+      unwrap(await api.remove('fuel_logs', { plaka: deletingPlaka }));
       const { error } = await api.remove('vehicles', { plaka: deletingPlaka });
       
       if (error) {
@@ -408,14 +408,16 @@ export default function VehiclesPage() {
         if (resLog.error) throw new Error(resLog.error);
 
         // Simultaneously update corresponding vehicle_maintenances record!
-        await api.update(
+        // (api.* reject etmez; .catch hiç tetiklenmiyordu — error alanı kontrol edilir)
+        const resMaint = await api.update(
           'vehicle_maintenances',
-          { 
-            durum: 'Onaylandı', 
-            aciklama: log.aciklama + (returnNotes.trim() ? `\n\n[Bakım Notu]: ${returnNotes.trim()}` : '') 
+          {
+            durum: 'Onaylandı',
+            aciklama: log.aciklama + (returnNotes.trim() ? `\n\n[Bakım Notu]: ${returnNotes.trim()}` : '')
           },
           { id: log.id }
-        ).catch(err => console.error('[Sync] Error updating vehicle_maintenances on return:', err));
+        );
+        if (resMaint.error) console.error('[Sync] vehicle_maintenances güncellenemedi:', resMaint.error);
       }
 
       // Audit Log
@@ -485,31 +487,32 @@ export default function VehiclesPage() {
         const vehicle = vehicles.find(v => v.id === editingLog.vehicle_id);
         if (vehicle) {
           if (editDurum === 'Taburcu Edildi') {
-            await api.update(
+            unwrap(await api.update(
               'vehicles',
               { current_branch: editEskiSube, durum: 'aktif' },
               { id: vehicle.id }
-            );
+            ));
           } else if (editDurum === 'Bakımda') {
-            await api.update(
+            unwrap(await api.update(
               'vehicles',
               { current_branch: 'Makine İkmal Müdürlüğü (Bakım-Onarım)', durum: 'arizali' },
               { id: vehicle.id }
-            );
+            ));
           }
         }
       }
 
       // Simultaneously update corresponding vehicle_maintenances record!
       const statusMaint = editDurum === 'Taburcu Edildi' ? 'Onaylandı' : 'Bekliyor';
-      await api.update(
+      const editSync = await api.update(
         'vehicle_maintenances',
         {
           aciklama: `Arıza/Tamir: ${editAciklama.trim()} (Seviye: ${editArizaSeviyesi})` + (editBakimNotu.trim() ? `\n\n[Bakım Notu]: ${editBakimNotu.trim()}` : ''),
           durum: statusMaint
         },
         { id: editingLog.id }
-      ).catch(err => console.error('[Sync] Error updating vehicle_maintenances on edit:', err));
+      );
+      if (editSync.error) console.error('[Sync] vehicle_maintenances güncellenemedi:', editSync.error);
       
       alert("Arıza kaydı başarıyla güncellendi.");
       setEditLogModalOpen(false);
@@ -545,8 +548,10 @@ export default function VehiclesPage() {
       }
 
       // Simultaneously delete from vehicle_maintenances
+      // (api.* reject etmez; .catch hiç tetiklenmiyordu — error alanı kontrol edilir)
       if (log.id) {
-        await api.remove('vehicle_maintenances', { id: log.id }).catch(err => console.error('[Sync] Error deleting vehicle_maintenances on log delete:', err));
+        const resSyncDel = await api.remove('vehicle_maintenances', { id: log.id });
+        if (resSyncDel.error) console.error('[Sync] vehicle_maintenances silinemedi:', resSyncDel.error);
       }
       
       alert("Arıza kaydı başarıyla silindi.");

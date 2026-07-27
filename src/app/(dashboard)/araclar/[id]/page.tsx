@@ -406,7 +406,9 @@ export default function VehicleDetailPage() {
         bildiren_personel_id: null,
         created_at: new Date().toISOString()
       }
-      await api.insert('maintenance_logs', mLogPayload).catch(err => console.error('[Sync] Error syncing manual maintenance to maintenance_logs:', err));
+      // (api.* reject etmez; .catch hiç tetiklenmiyordu — error alanı kontrol edilir)
+      const mLogRes = await api.insert('maintenance_logs', mLogPayload);
+      if (mLogRes.error) console.error('[Sync] maintenance_logs kaydı yazılamadı:', mLogRes.error);
 
       // Audit log: Bakım kaydı ekleme logu
       fetch('/api/audit-log', {

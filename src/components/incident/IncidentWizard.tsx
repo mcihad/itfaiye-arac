@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { api } from "@/lib/api"
+import { api, unwrap } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
@@ -215,12 +215,12 @@ export function IncidentWizard({
         // Kapama ekranında seçili olanlar zaten ek16_personel JSON array'inde tutuluyor.
         if (selectedPersonnel.length > 0) {
           const pPayload = selectedPersonnel.map(sicil_no => ({ incident_id: incidentId, sicil_no, gorev: "Müdahale Personeli" }))
-          await api.insert('incident_personnel', pPayload)
+          unwrap(await api.insert('incident_personnel', pPayload))
         }
 
         if (selectedVehicles.length > 0) {
           const vPayload = selectedVehicles.map(plaka => ({ incident_id: incidentId, plaka, gorev_turu: "Müdahale Aracı" }))
-          await api.insert('incident_vehicles', vPayload)
+          unwrap(await api.insert('incident_vehicles', vPayload))
         }
 
         // SMS Tetikleme (Sadece yeni kayıtta)
@@ -253,12 +253,14 @@ export function IncidentWizard({
             
           if (!uploadResult.error) {
             const fileType = file.type.startsWith('video/') ? 'video' : 'fotoğraf'
-            
-            await api.insert('incident_media', {
+
+            unwrap(await api.insert('incident_media', {
               incident_id: incidentId,
               url: uploadResult.url,
               tip: fileType
-            })
+            }))
+          } else {
+            throw new Error(`Medya dosyası yüklenemedi (${file.name}): ${uploadResult.error}`)
           }
         }
       }
