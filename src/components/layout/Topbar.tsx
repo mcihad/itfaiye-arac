@@ -401,7 +401,7 @@ export function Topbar() {
               const expiry = new Date(dateVal)
               const diffTime = expiry.getTime() - now.getTime()
               const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-              
+
               if (diffDays <= 30) {
                 const itemId = `vehicle-ins-${v.plaka}`
                 if (!storedDeleted.includes(itemId)) {
@@ -417,14 +417,33 @@ export function Topbar() {
                 }
               }
             }
+
+            // 2b. Sigorta bitişi (aynı araç verisi üzerinden)
+            if (v.sigortaBitis) {
+              const expiry = new Date(v.sigortaBitis)
+              const diffDays = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+              if (diffDays <= 30) {
+                const itemId = `vehicle-sig-${v.plaka}`
+                if (!storedDeleted.includes(itemId)) {
+                  items.push({
+                    id: itemId,
+                    title: `🛡️ Sigorta Bitişi: ${v.plaka}`,
+                    description: `${v.plaka} aracının zorunlu sigortası ${diffDays < 0 ? 'doldu' : 'dolmak üzere'}!`,
+                    type: 'warning',
+                    time: diffDays < 0 ? 'Gecikti' : `${diffDays} Gün Kaldı`,
+                    read: storedRead.includes(itemId),
+                    actionUrl: '/yonetim/araclar'
+                  })
+                }
+              }
+            }
           })
         }
 
-        // 3. Fetch Staff Certifications (SUPABASE)
+        // 3. Fetch Staff Certifications (SUPABASE) — tüm belge türleri
         const { data: certs } = await api
           .from('staff_certifications')
           .select('*')
-          .eq('tip', 'Ehliyet')
 
         const { data: personnel } = await api
           .from('personnel')
@@ -443,15 +462,18 @@ export function Topbar() {
               const expiry = new Date(c.gecerlilik_tarihi)
               const diffTime = expiry.getTime() - now.getTime()
               const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-              
-              if (diffDays <= 90) { // Using 90 days as approaching so early certs in DB can be warning targets
+
+              // Ehliyette 90 gün (mevcut davranış), diğer belge türlerinde 30 gün eşik
+              const esik = c.tip === 'Ehliyet' ? 90 : 30
+              if (diffDays <= esik) {
                 const itemId = `cert-license-${c.id}`
                 if (!storedDeleted.includes(itemId)) {
                   const fullName = personnelMap.get(c.sicil_no) || c.sicil_no
+                  const tipLabel = c.tip === 'Ehliyet' ? 'sürücü belgesi' : `${c.tip} belgesi`
                   items.push({
                     id: itemId,
-                    title: `🪪 Ehliyet Geçerlilik: ${fullName}`,
-                    description: `Ehliyet Geçerlilik: ${fullName} sürücü belgesi süresi yaklaşıyor!`,
+                    title: `🪪 ${c.tip || 'Belge'} Geçerlilik: ${fullName}`,
+                    description: `${fullName} ${tipLabel} süresi ${diffDays < 0 ? 'doldu' : 'yaklaşıyor'}!`,
                     type: 'info',
                     time: diffDays < 0 ? 'Süresi Doldu' : `${diffDays} Gün Kaldı`,
                     read: storedRead.includes(itemId),
@@ -461,6 +483,75 @@ export function Topbar() {
               }
             }
           })
+        }
+
+        // 4. Geciken geçici zimmetler
+        const { data: gecikenZimmet } = await api
+          .from('temporary_assignments')
+          .select('*')
+          .eq('durum', 'GECIKTI')
+
+        if (gecikenZimmet && gecikenZimmet.length > 0) {
+          gecikenZimmet.forEach((t: any) => {
+            const itemId = `zimmet-${t.id}`
+            if (!storedDeleted.includes(itemId)) {
+              items.push({
+                id: itemId,
+                title: `📦 Geciken Zimmet: ${t.birim_adi || 'Bilinmeyen birim'}`,
+                description: `Geçici zimmet iade tarihi geçti${t.tahmini_iade_tarihi ? ` (${new Date(t.tahmini_iade_tarihi).toLocaleDateString('tr-TR')})` : ''}!`,
+                type: 'warning',
+                time: 'Gecikti',
+                read: storedRead.includes(itemId),
+                actionUrl: '/yonetim/envanter'
+              })
+            }
+          })
+        }
+
+        // 5-6. Yönetici bildirimleri (yalnızca karar verebilecek roller görür)
+        const isYonetici = ['Admin', 'Editor', 'Shift_Leader'].includes(user.rol || '')
+        if (isYonetici) {
+          // 5. Onay bekleyen bakım kayıtları
+          const { data: bekleyenBakim } = await api
+            .from('vehicle_maintenances')
+            .select('*')
+            .eq('durum', 'Bekliyor')
+
+          if (bekleyenBakim && bekleyenBakim.length > 0) {
+            const itemId = `bakim-bekleyen-${bekleyenBakim.length}`
+            if (!storedDeleted.includes(itemId)) {
+              items.push({
+                id: itemId,
+                title: `🔧 Onay Bekleyen Bakım: ${bekleyenBakim.length} kayıt`,
+                description: `${bekleyenBakim.length} araç bakım kaydı onay bekliyor.`,
+                type: 'info',
+                time: 'Bekliyor',
+                read: storedRead.includes(itemId),
+                actionUrl: '/yonetim/arac-bakim'
+              })
+            }
+          }
+
+          // 6. Bekleyen vatandaş başvuruları
+          const { data: bekleyenBasvuru } = await api
+            .from('citizen_requests')
+            .select('id')
+            .eq('durum', 'BEKLEMEDE')
+
+          if (bekleyenBasvuru && bekleyenBasvuru.length > 0) {
+            const itemId = `basvuru-bekleyen-${bekleyenBasvuru.length}`
+            if (!storedDeleted.includes(itemId)) {
+              items.push({
+                id: itemId,
+                title: `📋 Bekleyen Başvuru: ${bekleyenBasvuru.length} adet`,
+                description: `${bekleyenBasvuru.length} vatandaş hizmet başvurusu değerlendirme bekliyor.`,
+                type: 'info',
+                time: 'Bekliyor',
+                read: storedRead.includes(itemId),
+                actionUrl: '/yonetim/hizmetler'
+              })
+            }
+          }
         }
 
       } catch (err) {
