@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { Personnel } from "@/types"
-import { api } from "@/lib/api"
+import { api, unwrap, addDaysISO } from "@/lib/api"
+import { isKarargah } from "@/lib/personnelUtils"
 import { useAuthStore } from "@/lib/authStore"
 import { Input } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
@@ -87,13 +88,13 @@ export function LeaveManagementModal({ isOpen, onClose, personnel, onLeaveUpdate
     if (stationFilter !== "all") {
       list = list.filter(p => {
         const ist = (p.istasyon || '').toLowerCase()
-        if (stationFilter === "merkez") return !ist.includes('esentepe') && !ist.includes('organize') && !ist.includes('osb')
+        const u = (p.unvan || '').toLocaleLowerCase('tr-TR')
+        // Karargah: birim alanı (yoksa ünvan tahmini) + merkezde konuşlu santral/112
+        const karargahMatch = isKarargah(p) || u.includes('santral') || u.includes('112')
+        if (stationFilter === "merkez") return !ist.includes('esentepe') && !ist.includes('organize') && !ist.includes('osb') && !karargahMatch
         if (stationFilter === "esentepe") return ist.includes('esentepe')
         if (stationFilter === "organize") return ist.includes('organize') || ist.includes('osb')
-        if (stationFilter === "karargah") {
-          const u = (p.unvan || '').toLowerCase()
-          return u.includes('santral') || u.includes('112') || u.includes('kalem') || u.includes('memur') || u.includes('idari') || u.includes('yazı') || u.includes('çay')
-        }
+        if (stationFilter === "karargah") return karargahMatch
         return true
       })
     }
@@ -150,72 +151,79 @@ export function LeaveManagementModal({ isOpen, onClose, personnel, onLeaveUpdate
         if (leaveType === "İptal") {
           // Remove leave
           if (existingLeave) {
-            await api.remove('personnel_leaves', { id: existingLeave.id })
+            unwrap(await api.remove('personnel_leaves', { id: existingLeave.id }))
           }
           // Reset personnel durum to Hazır
-          await api.update('personnel', { durum: 'Hazır' }, { sicil_no: sicilNo })
+          unwrap(await api.update('personnel', { durum: 'Hazır' }, { sicil_no: sicilNo }))
           // Log the cancellation
-          await api.insert('personnel_records', {
+          unwrap(await api.insert('personnel_records', {
             sicil_no: sicilNo,
             kayit_turu: 'İzin İptali',
             tarih: leaveDate,
             aciklama: `İzin iptal edildi. (Personel Yönetimi Modülü)`
-          })
+          }))
         } else {
-          const endDate = new Date(leaveDate)
-          endDate.setDate(endDate.getDate() + (leaveDays - 1))
-          const bitisStr = endDate.toISOString().split('T')[0]
+          const bitisStr = addDaysISO(leaveDate, leaveDays - 1)
 
           if (existingLeave) {
-            await api.update('personnel_leaves', {
+            unwrap(await api.update('personnel_leaves', {
               izin_turu: leaveType,
               bitis_tarihi: bitisStr,
               aciklama: leaveNote || `${leaveType} eklendi.`
-            }, { id: existingLeave.id })
+            }, { id: existingLeave.id }))
           } else {
-            await api.insert('personnel_leaves', {
+            unwrap(await api.insert('personnel_leaves', {
               sicil_no: sicilNo,
               izin_turu: leaveType,
               baslangic_tarihi: leaveDate,
               bitis_tarihi: bitisStr,
               aciklama: leaveNote || `${leaveType} eklendi.`,
               durum: 'Onaylandı'
-            })
+            }))
           }
 
           // Update personnel durum for today
-          const today = new Date().toISOString().split('T')[0]
+          const today = new Date().toLocaleDateString('en-CA')
           if (leaveDate <= today && bitisStr >= today) {
             const newDurum = leaveNote ? `${leaveType} - ${leaveNote}` : leaveType
-            await api.update('personnel', { durum: newDurum }, { sicil_no: sicilNo })
+            unwrap(await api.update('personnel', { durum: newDurum }, { sicil_no: sicilNo }))
           }
 
           // Log to personnel_records (hizmet dökümü / özlük bilgileri)
-          await api.insert('personnel_records', {
+          unwrap(await api.insert('personnel_records', {
             sicil_no: sicilNo,
             kayit_turu: 'İzin Kaydı',
             tarih: leaveDate,
             aciklama: `${leaveType} (${leaveDays} gün: ${leaveDate} - ${bitisStr}). ${leaveNote || ''} (Personel Yönetimi Modülü)`
-          })
+          }))
         }
       })
 
-      await Promise.all(promises)
-      alert("İzin işlemleri başarıyla kaydedildi.")
+      const results = await Promise.allSettled(promises)
+      const failures = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected')
 
-      // Refresh
-      setSelectedIds(new Set())
-      setLeaveType("")
-      setLeaveNote("")
-      setLeaveDays(1)
+      if (failures.length > 0) {
+        const firstMsg = failures[0].reason?.message || String(failures[0].reason)
+        alert(`${results.length - failures.length} personel kaydedildi, ${failures.length} personel için işlem BAŞARISIZ oldu.\n\nHata: ${firstMsg}`)
+      } else {
+        alert("İzin işlemleri başarıyla kaydedildi.")
+      }
+
+      // Refresh (başarısız olanlar seçili kalır, tekrar denenebilir)
+      if (failures.length === 0) {
+        setSelectedIds(new Set())
+        setLeaveType("")
+        setLeaveNote("")
+        setLeaveDays(1)
+      }
       await fetchLeaves()
 
       if (onLeaveUpdated) {
         onLeaveUpdated()
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Leave save error:", err)
-      alert("Kayıt sırasında bir hata oluştu.")
+      alert(`Kayıt sırasında bir hata oluştu: ${err?.message || err}`)
     } finally {
       setSaving(false)
     }

@@ -50,7 +50,9 @@ export interface Personnel {
   rol: "Admin" | "Editor" | "Shift_Leader" | "User" | string;
   telefon?: string;
   posta?: string;
-  posta_no?: number;
+  posta_no?: number | null;
+  /** 'Posta' (vardiyalı) | 'Karargah' (gündüz mesaili idari kadro) */
+  birim?: string;
   istasyon?: string;
   durum?: "Görevde" | "İzinli" | "Raporlu" | string;
   ilkyardim_sertifika_tarihi?: string;

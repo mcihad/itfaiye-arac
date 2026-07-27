@@ -595,12 +595,37 @@ async function ensureRadioRecordingsTableExists() {
   });
 }
 
+async function ensurePersonnelColumnsExist() {
+  return once('personnel', async () => {
+    // birim: 'Posta' (vardiyalı) | 'Karargah' (gündüz mesaili idari kadro).
+    // Karargah ayrımı eskiden ekran bazında ünvan metninden tahmin ediliyordu;
+    // artık tek gerçeklik kaynağı bu kolondur (bkz. src/lib/personnelUtils.ts).
+    await query(`ALTER TABLE public.personnel ADD COLUMN IF NOT EXISTS birim VARCHAR(20);`);
+
+    // Geriye dönük sınıflandırma: bilinen karargah ünvanları (yalnızca birim boşsa)
+    await query(`
+      UPDATE public.personnel SET birim = 'Karargah'
+      WHERE birim IS NULL AND (
+        unvan IN ('Kalem', 'Memur', 'İdari İşler', 'Yazı İşleri', 'Çay Ocağı')
+        OR unvan ILIKE '%kalem%' OR unvan ILIKE '%memur%'
+        OR unvan ILIKE '%yazı işleri%' OR unvan ILIKE '%çay%'
+      );
+    `);
+    await query(`UPDATE public.personnel SET birim = 'Posta' WHERE birim IS NULL;`);
+
+    // posta_no DEFAULT 1 kaldırılır: posta atanmamış (karargah) personel
+    // 1. Posta nöbetçisi gibi görünmesin. Mevcut veriler değiştirilmez.
+    await query(`ALTER TABLE public.personnel ALTER COLUMN posta_no DROP DEFAULT;`);
+  });
+}
+
 /**
  * Verilen tablo için gerekli şema kurulumunu (memoize edilmiş) çalıştırır.
  * GET/POST/PATCH/DELETE handler'larında tek çağrıyla kullanılır.
  */
 export async function ensureTableSchema(table: string): Promise<void> {
   switch (table) {
+    case 'personnel': await ensurePersonnelColumnsExist(); break;
     case 'role_permissions': await ensureRolePermissionsTableExists(); break;
     case 'system_settings': await ensureSystemSettingsTableExists(); break;
     case 'personnel_details': await ensurePersonnelDetailsTableExists(); break;

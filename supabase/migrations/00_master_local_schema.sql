@@ -53,7 +53,11 @@ CREATE TABLE IF NOT EXISTS public.personnel (
   unvan VARCHAR(100) NOT NULL,
   rol VARCHAR(20) NOT NULL DEFAULT 'User',
   posta VARCHAR(50),
-  posta_no INTEGER DEFAULT 1,
+  -- posta_no NULL = postasız (karargah/idari) personel; varsayılan atanmaz ki
+  -- posta atanmamış personel 1. Posta nöbetçisi gibi görünmesin.
+  posta_no INTEGER,
+  -- birim: 'Posta' (vardiyalı) | 'Karargah' (gündüz mesaili idari kadro)
+  birim VARCHAR(20) DEFAULT 'Posta',
   durum VARCHAR(50) DEFAULT 'Görevde',
   password_hash TEXT, -- bcrypt hash
   view_only BOOLEAN DEFAULT true,

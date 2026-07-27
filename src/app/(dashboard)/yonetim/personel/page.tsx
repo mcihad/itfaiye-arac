@@ -14,6 +14,7 @@ import { useAuthStore } from "@/lib/authStore"
 import Link from 'next/link'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/Dialog"
 import { LeaveManagementModal } from "@/components/personnel/LeaveManagementModal"
+import { isKarargahUnvan } from "@/lib/personnelUtils"
 
 interface SwitchProps {
   checked: boolean
@@ -81,7 +82,11 @@ const COMBINED_JOBS = [
   { label: "Kalem Personeli (Kullanıcı)", role: "User", unvan: "Kalem" },
   { label: "Memur (Kullanıcı)", role: "User", unvan: "Memur" },
   { label: "Çay Ocağı Sorumlusu (Kullanıcı)", role: "User", unvan: "Çay Ocağı" },
-];
+]
+
+// Düzenleme modalında posta seçicinin gösterildiği ünvanlar; yalnızca bu ünvanlarda
+// posta_no/birim alanları güncellenir.
+const POSTA_SECIMLI_UNVANLAR = ["Er", "Şoför", "Pos.Baş.Şof.", "Çvş.", "Baş.Çvş.", "Amir"];
 
 const getCombinedOptions = (currentRole?: string | null, currentUnvan?: string | null) => {
   const list = [...COMBINED_JOBS];
@@ -246,7 +251,8 @@ export default function PersonelYonetimPage() {
             unvan: p.unvan,
             rol: p.rol,
             posta: p.posta || '',
-            posta_no: p.posta_no || 1,
+            posta_no: p.posta_no ?? null,
+            birim: p.birim,
             istasyon: p.istasyon || '',
             durum: p.durum || 'Görevde',
             ehliyet_gecerlilik_tarihi: ehliyet?.gecerlilik_tarihi || undefined,
@@ -473,6 +479,9 @@ export default function PersonelYonetimPage() {
     const selectedJob = COMBINED_JOBS[newJobIndex] || COMBINED_JOBS[0]
     const roleVal = selectedJob.role
     const unvanVal = selectedJob.unvan
+    // Karargah ünvanları veya "Karargah (Postasız)" seçimi → posta atanmaz
+    const isKarargahKayit = isKarargahUnvan(unvanVal) || newPostaNo === "0"
+    const postaNoVal = isKarargahKayit ? null : parseInt(newPostaNo, 10)
 
     try {
       const { error: insertErr } = await api.insert('personnel', {
@@ -484,7 +493,9 @@ export default function PersonelYonetimPage() {
         view_only: roleVal === 'User',
         can_approve: roleVal === 'Shift_Leader' || roleVal === 'Admin' || roleVal === 'Editor',
         can_print: roleVal === 'Admin' || roleVal === 'Editor',
-        posta_no: parseInt(newPostaNo, 10),
+        posta_no: postaNoVal,
+        posta: postaNoVal ? `${postaNoVal}. Posta` : 'Karargah',
+        birim: isKarargahKayit ? 'Karargah' : 'Posta',
         durum: newDurum,
         password: newPassword || '1234'
       })
@@ -515,8 +526,8 @@ export default function PersonelYonetimPage() {
       // Fallback: add locally
       const newPerson: Personnel = {
         sicil_no: nextSicil, ad, soyad,
-        unvan: unvanVal, rol: roleVal, posta: '',
-        posta_no: parseInt(newPostaNo, 10), durum: newDurum
+        unvan: unvanVal, rol: roleVal, posta: postaNoVal ? `${postaNoVal}. Posta` : 'Karargah',
+        posta_no: postaNoVal, birim: isKarargahKayit ? 'Karargah' : 'Posta', durum: newDurum
       }
       setPersonnel(prev => [...prev, newPerson])
       setPermissions(prev => ({
@@ -584,7 +595,7 @@ export default function PersonelYonetimPage() {
     setSelectedPerson(person)
     setEditRole(person.rol || "User")
     setEditUnvan(person.unvan || "Er")
-    setEditPostaNo(person.posta_no?.toString() || "1")
+    setEditPostaNo(person.posta_no ? String(person.posta_no) : "0")
 
     const personCerts = certifications.filter(c => c.sicil_no === person.sicil_no)
     const ehliyet = personCerts.find(c => c.tip === "Ehliyet")
@@ -718,13 +729,25 @@ export default function PersonelYonetimPage() {
     
     try {
       // 1. Update Role, Posta and Phone
-      await api.update('personnel', {
+      // Posta alanları yalnızca posta seçici görünür ünvanlarda yazılır; karargah
+      // ünvanlarında posta temizlenir. Diğer ünvanlarda (Santral, Müdür...) mevcut
+      // posta/birim değerlerine dokunulmaz — eskiden her kayıtta "1. Posta" damgalanıyordu.
+      const editUpdate: Record<string, any> = {
         rol: editRole,
         unvan: editUnvan,
-        posta_no: parseInt(editPostaNo, 10),
-        posta: `${editPostaNo}. Posta`,
         telefon: editTelefon || null
-      }, { sicil_no: selectedPerson.sicil_no })
+      }
+      if (isKarargahUnvan(editUnvan)) {
+        editUpdate.posta_no = null
+        editUpdate.posta = 'Karargah'
+        editUpdate.birim = 'Karargah'
+      } else if (POSTA_SECIMLI_UNVANLAR.includes(editUnvan)) {
+        const postaNoVal = editPostaNo === "0" ? null : parseInt(editPostaNo, 10)
+        editUpdate.posta_no = postaNoVal
+        editUpdate.posta = postaNoVal ? `${postaNoVal}. Posta` : 'Karargah'
+        editUpdate.birim = postaNoVal ? 'Posta' : 'Karargah'
+      }
+      await api.update('personnel', editUpdate, { sicil_no: selectedPerson.sicil_no })
 
       // 1.5 Update Personnel Details (Özlük)
       await api.upsert('personnel_details', {
@@ -1030,10 +1053,10 @@ export default function PersonelYonetimPage() {
                     <div className="flex justify-between items-start mb-3">
                       <div>
                         <h4 className="font-bold text-[var(--fd-text)] text-sm">{person.ad} {person.soyad}</h4>
-                        <p className="text-[10px] font-mono text-[var(--fd-text3)]">{person.sicil_no} • {person.unvan} • Posta {person.posta_no || 1}</p>
+                        <p className="text-[10px] font-mono text-[var(--fd-text3)]">{person.sicil_no} • {person.unvan} • {person.posta_no ? `Posta ${person.posta_no}` : 'Karargah'}</p>
                       </div>
                       <Badge variant="outline" className="text-[9px] bg-[var(--fd-surface3)] border-[var(--fd-border)] text-[var(--fd-text3)]">
-                        Posta {person.posta_no || 1}
+                        {person.posta_no ? `Posta ${person.posta_no}` : 'Karargah'}
                       </Badge>
                     </div>
 
@@ -1155,6 +1178,7 @@ export default function PersonelYonetimPage() {
                     <option value="1">1. Posta</option>
                     <option value="2">2. Posta</option>
                     <option value="3">3. Posta</option>
+                    <option value="0">Karargah (Postasız)</option>
                   </select>
                 </div>
                 <div className="space-y-1.5 flex-1">
@@ -1555,7 +1579,7 @@ export default function PersonelYonetimPage() {
                         </select>
                       </div>
 
-                      {["Er", "Şoför", "Pos.Baş.Şof.", "Çvş.", "Baş.Çvş.", "Amir"].includes(editUnvan) && (
+                      {POSTA_SECIMLI_UNVANLAR.includes(editUnvan) && (
                         <div className="space-y-2">
                           <label className="text-xs font-semibold uppercase text-muted-foreground">Posta Numarası</label>
                           <select 
@@ -1566,6 +1590,7 @@ export default function PersonelYonetimPage() {
                             <option value="1">1. Posta</option>
                             <option value="2">2. Posta</option>
                             <option value="3">3. Posta</option>
+                            <option value="0">Karargah (Postasız)</option>
                           </select>
                         </div>
                       )}

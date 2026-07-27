@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react"
 import { Personnel } from "@/types"
 import { getActivePostaForStation } from "@/lib/shiftUtils"
-import { api } from "@/lib/api"
+import { isPostaHarici } from "@/lib/personnelUtils"
+import { api, unwrap, addDaysISO } from "@/lib/api"
 import { Card, CardContent } from "@/components/ui/Card"
 import { Input } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
@@ -36,6 +37,8 @@ export function FutureShiftCalendar({ personnelList, onLeaveUpdated }: FutureShi
   const [activePersonnel, setActivePersonnel] = useState<Personnel[]>([])
   const [leaves, setLeaves] = useState<Record<string, any>>({})
   const [loading, setLoading] = useState(false)
+  // 'posta': seçili tarihte nöbetçi posta | 'karargah': idari/karargah/postasız personel
+  const [viewMode, setViewMode] = useState<'posta' | 'karargah'>('posta')
   const [selectedPersonnelIds, setSelectedPersonnelIds] = useState<Set<string>>(new Set())
   const [bulkActionType, setBulkActionType] = useState<string>("")
   const [bulkActionNote, setBulkActionNote] = useState<string>("")
@@ -51,11 +54,14 @@ export function FutureShiftCalendar({ personnelList, onLeaveUpdated }: FutureShi
         // Set time to noon to avoid UTC midnight (03:00 local time) falling into the previous day's shift
         targetDate.setHours(12, 0, 0, 0)
         
-        // 1. Calculate who is on duty for the selected date
+        // 1. Calculate who is listed for the selected date.
+        //    Posta görünümü: o gün nöbetçi posta. Karargah görünümü: idari/karargah/
+        //    postasız personel — bunlar posta filtresine hiç girmediği için ileri
+        //    tarihli izinleri yalnızca bu görünümden yazılabilir.
         const filtered = personnelList.filter(p => {
+          if (viewMode === 'karargah') return isPostaHarici(p)
           const activePosta = getActivePostaForStation(p.istasyon, targetDate)
-          const isIdari = ['Müdür', 'Amir', 'Baş Şoför', 'Eğitim Çavuşu'].includes(p.unvan || '')
-          return p.posta_no === activePosta && !isIdari
+          return p.posta_no === activePosta && !isPostaHarici(p)
         })
         setActivePersonnel(filtered)
 
@@ -79,7 +85,7 @@ export function FutureShiftCalendar({ personnelList, onLeaveUpdated }: FutureShi
       }
     }
     loadLeaves()
-  }, [selectedDate, personnelList])
+  }, [selectedDate, personnelList, viewMode])
 
   const togglePersonnelSelection = (sicilNo: string) => {
     const newSet = new Set(selectedPersonnelIds)
@@ -103,43 +109,50 @@ export function FutureShiftCalendar({ personnelList, onLeaveUpdated }: FutureShi
         if (bulkActionType === "İptal") {
           // Remove leave
           if (existingLeave) {
-            await api.remove('personnel_leaves', { id: existingLeave.id })
+            unwrap(await api.remove('personnel_leaves', { id: existingLeave.id }))
           }
         } else {
-          const endDate = new Date(selectedDate)
-          endDate.setDate(endDate.getDate() + (leaveDays - 1))
-          const bitisStr = endDate.toISOString().split('T')[0]
+          const bitisStr = addDaysISO(selectedDate, leaveDays - 1)
 
           // Add or update leave
           if (existingLeave) {
-            await api.update('personnel_leaves', {
+            unwrap(await api.update('personnel_leaves', {
               izin_turu: bulkActionType,
               bitis_tarihi: bitisStr,
               aciklama: bulkActionNote || `${bulkActionType} eklendi.`
-            }, { id: existingLeave.id })
+            }, { id: existingLeave.id }))
           } else {
-            await api.insert('personnel_leaves', {
+            unwrap(await api.insert('personnel_leaves', {
               sicil_no: sicilNo,
               izin_turu: bulkActionType,
               baslangic_tarihi: selectedDate,
               bitis_tarihi: bitisStr,
               aciklama: bulkActionNote || `${bulkActionType} eklendi.`,
               durum: 'Onaylandı'
-            })
+            }))
           }
         }
       })
 
-      await Promise.all(promises)
-      alert("İşlemler başarıyla kaydedildi.")
+      const results = await Promise.allSettled(promises)
+      const failures = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected')
+
+      if (failures.length > 0) {
+        const firstMsg = failures[0].reason?.message || String(failures[0].reason)
+        alert(`${results.length - failures.length} personel kaydedildi, ${failures.length} personel için işlem BAŞARISIZ oldu.\n\nHata: ${firstMsg}`)
+      } else {
+        alert("İşlemler başarıyla kaydedildi.")
+      }
       if (onLeaveUpdated) {
         onLeaveUpdated()
       }
-      
-      // Refresh
-      setSelectedPersonnelIds(new Set())
-      setBulkActionType("")
-      setBulkActionNote("")
+
+      // Refresh (başarısız olanlar seçili kalır, tekrar denenebilir)
+      if (failures.length === 0) {
+        setSelectedPersonnelIds(new Set())
+        setBulkActionType("")
+        setBulkActionNote("")
+      }
       
       // Trigger a re-render of leaves
       const { data: leavesData } = await api.from('personnel_leaves')
@@ -171,11 +184,30 @@ export function FutureShiftCalendar({ personnelList, onLeaveUpdated }: FutureShi
             <Calendar className="text-[var(--fd-accent)] w-5 h-5" />
             İleri Tarihli Vardiya Takvimi
           </h3>
-          <p className="text-sm text-[var(--fd-text3)] mt-1">İleri bir tarih seçerek o günkü nöbetçi postayı görün ve önceden izin/rapor girebilirsiniz.</p>
+          <p className="text-sm text-[var(--fd-text3)] mt-1">İleri bir tarih seçerek o günkü nöbetçi postayı veya karargah kadrosunu görün ve önceden izin/rapor girebilirsiniz.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Input 
-            type="date" 
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex gap-1.5">
+            {([
+              { key: 'posta', label: 'Nöbetçi Posta' },
+              { key: 'karargah', label: 'Karargah / İdari' },
+            ] as const).map(v => (
+              <button
+                key={v.key}
+                type="button"
+                onClick={() => { setViewMode(v.key); setSelectedPersonnelIds(new Set()) }}
+                className={`px-3 py-2 rounded-md text-xs font-bold border transition-all cursor-pointer bg-transparent ${
+                  viewMode === v.key
+                    ? 'border-[var(--fd-accent)] bg-[var(--fd-accent)]/10 text-[var(--fd-accent)]'
+                    : 'border-[var(--fd-border)] text-[var(--fd-text3)] hover:border-[var(--fd-text2)] hover:bg-[var(--fd-surface2)]'
+                }`}
+              >
+                {v.label}
+              </button>
+            ))}
+          </div>
+          <Input
+            type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
             className="w-auto font-mono"
@@ -278,7 +310,7 @@ export function FutureShiftCalendar({ personnelList, onLeaveUpdated }: FutureShi
                   ) : activePersonnel.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="px-4 py-8 text-center text-[var(--fd-text3)] italic">
-                        Bu tarihte nöbetçi personel bulunamadı.
+                        {viewMode === 'karargah' ? 'Karargah / idari personel bulunamadı.' : 'Bu tarihte nöbetçi personel bulunamadı.'}
                       </td>
                     </tr>
                   ) : (
@@ -304,7 +336,7 @@ export function FutureShiftCalendar({ personnelList, onLeaveUpdated }: FutureShi
                           </td>
                           <td className="px-4 py-3 text-[var(--fd-text2)]">{person.istasyon || 'Merkez İtfaiye Müdürlüğü'}</td>
                           <td className="px-4 py-3 font-mono text-center">
-                            <span className="px-2 py-0.5 rounded-full bg-[var(--fd-surface3)] text-xs">{person.posta_no}</span>
+                            <span className="px-2 py-0.5 rounded-full bg-[var(--fd-surface3)] text-xs">{person.posta_no || 'Karargah'}</span>
                           </td>
                           <td className="px-4 py-3">
                             {hasLeave ? (

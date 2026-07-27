@@ -40,6 +40,7 @@ import { Personnel } from "@/types"
 import { Input } from "@/components/ui/Input"
 import { useAuthStore } from "@/lib/authStore"
 import { getActivePostaForStation } from "@/lib/shiftUtils"
+import { isIdariUnvan, isKarargah } from "@/lib/personnelUtils"
 import {
   ResponsiveContainer,
   AreaChart,
@@ -1081,11 +1082,11 @@ export default function DashboardPage() {
 
   const sortedPersonnel = useMemo<Personnel[]>(() => {
     if (personnelList.length === 0) return []
-    // Filter to active posta only, based on station-specific shift times
+    // Filter to active posta only, based on station-specific shift times.
+    // Karargah (gündüz mesaili idari kadro) nöbetçi listesine girmez.
     return personnelList.filter(p => {
       const activePosta = getActivePostaForStation(p.istasyon, new Date(), customShiftTimes);
-      const isIdari = ['Müdür', 'Amir', 'Baş Şoför', 'Eğitim Çavuşu'].includes(p.unvan || '');
-      return p.posta_no === activePosta && !isIdari;
+      return p.posta_no === activePosta && !isIdariUnvan(p.unvan) && !isKarargah(p);
     });
   }, [personnelList, customShiftTimes])
 
