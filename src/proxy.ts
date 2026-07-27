@@ -1,7 +1,43 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { mapUserToPermissionRole, resolvePageId } from "@/lib/permissions";
 
 // Paths that require Admin or Editor/Shift_Leader role
 const ADMIN_PATHS = ["/yonetim"];
+
+// role_permissions kararları için kısa süreli bellek içi önbellek
+// (her navigasyonda DB'ye gitmemek için; anahtar: rol:sayfa_id)
+const PAGE_PERM_CACHE = new Map<string, { allowed: boolean; expires: number }>();
+const PAGE_PERM_TTL_MS = 60_000;
+
+/**
+ * role_permissions tablosuna dayalı sunucu taraflı sayfa yetki kontrolü.
+ * Edge runtime DB'ye erişemediği için /api/auth/page-permission ucuna sorar.
+ * Uca ulaşılamazsa engellemez (API katmanının kendi yetkilendirmesi ayrıca
+ * devrededir); ulaşılıp 'allowed:false' dönerse erişim reddedilir.
+ */
+async function isPageAllowed(request: NextRequest, mappedRole: string, pageId: string): Promise<boolean> {
+  const cacheKey = `${mappedRole}:${pageId}`;
+  const cached = PAGE_PERM_CACHE.get(cacheKey);
+  if (cached && cached.expires > Date.now()) return cached.allowed;
+
+  try {
+    const url = new URL(`/api/auth/page-permission?sayfa_id=${pageId}`, request.url);
+    const res = await fetch(url, {
+      headers: {
+        cookie: request.headers.get("cookie") || "",
+        authorization: request.headers.get("authorization") || "",
+      },
+    });
+    if (!res.ok) return true; // politika belirlenemedi — engelleme kararı verilemez
+    const json = await res.json();
+    const allowed = json.allowed !== false;
+    PAGE_PERM_CACHE.set(cacheKey, { allowed, expires: Date.now() + PAGE_PERM_TTL_MS });
+    return allowed;
+  } catch (err) {
+    console.error("[proxy] page-permission sorgu hatası:", err);
+    return true;
+  }
+}
 
 export interface JWTPayload {
   sicilNo: string;
@@ -229,6 +265,19 @@ export async function proxy(request: NextRequest) {
       const dashUrl = getRedirectUrl("/", request);
       dashUrl.searchParams.set("unauthorized", "1");
       return NextResponse.redirect(dashUrl);
+    }
+  }
+
+  // role_permissions tabanlı sayfa yetkileri (sunucu taraflı zorlama).
+  // Eskiden yalnızca istemcideki PageGuard bakıyordu; doğrudan navigasyonla
+  // baypas edilebiliyordu.
+  const pageId = resolvePageId(pathname);
+  if (pageId) {
+    const mappedRole = mapUserToPermissionRole(session);
+    const allowed = await isPageAllowed(request, mappedRole, pageId);
+    if (!allowed) {
+      console.warn(`[ACL proxy] role_permissions engeli: ${session.sicilNo} (${mappedRole}) → ${pathname}`);
+      return NextResponse.redirect(getRedirectUrl("/yonetim/403", request));
     }
   }
 

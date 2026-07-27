@@ -5,45 +5,11 @@ import { useAuthStore } from '@/lib/authStore';
 import { api } from '@/lib/api';
 import { ShieldAlert, Lock, ArrowLeft, RefreshCw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { mapUserToPermissionRole, getDefaultPagePermission } from '@/lib/permissions';
 
-export function mapUserToPermissionRole(user: any): string {
-  if (!user) return 'Er';
-  const rol = user.rol || '';
-  const unvan = (user.unvan || '').toLowerCase();
-  
-  if (unvan.includes('müdür') || rol === 'Admin') {
-    return 'Müdür';
-  }
-  if (unvan.includes('amir') || rol === 'Editor') {
-    return 'Amir';
-  }
-  if (
-    unvan.includes('başçavuş') || 
-    unvan === 'baş şoför' || 
-    unvan === 'baş şöför' ||
-    unvan === 'başşoför' ||
-    unvan === 'başşöför'
-  ) {
-    return 'Başçavuş';
-  }
-  if (
-    unvan.includes('çavuş') || 
-    unvan.includes('posta başşoför') || 
-    unvan.includes('posta başşöför') || 
-    rol === 'Shift_Leader'
-  ) {
-    return 'Çavuş';
-  }
-  if (
-    unvan.includes('santral') || 
-    unvan.includes('ihbar') || 
-    unvan.includes('memur') || 
-    rol === 'Santral'
-  ) {
-    return 'Santral';
-  }
-  return 'Er'; // Müdahale Eri ve Şoför
-}
+// Geriye dönük uyumluluk: eşleme artık @/lib/permissions'ta (proxy ve sunucu
+// ucuyla ortak) tanımlı; buradan yeniden dışa aktarılır.
+export { mapUserToPermissionRole };
 
 interface PageGuardProps {
   pageId: 'harita' | 'personel_yonetimi' | 'arac_bakim' | 'envanter' | 'raporlar' | 'egitimler' | 'hizmet_basvurulari' | 'gorevler' | 'kilavuz' | 'telsiz';
@@ -79,40 +45,20 @@ export default function PageGuard({ pageId, children }: PageGuardProps) {
         if (active) {
           if (error) {
             console.error('PageGuard permission query error:', error);
-            // Default fallback: if query fails, let Müdür & Amir view, else fallback by role defaults
-            if (mappedRole === 'Müdür' || mappedRole === 'Amir') {
-              setHasPermission(true);
-            } else if (mappedRole === 'Çavuş') {
-              setHasPermission(['harita', 'arac_bakim', 'envanter', 'raporlar', 'egitimler', 'hizmet_basvurulari', 'gorevler'].includes(pageId));
-            } else if (mappedRole === 'Santral') {
-              setHasPermission(['harita', 'hizmet_basvurulari', 'gorevler'].includes(pageId));
-            } else {
-              setHasPermission(['harita', 'envanter', 'hizmet_basvurulari', 'gorevler'].includes(pageId));
-            }
+            // Sorgu başarısızsa deterministik varsayılan matris (fail-open değil)
+            setHasPermission(getDefaultPagePermission(mappedRole, pageId));
           } else if (data) {
             setHasPermission(!!data.izinli);
           } else {
-            // Default fallback if no row found
-            if (mappedRole === 'Müdür' || mappedRole === 'Amir') {
-              setHasPermission(true);
-            } else if (mappedRole === 'Çavuş') {
-              setHasPermission(['harita', 'arac_bakim', 'envanter', 'raporlar', 'egitimler', 'hizmet_basvurulari', 'gorevler'].includes(pageId));
-            } else if (mappedRole === 'Santral') {
-              setHasPermission(['harita', 'hizmet_basvurulari', 'gorevler'].includes(pageId));
-            } else {
-              setHasPermission(['harita', 'envanter', 'hizmet_basvurulari', 'gorevler'].includes(pageId));
-            }
+            // Satır yoksa varsayılan matris
+            setHasPermission(getDefaultPagePermission(mappedRole, pageId));
           }
           setLoading(false);
         }
       } catch (err) {
         console.error('PageGuard check error:', err);
         if (active) {
-          if (mappedRole === 'Müdür' || mappedRole === 'Amir') {
-            setHasPermission(true);
-          } else {
-            setHasPermission(false);
-          }
+          setHasPermission(getDefaultPagePermission(mappedRole, pageId));
           setLoading(false);
         }
       }
