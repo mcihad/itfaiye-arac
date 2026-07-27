@@ -39,7 +39,7 @@ import { DailyWorkSchedule } from "@/components/dashboard/DailyWorkSchedule"
 import { Personnel } from "@/types"
 import { Input } from "@/components/ui/Input"
 import { useAuthStore } from "@/lib/authStore"
-import { getActivePostaForStation } from "@/lib/shiftUtils"
+import { getActivePostaForStation, setShiftCycleReference } from "@/lib/shiftUtils"
 import { isIdariUnvan, isKarargah } from "@/lib/personnelUtils"
 import { toast } from "@/lib/toast"
 import {
@@ -415,6 +415,11 @@ export default function DashboardPage() {
   const [sayimUyariSicil, setSayimUyariSicil] = useState<string | null>(null)
   const [editSabitNizamiye, setEditSabitNizamiye] = useState("")
   const [editSayimUyari, setEditSayimUyari] = useState("")
+  // Vardiya döngüsü referansı (bu tarihte bu posta nöbetteydi)
+  const [vardiyaRefTarih, setVardiyaRefTarih] = useState("2026-06-04")
+  const [vardiyaRefPosta, setVardiyaRefPosta] = useState("2")
+  const [editVardiyaTarih, setEditVardiyaTarih] = useState("2026-06-04")
+  const [editVardiyaPosta, setEditVardiyaPosta] = useState("2")
 
   useEffect(() => {
     if (isShiftEditModalOpen) {
@@ -430,8 +435,10 @@ export default function DashboardPage() {
       setEditOrganizeTime(getFormatted('Organize', '09:15'))
       setEditSabitNizamiye(sabitNizamiyeSicil || "")
       setEditSayimUyari(sayimUyariSicil || "")
+      setEditVardiyaTarih(vardiyaRefTarih)
+      setEditVardiyaPosta(vardiyaRefPosta)
     }
-  }, [isShiftEditModalOpen, customShiftTimes, sabitNizamiyeSicil, sayimUyariSicil])
+  }, [isShiftEditModalOpen, customShiftTimes, sabitNizamiyeSicil, sayimUyariSicil, vardiyaRefTarih, vardiyaRefPosta])
 
   const handleSaveShiftTimes = async () => {
     setIsSavingShiftTimes(true)
@@ -442,6 +449,10 @@ export default function DashboardPage() {
       // Sabit görevli ayarları (satır yoksa oluşturulur)
       unwrap(await api.upsert('system_settings', { key: 'sabit_nizamiye_sicil', value: editSabitNizamiye }, 'key'))
       unwrap(await api.upsert('system_settings', { key: 'sayim_uyari_sabit_sicil', value: editSayimUyari }, 'key'))
+      // Vardiya döngüsü referansı
+      unwrap(await api.upsert('system_settings', { key: 'vardiya_referans_tarihi', value: editVardiyaTarih }, 'key'))
+      unwrap(await api.upsert('system_settings', { key: 'vardiya_referans_posta', value: editVardiyaPosta }, 'key'))
+      setShiftCycleReference(editVardiyaTarih, editVardiyaPosta)
 
       await fetchDashboardData()
       setIsShiftEditModalOpen(false)
@@ -937,6 +948,8 @@ export default function DashboardPage() {
         settingsData.forEach((s: any) => {
           if (s.key === 'sabit_nizamiye_sicil') { setSabitNizamiyeSicil(s.value || null); return }
           if (s.key === 'sayim_uyari_sabit_sicil') { setSayimUyariSicil(s.value || null); return }
+          if (s.key === 'vardiya_referans_tarihi') { if (s.value) setVardiyaRefTarih(s.value); return }
+          if (s.key === 'vardiya_referans_posta') { if (s.value) setVardiyaRefPosta(s.value); return }
           const [h, m] = s.value.split(':').map(Number)
           if (s.key === 'merkez_shift_time') times.Merkez = { hours: h, minutes: m }
           if (s.key === 'esentepe_shift_time') times.Esentepe = { hours: h, minutes: m }
@@ -1869,6 +1882,28 @@ export default function DashboardPage() {
                       ))}
                   </select>
                   <p className="text-[10px] text-[var(--fd-text3)]">Araç sayımı yapılmadığında gönderilen SMS'i posta çavuşlarına ek olarak alır.</p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-[var(--fd-text2)] uppercase tracking-wider">🔁 Vardiya Döngüsü Referansı</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="date"
+                      value={editVardiyaTarih}
+                      onChange={(e) => setEditVardiyaTarih(e.target.value)}
+                      className="flex-1 bg-[var(--fd-surface2)] border border-[var(--fd-border)] text-[var(--fd-text)] px-3 py-2 rounded-[var(--fd-r-sm)] font-mono text-sm focus:border-[var(--fd-accent)] focus:outline-none"
+                    />
+                    <select
+                      value={editVardiyaPosta}
+                      onChange={(e) => setEditVardiyaPosta(e.target.value)}
+                      className="w-32 bg-[var(--fd-surface2)] border border-[var(--fd-border)] text-[var(--fd-text)] px-3 py-2 rounded-[var(--fd-r-sm)] text-sm focus:border-[var(--fd-accent)] focus:outline-none cursor-pointer"
+                    >
+                      <option value="1">1. Posta</option>
+                      <option value="2">2. Posta</option>
+                      <option value="3">3. Posta</option>
+                    </select>
+                  </div>
+                  <p className="text-[10px] text-[var(--fd-text3)]">Seçilen tarihte nöbette olan posta. Tüm nöbet hesapları bu referansa göre döner (her gün +1); vardiya düzeni değişmedikçe dokunmayın.</p>
                 </div>
               </div>
             </div>

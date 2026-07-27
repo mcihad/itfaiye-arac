@@ -104,7 +104,10 @@ async function ensureSystemSettingsTableExists() {
     const defaults = [
       { key: 'merkez_shift_time', value: '08:00' },
       { key: 'esentepe_shift_time', value: '08:45' },
-      { key: 'organize_shift_time', value: '09:15' }
+      { key: 'organize_shift_time', value: '09:15' },
+      // Vardiya döngüsü referansı: bu tarihte bu posta nöbetteydi (her gün +1, mod 3)
+      { key: 'vardiya_referans_tarihi', value: '2026-06-04' },
+      { key: 'vardiya_referans_posta', value: '2' }
     ];
 
     for (const d of defaults) {

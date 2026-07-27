@@ -2,6 +2,7 @@
 import { Sidebar } from "@/components/layout/Sidebar"
 import { Topbar } from "@/components/layout/Topbar"
 import { MobileNav } from "@/components/layout/MobileNav"
+import { ShiftConfigLoader } from "@/components/layout/ShiftConfigLoader"
 import { useAuthStore } from "@/lib/authStore"
 import { usePathname, useRouter } from "next/navigation"
 import { useEffect } from "react"
@@ -51,6 +52,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex h-screen max-w-[100vw] bg-background overflow-hidden relative">
+      <ShiftConfigLoader />
       <Sidebar />
       <div className="flex flex-col flex-1 min-w-0 h-full overflow-x-hidden">
         <Topbar />

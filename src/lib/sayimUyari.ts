@@ -3,6 +3,7 @@ import {
   STATION_SHIFT_TIMES,
   normalizeStationName,
   getActivePostaForStation,
+  setShiftCycleReference,
 } from "@/lib/shiftUtils";
 
 /**
@@ -38,10 +39,12 @@ async function getShiftTimes(): Promise<typeof STATION_SHIFT_TIMES> {
   const times: ShiftTimes = JSON.parse(JSON.stringify(STATION_SHIFT_TIMES));
   try {
     const res = await query(
-      "SELECT key, value FROM system_settings WHERE key IN ('merkez_shift_time','esentepe_shift_time','organize_shift_time')"
+      "SELECT key, value FROM system_settings WHERE key IN ('merkez_shift_time','esentepe_shift_time','organize_shift_time','vardiya_referans_tarihi','vardiya_referans_posta')"
     );
     const map: Record<string, string> = {};
     for (const r of res.rows) map[r.key] = r.value;
+    // Vardiya döngüsü referansı da ayarlardan uygulanır (posta hesabı için)
+    setShiftCycleReference(map.vardiya_referans_tarihi, map.vardiya_referans_posta);
     const parse = (v?: string) => {
       if (!v || !/^\d{1,2}:\d{2}$/.test(v)) return null;
       const [h, m] = v.split(":").map(Number);
