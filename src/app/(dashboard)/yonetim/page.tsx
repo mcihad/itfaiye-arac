@@ -409,6 +409,11 @@ export default function DashboardPage() {
   const [editEsentepeTime, setEditEsentepeTime] = useState("08:45")
   const [editOrganizeTime, setEditOrganizeTime] = useState("09:15")
   const [isSavingShiftTimes, setIsSavingShiftTimes] = useState(false)
+  // Ayarlardan okunan sabit görevliler (eskiden koda gömülüydü)
+  const [sabitNizamiyeSicil, setSabitNizamiyeSicil] = useState<string | null>(null)
+  const [sayimUyariSicil, setSayimUyariSicil] = useState<string | null>(null)
+  const [editSabitNizamiye, setEditSabitNizamiye] = useState("")
+  const [editSayimUyari, setEditSayimUyari] = useState("")
 
   useEffect(() => {
     if (isShiftEditModalOpen) {
@@ -422,8 +427,10 @@ export default function DashboardPage() {
       setEditMerkezTime(getFormatted('Merkez', '08:00'))
       setEditEsentepeTime(getFormatted('Esentepe', '08:45'))
       setEditOrganizeTime(getFormatted('Organize', '09:15'))
+      setEditSabitNizamiye(sabitNizamiyeSicil || "")
+      setEditSayimUyari(sayimUyariSicil || "")
     }
-  }, [isShiftEditModalOpen, customShiftTimes])
+  }, [isShiftEditModalOpen, customShiftTimes, sabitNizamiyeSicil, sayimUyariSicil])
 
   const handleSaveShiftTimes = async () => {
     setIsSavingShiftTimes(true)
@@ -431,6 +438,9 @@ export default function DashboardPage() {
       await api.update('system_settings', { value: editMerkezTime }, { key: 'merkez_shift_time' })
       await api.update('system_settings', { value: editEsentepeTime }, { key: 'esentepe_shift_time' })
       await api.update('system_settings', { value: editOrganizeTime }, { key: 'organize_shift_time' })
+      // Sabit görevli ayarları (satır yoksa oluşturulur)
+      await api.upsert('system_settings', { key: 'sabit_nizamiye_sicil', value: editSabitNizamiye }, 'key')
+      await api.upsert('system_settings', { key: 'sayim_uyari_sabit_sicil', value: editSayimUyari }, 'key')
 
       await fetchDashboardData()
       setIsShiftEditModalOpen(false)
@@ -924,6 +934,8 @@ export default function DashboardPage() {
           Default: { hours: 8, minutes: 0 }
         }
         settingsData.forEach((s: any) => {
+          if (s.key === 'sabit_nizamiye_sicil') { setSabitNizamiyeSicil(s.value || null); return }
+          if (s.key === 'sayim_uyari_sabit_sicil') { setSayimUyariSicil(s.value || null); return }
           const [h, m] = s.value.split(':').map(Number)
           if (s.key === 'merkez_shift_time') times.Merkez = { hours: h, minutes: m }
           if (s.key === 'esentepe_shift_time') times.Esentepe = { hours: h, minutes: m }
@@ -1753,9 +1765,9 @@ export default function DashboardPage() {
               {activeShiftTab === 'daily' ? (
                 <ShiftList personnel={sortedPersonnel} activePosta={0} onPersonnelUpdate={handlePersonnelUpdate} customTimes={customShiftTimes} />
               ) : activeShiftTab === 'hourly' ? (
-                <HourlyShifts personnel={sortedPersonnel} allPersonnel={personnelList} activePosta={0} />
+                <HourlyShifts personnel={sortedPersonnel} allPersonnel={personnelList} activePosta={0} sabitNizamiyeSicil={sabitNizamiyeSicil} />
               ) : activeShiftTab === 'schedule' ? (
-                <DailyWorkSchedule personnel={sortedPersonnel} allPersonnel={personnelList} />
+                <DailyWorkSchedule personnel={sortedPersonnel} allPersonnel={personnelList} sabitNizamiyeSicil={sabitNizamiyeSicil} />
               ) : (
                 <FutureShiftCalendar personnelList={personnelList} onLeaveUpdated={fetchDashboardData} />
               )}
@@ -1815,12 +1827,48 @@ export default function DashboardPage() {
 
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-[var(--fd-text2)] uppercase tracking-wider">🚒 Organize Sanayi Şubesi (OSB)</label>
-                <input 
-                  type="time" 
-                  value={editOrganizeTime} 
+                <input
+                  type="time"
+                  value={editOrganizeTime}
                   onChange={(e) => setEditOrganizeTime(e.target.value)}
                   className="w-full bg-[var(--fd-surface2)] border border-[var(--fd-border)] text-[var(--fd-text)] px-3 py-2 rounded-[var(--fd-r-sm)] font-mono text-sm focus:border-[var(--fd-accent)] focus:outline-none"
                 />
+              </div>
+
+              <div className="border-t border-[var(--fd-border)] pt-4 space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-[var(--fd-text2)] uppercase tracking-wider">👮 Sabit Nizamiye Görevlisi</label>
+                  <select
+                    value={editSabitNizamiye}
+                    onChange={(e) => setEditSabitNizamiye(e.target.value)}
+                    className="w-full bg-[var(--fd-surface2)] border border-[var(--fd-border)] text-[var(--fd-text)] px-3 py-2 rounded-[var(--fd-r-sm)] text-sm focus:border-[var(--fd-accent)] focus:outline-none cursor-pointer"
+                  >
+                    <option value="">— Seçilmedi —</option>
+                    {[...personnelList]
+                      .sort((a, b) => `${a.ad} ${a.soyad}`.localeCompare(`${b.ad} ${b.soyad}`, 'tr'))
+                      .map(p => (
+                        <option key={p.sicil_no} value={p.sicil_no}>{p.ad} {p.soyad} ({p.unvan})</option>
+                      ))}
+                  </select>
+                  <p className="text-[10px] text-[var(--fd-text3)]">Hafta içi 08:00-17:00 nizamiye çizelgesine otomatik yazılır.</p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-[var(--fd-text2)] uppercase tracking-wider">📱 Sayım Uyarısı Sabit Alıcısı</label>
+                  <select
+                    value={editSayimUyari}
+                    onChange={(e) => setEditSayimUyari(e.target.value)}
+                    className="w-full bg-[var(--fd-surface2)] border border-[var(--fd-border)] text-[var(--fd-text)] px-3 py-2 rounded-[var(--fd-r-sm)] text-sm focus:border-[var(--fd-accent)] focus:outline-none cursor-pointer"
+                  >
+                    <option value="">— Seçilmedi —</option>
+                    {[...personnelList]
+                      .sort((a, b) => `${a.ad} ${a.soyad}`.localeCompare(`${b.ad} ${b.soyad}`, 'tr'))
+                      .map(p => (
+                        <option key={p.sicil_no} value={p.sicil_no}>{p.ad} {p.soyad} ({p.unvan})</option>
+                      ))}
+                  </select>
+                  <p className="text-[10px] text-[var(--fd-text3)]">Araç sayımı yapılmadığında gönderilen SMS'i posta çavuşlarına ek olarak alır.</p>
+                </div>
               </div>
             </div>
 

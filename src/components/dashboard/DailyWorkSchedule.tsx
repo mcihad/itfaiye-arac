@@ -6,7 +6,9 @@ import { Printer, Users } from "lucide-react"
 
 interface DailyWorkScheduleProps {
   personnel: Personnel[] // Active shift personnel (sortedPersonnel)
-  allPersonnel?: Personnel[] // Used to find Sercan Karaca
+  allPersonnel?: Personnel[] // Sabit nizamiye görevlisini bulmak için
+  /** Sabit nizamiye görevlisinin sicili (system_settings.sabit_nizamiye_sicil) */
+  sabitNizamiyeSicil?: string | null
 }
 
 type RoleCounts = {
@@ -41,15 +43,18 @@ const getStationKey = (istasyon: string | undefined): string => {
   return 'Merkez Şube';
 }
 
-export function DailyWorkSchedule({ personnel, allPersonnel }: DailyWorkScheduleProps) {
+export function DailyWorkSchedule({ personnel, allPersonnel, sabitNizamiyeSicil }: DailyWorkScheduleProps) {
   const stats = useMemo(() => {
-    // Combine personnel with Sercan Karaca if he is not already in it
+    // Sabit nizamiye görevlisi listede yoksa ekle (ayarlardan sicil; ayar yoksa
+    // eski isim-tabanlı davranışa düşülür — geriye dönük uyumluluk)
     const activePersonnel = [...personnel];
-    
+
     if (allPersonnel) {
-      const sercan = allPersonnel.find(p => p.ad?.trim().toLowerCase() === 'sercan' && p.soyad?.trim().toLowerCase() === 'karaca');
-      if (sercan && !activePersonnel.find(p => p.sicil_no === sercan.sicil_no)) {
-        activePersonnel.push(sercan);
+      const sabitGorevli = sabitNizamiyeSicil
+        ? allPersonnel.find(p => p.sicil_no === sabitNizamiyeSicil)
+        : allPersonnel.find(p => p.ad?.trim().toLowerCase() === 'sercan' && p.soyad?.trim().toLowerCase() === 'karaca');
+      if (sabitGorevli && !activePersonnel.find(p => p.sicil_no === sabitGorevli.sicil_no)) {
+        activePersonnel.push(sabitGorevli);
       }
     }
 
@@ -105,7 +110,7 @@ export function DailyWorkSchedule({ personnel, allPersonnel }: DailyWorkSchedule
     });
 
     return { rows, hazirMevcut, genelMevcut };
-  }, [personnel, allPersonnel]);
+  }, [personnel, allPersonnel, sabitNizamiyeSicil]);
 
   const handlePrint = () => {
     // Create print HTML similar to HourlyShifts

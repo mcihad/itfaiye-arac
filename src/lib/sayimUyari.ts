@@ -20,7 +20,9 @@ import {
  * NOT: Saat hesabı sunucu yerel saatine göredir; Docker'da TZ=Europe/Istanbul ayarlı.
  */
 
-const AMIR_SABIT_SICIL = "SB5803"; // Amir Ahmet Yıldız
+// Sabit alıcı sicili system_settings.sayim_uyari_sabit_sicil'den okunur;
+// ayar yoksa bu varsayılan kullanılır (geriye dönük uyumluluk).
+const AMIR_SABIT_SICIL_VARSAYILAN = "SB5803";
 const GECIKME_DK = 20;  // posta değişiminden kaç dk sonra kontrol edilir
 const PENCERE_DK = 90;  // kontrol penceresi (tetik gecikse de yakalar; idempotency tekrarı önler)
 
@@ -50,6 +52,15 @@ async function getShiftTimes(): Promise<typeof STATION_SHIFT_TIMES> {
     if (parse(map.organize_shift_time)) times.Organize = parse(map.organize_shift_time)!;
   } catch { /* sistem ayarları yoksa varsayılan saatler kullanılır */ }
   return times as typeof STATION_SHIFT_TIMES;
+}
+
+async function getSetting(key: string): Promise<string | null> {
+  try {
+    const res = await query("SELECT value FROM system_settings WHERE key = $1", [key]);
+    return res.rows[0]?.value || null;
+  } catch {
+    return null;
+  }
 }
 
 async function sendSms(phoneNumbers: string[], content: string): Promise<boolean> {
@@ -88,6 +99,7 @@ export interface SayimUyariResult {
 export async function runSayimUyari(dryRun = false): Promise<SayimUyariResult> {
   const now = new Date(); // sunucu TZ = Europe/Istanbul
   const shiftTimes = await getShiftTimes();
+  const amirSabitSicil = (await getSetting("sayim_uyari_sabit_sicil")) || AMIR_SABIT_SICIL_VARSAYILAN;
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
   const vehRes = await query("SELECT plaka, istasyon FROM vehicles WHERE plaka IS NOT NULL");
@@ -152,7 +164,7 @@ export async function runSayimUyari(dryRun = false): Promise<SayimUyariResult> {
     // Şube bazlı alıcılar:
     //  1) O şubedeki aktif postanın çavuş/başçavuşları
     //  2) O postanın başçavuşu (posta sorumlusu — şube farketmez)
-    //  3) Sabit Amir Ahmet Yıldız
+    //  3) Ayarlardan seçilen sabit amir (system_settings.sayim_uyari_sabit_sicil)
     const alRes = await query(
       `SELECT DISTINCT COALESCE(p.telefon, pd.telefon) AS tel
        FROM public.personnel p
@@ -164,7 +176,7 @@ export async function runSayimUyari(dryRun = false): Promise<SayimUyariResult> {
            OR p.sicil_no = $3
          )
          AND COALESCE(p.telefon, pd.telefon) IS NOT NULL AND COALESCE(p.telefon, pd.telefon) <> ''`,
-      [postaLabel, istPatterns, AMIR_SABIT_SICIL]
+      [postaLabel, istPatterns, amirSabitSicil]
     );
     const phones = alRes.rows.map((r) => String(r.tel).replace(/\s+/g, "")).filter((p) => p.length >= 10);
 

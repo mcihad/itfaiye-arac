@@ -10,6 +10,8 @@ interface HourlyShiftsProps {
   personnel: Personnel[]
   allPersonnel?: Personnel[]
   activePosta: number
+  /** Sabit nizamiye görevlisinin sicili (system_settings.sabit_nizamiye_sicil) */
+  sabitNizamiyeSicil?: string | null
 }
 
 const HOURS = [
@@ -29,7 +31,7 @@ const HOURS = [
 
 const PLACES = ["NIZAMIYE"]
 
-export function HourlyShifts({ personnel, allPersonnel, activePosta }: HourlyShiftsProps) {
+export function HourlyShifts({ personnel, allPersonnel, activePosta, sabitNizamiyeSicil }: HourlyShiftsProps) {
   const { user } = useAuthStore()
   const [loading, setLoading] = useState(true)
   const [savingCell, setSavingCell] = useState<string | null>(null)
@@ -51,7 +53,7 @@ export function HourlyShifts({ personnel, allPersonnel, activePosta }: HourlyShi
 
   useEffect(() => {
     fetchShifts()
-  }, [activePosta])
+  }, [activePosta, sabitNizamiyeSicil])
 
   const fetchShifts = async () => {
     setLoading(true)
@@ -113,16 +115,20 @@ export function HourlyShifts({ personnel, allPersonnel, activePosta }: HourlyShi
       const isWeekday = shiftDateObj.getDay() >= 1 && shiftDateObj.getDay() <= 5;
       
       const sourcePersonnel = allPersonnel || personnel;
-      const sercan = sourcePersonnel.find(p => p.ad?.trim().toLowerCase() === 'sercan' && p.soyad?.trim().toLowerCase() === 'karaca');
-      const isSercanAvailable = sercan && !sercan.durum?.toLowerCase().includes('izin') && !sercan.durum?.toLowerCase().includes('rapor');
+      // Sabit görevli ayarlardan (sicil) bulunur; ayar yoksa eski isim-tabanlı
+      // davranışa düşülür (geriye dönük uyumluluk).
+      const sabitGorevli = sabitNizamiyeSicil
+        ? sourcePersonnel.find(p => p.sicil_no === sabitNizamiyeSicil)
+        : sourcePersonnel.find(p => p.ad?.trim().toLowerCase() === 'sercan' && p.soyad?.trim().toLowerCase() === 'karaca');
+      const isSabitGorevliMusait = sabitGorevli && !sabitGorevli.durum?.toLowerCase().includes('izin') && !sabitGorevli.durum?.toLowerCase().includes('rapor');
 
       if (!newMatrix["TÜM GÜN"]["SABIT_NIZAMIYE"]) {
         newMatrix["TÜM GÜN"]["SABIT_NIZAMIYE"] = { sicil: "" };
       }
 
-      if (isWeekday && isSercanAvailable) {
+      if (isWeekday && isSabitGorevliMusait) {
         if (!newMatrix["TÜM GÜN"]["SABIT_NIZAMIYE"].sicil) {
-           newMatrix["TÜM GÜN"]["SABIT_NIZAMIYE"].sicil = sercan.sicil_no;
+           newMatrix["TÜM GÜN"]["SABIT_NIZAMIYE"].sicil = sabitGorevli.sicil_no;
         }
       }
 
