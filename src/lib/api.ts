@@ -127,6 +127,29 @@ function createQueryBuilder<T = any>(table: string): QueryBuilder<T> {
   return builder;
 }
 
+/**
+ * Yazma sonucunun error alanını denetler; hata varsa fırlatır.
+ * api.insert/update/upsert/remove HTTP hatalarında reject ETMEZ, { error } döndürür.
+ * Sonucu yok saymak sahte başarıya yol açar — kritik yazmalarda
+ * `unwrap(await api.insert(...))` kullanın.
+ */
+export function unwrap<T extends { error?: any }>(result: T): T {
+  if (result && result.error) {
+    throw new Error(typeof result.error === 'string' ? result.error : JSON.stringify(result.error));
+  }
+  return result;
+}
+
+/**
+ * "YYYY-MM-DD" tarihine gün ekler ve yine "YYYY-MM-DD" döndürür.
+ * new Date(str) + toISOString() ikilisi UTC/yerel kaymasıyla günü değiştirebildiği
+ * için tarih aritmetiği yerel takvim üzerinden yapılır.
+ */
+export function addDaysISO(dateStr: string, days: number): string {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d + days).toLocaleDateString('en-CA');
+}
+
 export const api = {
   from<T = any>(table: string): QueryBuilder<T> {
     return createQueryBuilder<T>(table);

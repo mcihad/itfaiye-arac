@@ -8,7 +8,7 @@ import { exportShiftListToPDF, exportShiftListToExcel } from "@/lib/exportUtils"
 import { STATION_SHIFT_TIMES, normalizeStationName } from "@/lib/shiftUtils"
 import { Personnel } from "@/types"
 import { useAuthStore } from "@/lib/authStore"
-import { api } from "@/lib/api"
+import { api, unwrap } from "@/lib/api"
 
 // ─── Hiyerarşik Rütbe Sıralaması ───────────────────────────
 function getUnvanPriority(unvan: string): number {
@@ -196,21 +196,22 @@ export function ShiftList({ personnel, activePosta, onPersonnelUpdate, customTim
           .eq('izin_turu', izinTuru);
 
         if (!existingLeaves || existingLeaves.length === 0) {
-          await api.insert('personnel_leaves', {
+          unwrap(await api.insert('personnel_leaves', {
             sicil_no: sicilNo,
             izin_turu: izinTuru,
             baslangic_tarihi: todayStr,
             bitis_tarihi: todayStr,
             aciklama: explanation || `${statusBase} durumu seçildi.`,
             durum: 'Onaylandı'
-          });
+          }));
         } else {
-          await api.update('personnel_leaves', {
+          unwrap(await api.update('personnel_leaves', {
             aciklama: explanation || `${statusBase} durumu seçildi.`
-          }, { id: existingLeaves[0].id });
+          }, { id: existingLeaves[0].id }));
         }
-      } catch (e) {
+      } catch (e: any) {
         console.error("Failed to log leave movement:", e);
+        alert(`Uyarı: Personel durumu güncellendi ancak izin defterine kayıt YAZILAMADI:\n${e?.message || e}\n\nİzin listesi ile nöbet listesi tutarsız kalabilir.`);
       }
     }
 
@@ -225,14 +226,15 @@ export function ShiftList({ personnel, activePosta, onPersonnelUpdate, customTim
         logMessage = `Günlük durumu "${statusBase}" olarak değiştirildi. Açıklama: ${explanation || 'Belirtilmemiş'}`;
       }
 
-      await api.insert('personnel_records', {
+      unwrap(await api.insert('personnel_records', {
         sicil_no: sicilNo,
         kayit_turu: 'Nöbet Hareketi',
         tarih: todayStr,
         aciklama: logMessage
-      });
-    } catch (e) {
+      }));
+    } catch (e: any) {
       console.error("Failed to log personnel record movement:", e);
+      alert(`Uyarı: Personel durumu güncellendi ancak hizmet dökümüne hareket kaydı YAZILAMADI:\n${e?.message || e}`);
     }
   };
 
