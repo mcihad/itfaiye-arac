@@ -29,6 +29,7 @@ import {
   Clock
 } from "lucide-react"
 import { Vehicle, AracBakimGecmisi, FuelLog, Personnel } from "@/types"
+import { toast } from "@/lib/toast"
 
 const normalizeTextForSearch = (str: string): string => {
   if (!str) return "";
@@ -243,12 +244,12 @@ export default function AracBakimPage() {
           { plaka: matchedLog.plaka }
         )
         if (vSync.error) {
-          alert(`Bakım onaylandı ancak aracın durumu 'aktif' yapılamadı: ${vSync.error}\nAraç listede 'Bakımda' görünmeye devam edebilir.`)
+          toast(`Bakım onaylandı ancak aracın durumu 'aktif' yapılamadı: ${vSync.error}\nAraç listede 'Bakımda' görünmeye devam edebilir.`)
         }
       }
     } catch (err) {
       console.error("Bakım onay hatası:", err)
-      alert("Bakım onaylanırken bir hata oluştu.")
+      toast("Bakım onaylanırken bir hata oluştu.")
     } finally {
       setUpdatingId(null)
     }
@@ -257,7 +258,7 @@ export default function AracBakimPage() {
   // ─── Inline Update Inspection Date ───────────────────────────
   const handleUpdateInspectionDate = async (plaka: string) => {
     if (!editingNewDate) {
-      alert('Lütfen geçerli bir tarih seçin.');
+      toast('Lütfen geçerli bir tarih seçin.');
       return;
     }
     setIsEditingUpdating(true);
@@ -272,7 +273,7 @@ export default function AracBakimPage() {
       setEditingPlaka(null);
     } catch (err: any) {
       console.error('Muayene tarihi güncellenirken hata oluştu:', err);
-      alert('Güncelleme başarısız: ' + (err.message || err));
+      toast('Güncelleme başarısız: ' + (err.message || err));
     } finally {
       setIsEditingUpdating(false);
     }
@@ -295,7 +296,7 @@ export default function AracBakimPage() {
       return url
     } catch (error) {
       console.error('Error uploading image:', error)
-      alert('Fotoğraf yüklenirken hata oluştu!')
+      toast('Fotoğraf yüklenirken hata oluştu!')
       return null
     } finally {
       setUploading(false)
@@ -309,7 +310,7 @@ export default function AracBakimPage() {
 
     try {
       if (kayitTuru === 'bakim') {
-        if (!bakimForm.plaka) { alert("Lütfen araç plakası seçin."); setIsSaving(false); return }
+        if (!bakimForm.plaka) { toast("Lütfen araç plakası seçin."); setIsSaving(false); return }
 
         let finalPhotoUrl: string | null = null
         if (file) {
@@ -334,8 +335,8 @@ export default function AracBakimPage() {
         const { error } = await api.insert('vehicle_maintenances', payload)
         if (error) throw error
       } else {
-        if (!yakitForm.plaka) { alert("Lütfen araç plakası seçin."); setIsSaving(false); return }
-        if (!yakitForm.litre || !yakitForm.tutar) { alert("Lütfen litre ve tutar alanlarını doldurun."); setIsSaving(false); return }
+        if (!yakitForm.plaka) { toast("Lütfen araç plakası seçin."); setIsSaving(false); return }
+        if (!yakitForm.litre || !yakitForm.tutar) { toast("Lütfen litre ve tutar alanlarını doldurun."); setIsSaving(false); return }
 
         const payload = {
           plaka: yakitForm.plaka,
@@ -356,7 +357,7 @@ export default function AracBakimPage() {
       await fetchAllData()
     } catch (err) {
       console.error('Create record error:', err)
-      alert("Kayıt sırasında hata oluştu.")
+      toast("Kayıt sırasında hata oluştu.")
     } finally {
       setIsSaving(false)
     }

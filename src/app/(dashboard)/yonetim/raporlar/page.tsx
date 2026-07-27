@@ -13,6 +13,7 @@ import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import * as XLSX from "xlsx"
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell } from "recharts"
+import { toast } from "@/lib/toast"
 
 type UnifiedLog = {
   id: string
@@ -261,11 +262,11 @@ export default function LogsReportsPage() {
 
   const handleSubmitZReport = async (force: boolean = false) => {
     if (!user) {
-      alert("Oturum açık değil.")
+      toast("Oturum açık değil.")
       return
     }
     if (!currentUserFromDb) {
-      alert("Kullanıcı veritabanında bulunamadı veya henüz yüklenmedi.")
+      toast("Kullanıcı veritabanında bulunamadı veya henüz yüklenmedi.")
       return
     }
     setZSubmitting(true)
@@ -295,7 +296,7 @@ export default function LogsReportsPage() {
         throw new Error(res.error || res.message)
       }
       
-      alert(force ? "Z Raporu ŞERHLİ olarak başarıyla mühürlendi ve arşive kaydedildi!" : "Z Raporu başarıyla mühürlendi ve arşive kaydedildi!")
+      toast(force ? "Z Raporu ŞERHLİ olarak başarıyla mühürlendi ve arşive kaydedildi!" : "Z Raporu başarıyla mühürlendi ve arşive kaydedildi!")
       setZReportModalOpen(false)
       setOverrideData(null)
       setIsOverrideApproved(false)
@@ -303,7 +304,7 @@ export default function LogsReportsPage() {
       fetchDailyReports()
     } catch (err: any) {
       console.error(err)
-      alert("Rapor kaydedilirken hata oluştu: " + err.message)
+      toast("Rapor kaydedilirken hata oluştu: " + err.message)
     } finally {
       setZSubmitting(false)
     }
@@ -350,7 +351,7 @@ export default function LogsReportsPage() {
 
       const printWindow = window.open('', '_blank')
       if (!printWindow) {
-        alert("Pop-up engelleyiciyi kapatın ve tekrar deneyin.")
+        toast("Pop-up engelleyiciyi kapatın ve tekrar deneyin.")
         return
       }
 
@@ -535,7 +536,7 @@ export default function LogsReportsPage() {
       printWindow.document.close()
     } catch (err: any) {
       console.error(err)
-      alert("Rapor yazdırılırken hata oluştu: " + err.message)
+      toast("Rapor yazdırılırken hata oluştu: " + err.message)
     } finally {
       setZSubmitting(false)
     }

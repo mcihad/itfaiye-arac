@@ -11,6 +11,7 @@ import { api, unwrap } from '@/lib/api'
 import { useAuthStore } from '@/lib/authStore'
 import { Badge } from '@/components/ui/Badge'
 import { useTheme } from 'next-themes'
+import { toast } from "@/lib/toast"
 
 
 
@@ -3287,7 +3288,7 @@ export default function Map({
                         setSelectedIncident(null);
                       } catch (err) {
                         console.error("Incident delete error:", err);
-                        alert("Vaka silinemedi.");
+                        toast("Vaka silinemedi.");
                       }
                     }}
                     className="py-2 px-3 flex items-center justify-center gap-1.5 rounded-lg border border-[var(--fd-danger)]/20 bg-[var(--fd-danger)]/10 text-[var(--fd-danger)] hover:opacity-90 text-xs font-bold transition-all cursor-pointer"

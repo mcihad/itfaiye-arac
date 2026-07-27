@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/Badge"
 import { useAuthStore } from "@/lib/authStore"
 import { ScanBarcode, Activity, Wind, AlertTriangle, Plus, Battery, Loader2, Save, Pencil, Trash2, X } from "lucide-react"
 import { calculateRemainingDays } from "@/lib/utils"
+import { toast } from "@/lib/toast"
 
 interface SCBACylinder {
   id: string
@@ -89,7 +90,7 @@ export default function SCBAModulePage() {
     })
 
     if (error) {
-      alert("Tüp eklenirken hata: " + error.message)
+      toast("Tüp eklenirken hata: " + error.message)
     } else {
       setShowAddForm(false)
       fetchCylinders()
@@ -113,14 +114,14 @@ export default function SCBAModulePage() {
       // Update cylinder current pressure
       const upd = await api.update('scba_cylinders', { guncel_basinc: parseInt(fillBasinc) }, { id: selectedCyl.id })
       if (upd.error) {
-        alert(`Dolum kaydedildi ancak tüpün güncel basıncı GÜNCELLENEMEDİ: ${upd.error}`)
+        toast(`Dolum kaydedildi ancak tüpün güncel basıncı GÜNCELLENEMEDİ: ${upd.error}`)
       }
       setSelectedCyl(null)
       setFillBasinc("")
       setFillNotlar("")
       fetchCylinders()
     } else {
-      alert("Dolum kaydedilemedi.")
+      toast("Dolum kaydedilemedi.")
     }
     setSavingFill(false)
   }
@@ -148,7 +149,7 @@ export default function SCBAModulePage() {
     }, { id: editingCyl.id })
 
     if (error) {
-      alert("Tüp güncellenirken hata: " + error.message)
+      toast("Tüp güncellenirken hata: " + error.message)
     } else {
       setEditingCyl(null)
       fetchCylinders()
@@ -167,13 +168,13 @@ export default function SCBAModulePage() {
       const { error } = await api.remove('scba_cylinders', { id: deletingCyl.id })
       
       if (error) {
-        alert("Tüp silinirken hata: " + error.message)
+        toast("Tüp silinirken hata: " + error.message)
       } else {
         setDeletingCyl(null)
         fetchCylinders()
       }
     } catch (err: any) {
-      alert("Bir hata oluştu: " + err.message)
+      toast("Bir hata oluştu: " + err.message)
     } finally {
       setDeletingState(false)
     }

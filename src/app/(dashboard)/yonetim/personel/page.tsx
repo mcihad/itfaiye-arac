@@ -15,6 +15,7 @@ import Link from 'next/link'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/Dialog"
 import { LeaveManagementModal } from "@/components/personnel/LeaveManagementModal"
 import { isKarargahUnvan } from "@/lib/personnelUtils"
+import { toast } from "@/lib/toast"
 
 interface SwitchProps {
   checked: boolean
@@ -712,13 +713,13 @@ export default function PersonelYonetimPage() {
       })
       const json = await res.json()
       if (!res.ok || json.error) {
-        alert(json.error || 'Şifre sıfırlama başarısız.')
+        toast(json.error || 'Şifre sıfırlama başarısız.')
         return
       }
       setResetPasswordSuccess(json.newPassword)
     } catch (err: any) {
       console.error(err)
-      alert('Parola sıfırlama sırasında sunucu hatası oluştu.')
+      toast('Parola sıfırlama sırasında sunucu hatası oluştu.')
     } finally {
       setResettingPassword(false)
     }
@@ -831,7 +832,7 @@ export default function PersonelYonetimPage() {
       setIsEditModalOpen(false)
     } catch (err) {
       console.error("Personel ilişik kesme hatası:", err)
-      alert("Personel ilişiği kesilirken bir hata oluştu.")
+      toast("Personel ilişiği kesilirken bir hata oluştu.")
     } finally {
       setIsSavingEdit(false)
     }
@@ -1622,7 +1623,7 @@ export default function PersonelYonetimPage() {
                                     onClick={() => {
                                       if (typeof window !== 'undefined') {
                                         navigator.clipboard.writeText(resetPasswordSuccess);
-                                        alert('Şifre kopyalandı.');
+                                        toast('Şifre kopyalandı.');
                                       }
                                     }}
                                     className="p-1.5 hover:bg-[var(--fd-surface2)] text-[var(--fd-text3)] hover:text-emerald-400 rounded transition-colors cursor-pointer"

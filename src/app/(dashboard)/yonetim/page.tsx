@@ -41,6 +41,7 @@ import { Input } from "@/components/ui/Input"
 import { useAuthStore } from "@/lib/authStore"
 import { getActivePostaForStation } from "@/lib/shiftUtils"
 import { isIdariUnvan, isKarargah } from "@/lib/personnelUtils"
+import { toast } from "@/lib/toast"
 import {
   ResponsiveContainer,
   AreaChart,
@@ -446,7 +447,7 @@ export default function DashboardPage() {
       setIsShiftEditModalOpen(false)
     } catch (e) {
       console.error("Error saving shift times:", e)
-      alert("Saatler kaydedilirken bir hata oluştu.")
+      toast("Saatler kaydedilirken bir hata oluştu.")
     } finally {
       setIsSavingShiftTimes(false)
     }
@@ -1252,7 +1253,7 @@ export default function DashboardPage() {
 
   const handleExportCSV = () => {
     if (activities.length === 0) {
-      alert("Dışa aktarılacak vaka veya aktivite verisi bulunmuyor.");
+      toast("Dışa aktarılacak vaka veya aktivite verisi bulunmuyor.");
       return;
     }
     const headers = ["Baslik", "Detay", "Zaman", "Tip", "Durum"];

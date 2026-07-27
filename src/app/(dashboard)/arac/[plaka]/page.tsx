@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import { toast } from "@/lib/toast"
 
 type PageMode = "loading" | "not-found" | "choose" | "inventory" | "daily" | "success"
 
@@ -90,13 +91,13 @@ export default function VehicleDeepLinkPage() {
       if (data.success) {
         setIsArizaOpen(false);
         setArizaAciklama("");
-        alert("Arıza kaydı başarıyla garaj merkezine iletildi.");
+        toast("Arıza kaydı başarıyla garaj merkezine iletildi.");
       } else {
-        alert("Bildirim gönderilemedi: " + (data.error || "Bilinmeyen hata"));
+        toast("Bildirim gönderilemedi: " + (data.error || "Bilinmeyen hata"));
       }
     } catch (err) {
       console.error("Ariza submit error:", err);
-      alert("Bağlantı hatası oluştu.");
+      toast("Bağlantı hatası oluştu.");
     } finally {
       setIsSavingAriza(false);
     }

@@ -9,6 +9,7 @@ import { DataTable } from "@/components/ui/DataTable"
 import { cn } from "@/lib/utils"
 import { useAuthStore } from "@/lib/authStore"
 import PageGuard from "@/components/PageGuard"
+import { toast } from "@/lib/toast"
 import { 
   Loader2, 
   FileText, 
@@ -271,7 +272,7 @@ export default function HizmetlerPage() {
   const handleCreateRequest = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newRequestForm.basvuran_ad_soyad || !newRequestForm.irtibat_tel || !newRequestForm.adres) {
-      alert("Lütfen Ad Soyad, İrtibat Telefonu ve Adres alanlarını doldurun.")
+      toast("Lütfen Ad Soyad, İrtibat Telefonu ve Adres alanlarını doldurun.")
       return
     }
 
@@ -305,11 +306,11 @@ export default function HizmetlerPage() {
         resetForm()
         await fetchRequests()
       } else {
-        alert("Başvuru eklenirken bir veritabanı hatası oluştu: " + (seedResult?.error || 'Bilinmeyen Hata'))
+        toast("Başvuru eklenirken bir veritabanı hatası oluştu: " + (seedResult?.error || 'Bilinmeyen Hata'))
       }
     } catch (err) {
       console.error('Create request error:', err)
-      alert("Sistemsel bir hata oluştu.")
+      toast("Sistemsel bir hata oluştu.")
     } finally {
       setIsSaving(false)
     }
@@ -376,11 +377,11 @@ export default function HizmetlerPage() {
         setTacticalMode('NONE');
         setRejectionReason('');
       } else {
-        alert('İşlem başarısız: ' + (data.error || 'Bilinmeyen Hata'));
+        toast('İşlem başarısız: ' + (data.error || 'Bilinmeyen Hata'));
       }
     } catch (err) {
       console.error('Tactical action error:', err)
-      alert('Sistem bağlantı hatası oluştu.')
+      toast('Sistem bağlantı hatası oluştu.')
     } finally {
       setUpdating(null)
     }
@@ -402,11 +403,11 @@ export default function HizmetlerPage() {
           setSelectedRequest(null)
         }
       } else {
-        alert('Silme işlemi başarısız: ' + (data.error || 'Bilinmeyen Hata'))
+        toast('Silme işlemi başarısız: ' + (data.error || 'Bilinmeyen Hata'))
       }
     } catch (err) {
       console.error('Delete request error:', err)
-      alert('Silme işlemi sırasında sistemsel bir hata oluştu.')
+      toast('Silme işlemi sırasında sistemsel bir hata oluştu.')
     } finally {
       setUpdating(null)
     }

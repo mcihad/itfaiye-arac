@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/Input"
 import { Loader2, Map as MapIcon, Flame, Droplets, Target, Search, Plus, MapPin, X, Sparkles } from "lucide-react"
 import { useAuthStore } from "@/lib/authStore"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/Dialog"
+import { toast } from "@/lib/toast"
 
 const Map = dynamic(() => import("@/components/map/Map"), { 
   ssr: false,
@@ -497,11 +498,11 @@ function HaritaContent() {
     try {
       const { error } = await api.update('external_missions', { durum: 'Tamamlandı' }, { id })
       if (error) throw error
-      alert("Görev başarıyla sonlandırıldı.")
+      toast("Görev başarıyla sonlandırıldı.")
       fetchData()
     } catch (err: any) {
       console.error(err)
-      alert("Görev sonlandırılırken hata oluştu: " + err.message)
+      toast("Görev sonlandırılırken hata oluştu: " + err.message)
     }
   }
 
@@ -529,7 +530,7 @@ function HaritaContent() {
       setHydrants(prev => prev.map(hyd => hyd.id === id ? { ...hyd, durum: newStatus } : hyd))
     } catch (error) {
       console.error("Hidrant durumu güncellenirken hata oluştu:", error)
-      alert("Hidrant durumu güncellenemedi.")
+      toast("Hidrant durumu güncellenemedi.")
     }
   }
 
@@ -725,7 +726,7 @@ function HaritaContent() {
         }
       } catch (err) {
         console.error("Draft incident creation error:", err)
-        alert("Konum işaretlenirken hata oluştu.")
+        toast("Konum işaretlenirken hata oluştu.")
       }
     } else if (interactionMode === 'add_hydrant') {
       setShowModal('hydrant')
@@ -842,7 +843,7 @@ function HaritaContent() {
       fetchData() // Refresh map data
     } catch (err) {
       console.error("Mufreze cikis error:", err)
-      alert("Müfreze çıkış kaydı oluşturulurken hata oluştu.")
+      toast("Müfreze çıkış kaydı oluşturulurken hata oluştu.")
     } finally {
       setIsSubmitting(false)
     }
@@ -894,7 +895,7 @@ function HaritaContent() {
       fetchData() // Refresh map
     } catch (error) {
       console.error(error)
-      alert("Kayıt oluşturulurken hata oluştu.")
+      toast("Kayıt oluşturulurken hata oluştu.")
     } finally {
       setIsSubmitting(false)
     }
@@ -986,7 +987,7 @@ function HaritaContent() {
       fetchData() // Refresh map
     } catch (error) {
       console.error(error)
-      alert("Kayıt oluşturulurken hata oluştu.")
+      toast("Kayıt oluşturulurken hata oluştu.")
     } finally {
       setIsSubmitting(false)
     }
@@ -996,7 +997,7 @@ function HaritaContent() {
     e.preventDefault()
     if (!clickedCoords) return
     if (checkedExternalPersonnel.length === 0) {
-      alert("Lütfen en az bir personel seçiniz.")
+      toast("Lütfen en az bir personel seçiniz.")
       return
     }
     setIsSubmitting(true)
@@ -1038,7 +1039,7 @@ function HaritaContent() {
       fetchData() // Refresh map
     } catch (error) {
       console.error(error)
-      alert("Dış görev kaydı oluşturulurken hata oluştu.")
+      toast("Dış görev kaydı oluşturulurken hata oluştu.")
     } finally {
       setIsSubmitting(false)
     }

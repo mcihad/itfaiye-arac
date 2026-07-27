@@ -59,6 +59,7 @@ import { InventoryAddEditModal } from "@/components/inventory/InventoryAddEditMo
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/Dialog"
 import { Button } from "@/components/ui/Button"
 import { InventoryItem, Vehicle } from "@/types"
+import { toast } from "@/lib/toast"
 export interface AracBakimGecmisi {
   id: number;
   plaka: string;
@@ -213,7 +214,7 @@ export default function VehicleDetailPage() {
   const handleSaveEquipment = async (item: InventoryItem, targetCompartment: string) => {
     if (!vehicle) return
     if (!canEditInventory) {
-      alert('Envanter düzenleme yetkiniz bulunmamaktadır. Bu işlem yalnızca Admin ve Editor rolleri tarafından yapılabilir.')
+      toast('Envanter düzenleme yetkiniz bulunmamaktadır. Bu işlem yalnızca Admin ve Editor rolleri tarafından yapılabilir.')
       return
     }
 
@@ -304,7 +305,7 @@ export default function VehicleDetailPage() {
   const handleDeleteEquipment = async (item: InventoryItem) => {
     if (!vehicle || !activeCompartment) return
     if (!canEditInventory) {
-      alert('Envanter düzenleme yetkiniz bulunmamaktadır. Bu işlem yalnızca Admin ve Editor rolleri tarafından yapılabilir.')
+      toast('Envanter düzenleme yetkiniz bulunmamaktadır. Bu işlem yalnızca Admin ve Editor rolleri tarafından yapılabilir.')
       return
     }
 
@@ -323,7 +324,7 @@ export default function VehicleDetailPage() {
     const { error: updateErr } = await api.update('vehicles', { bolmeler: updatedBolmeler }, { plaka: vehicle.plaka })
 
     if (updateErr) {
-      alert("Hata: " + updateErr.message)
+      toast("Hata: " + updateErr.message)
       return
     }
 
@@ -358,7 +359,7 @@ export default function VehicleDetailPage() {
     e.preventDefault()
     if (!vehicle) return
     if (!maintenanceForm.aciklama.trim()) {
-      alert("Lütfen bir açıklama girin.")
+      toast("Lütfen bir açıklama girin.")
       return
     }
 
@@ -452,7 +453,7 @@ export default function VehicleDetailPage() {
       setIsMaintenanceModalOpen(false)
     } catch (err: any) {
       console.error("Bakım ekleme hatası:", err)
-      alert("Kayıt oluşturulurken bir hata oluştu.")
+      toast("Kayıt oluşturulurken bir hata oluştu.")
     } finally {
       setIsSavingMaintenance(false)
     }
@@ -506,7 +507,7 @@ export default function VehicleDetailPage() {
     if (!newKey || newKey === oldKey) return
 
     if (tempBolmeler[newKey]) {
-      alert(`"${newKey}" bölmesi zaten mevcut. Lütfen benzersiz bir isim girin.`)
+      toast(`"${newKey}" bölmesi zaten mevcut. Lütfen benzersiz bir isim girin.`)
       return
     }
 
@@ -558,12 +559,12 @@ export default function VehicleDetailPage() {
     }
 
     if (!keyToAdd) {
-      alert("Lütfen geçerli bir bölme ismi veya anahtarı girin.")
+      toast("Lütfen geçerli bir bölme ismi veya anahtarı girin.")
       return
     }
 
     if (tempBolmeler[keyToAdd]) {
-      alert(`"${keyToAdd}" bölmesi zaten ekli.`)
+      toast(`"${keyToAdd}" bölmesi zaten ekli.`)
       return
     }
 
@@ -617,11 +618,11 @@ export default function VehicleDetailPage() {
         }),
       }).catch(err => console.error('[AuditLog] Yapılandırma logu gönderilemedi:', err))
 
-      alert("Araç yapılandırması başarıyla güncellendi!")
+      toast("Araç yapılandırması başarıyla güncellendi!")
       setIsConfigPanelOpen(false)
     } catch (err: any) {
       console.error("Error saving configuration:", err)
-      alert("Hata oluştu: " + err.message)
+      toast("Hata oluştu: " + err.message)
     } finally {
       setSavingConfig(false)
     }

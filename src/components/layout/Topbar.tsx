@@ -9,6 +9,7 @@ import { api } from '@/lib/api'
 import Link from 'next/link'
 import { GeofenceButton } from './GeofenceButton'
 import { ThemeDrawer } from '../theme/ThemeDrawer'
+import { toast } from "@/lib/toast"
 
 interface NotificationItem {
   id: string
@@ -139,7 +140,7 @@ export function Topbar() {
 
   const handlePushToggle = async () => {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
-      alert('Bu tarayıcı anlık bildirimleri desteklemiyor.');
+      toast('Bu tarayıcı anlık bildirimleri desteklemiyor.');
       return;
     }
 
@@ -159,7 +160,7 @@ export function Topbar() {
 
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
-        alert('Bildirim izni reddedildi. Lütfen tarayıcı ayarlarından bildirim iznini etkinleştirin.');
+        toast('Bildirim izni reddedildi. Lütfen tarayıcı ayarlarından bildirim iznini etkinleştirin.');
         return;
       }
 
@@ -174,14 +175,14 @@ export function Topbar() {
         const res = await api.update('personnel', { push_subscription_token: subJson }, { sicil_no: user.sicilNo });
         if (res.error) {
           console.error('Push token save error:', res.error);
-          alert('Bildirim aboneliği kaydedilemedi: ' + res.error);
+          toast('Bildirim aboneliği kaydedilemedi: ' + res.error);
         } else {
           setIsPushSubscribed(true);
         }
       }
     } catch (err) {
       console.error('Push bildirim abonelik hatası:', err);
-      alert('Bildirim aboneliği oluşturulurken bir hata oluştu.');
+      toast('Bildirim aboneliği oluşturulurken bir hata oluştu.');
     }
   };
 

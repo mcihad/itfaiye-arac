@@ -31,6 +31,7 @@ import { Badge } from "@/components/ui/Badge"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card"
 import jsPDF from "jspdf"
 import { Accordion, AccordionItem } from "@/components/ui/Accordion"
+import { toast } from "@/lib/toast"
 
 interface MaintenanceLog {
   id?: string;
@@ -224,7 +225,7 @@ export default function VehiclesPage() {
       fetchVehicles();
     } catch (err) {
       console.error("Sorumlular güncellenirken hata oluştu:", err);
-      alert("Hata oluştu: Sorumlu personel atanamadı.");
+      toast("Hata oluştu: Sorumlu personel atanamadı.");
     }
   };
 
@@ -256,7 +257,7 @@ export default function VehiclesPage() {
   const handleDeleteVehicle = async () => {
     if (!deletingPlaka) return;
     if (confirmPlakaInput.trim().toUpperCase() !== deletingPlaka.toUpperCase()) {
-      alert("Girdiğiniz plaka uyuşmuyor.");
+      toast("Girdiğiniz plaka uyuşmuyor.");
       return;
     }
 
@@ -274,10 +275,10 @@ export default function VehiclesPage() {
       setDeletingPlaka("");
       setConfirmPlakaInput("");
       fetchVehicles();
-      alert("Araç ve ilişkili tüm kayıtlar başarıyla silindi.");
+      toast("Araç ve ilişkili tüm kayıtlar başarıyla silindi.");
     } catch (err: any) {
       console.error("Araç silinirken hata:", err);
-      alert("Araç silinemedi: " + (err.message || err));
+      toast("Araç silinemedi: " + (err.message || err));
     } finally {
       setDeleting(false);
     }
@@ -286,7 +287,7 @@ export default function VehiclesPage() {
   const handleSaveAriza = async () => {
     if (!reportingPlaka) return;
     if (!arizaAciklama.trim()) {
-      alert("Lütfen arıza açıklamasını girin.");
+      toast("Lütfen arıza açıklamasını girin.");
       return;
     }
 
@@ -294,7 +295,7 @@ export default function VehiclesPage() {
       setSavingAriza(true);
       const targetVehicle = vehicles.find(v => v.plaka === reportingPlaka);
       if (!targetVehicle) {
-        alert("Araç bulunamadı.");
+        toast("Araç bulunamadı.");
         return;
       }
 
@@ -361,7 +362,7 @@ export default function VehiclesPage() {
         }),
       }).catch(err => console.error('[AuditLog] Arıza logu gönderilemedi:', err));
 
-      alert("Arıza başarıyla bildirildi. Araç Makine İkmal Müdürlüğü (Bakım-Onarım) şubesine sevk edildi.");
+      toast("Arıza başarıyla bildirildi. Araç Makine İkmal Müdürlüğü (Bakım-Onarım) şubesine sevk edildi.");
       setArizaModalOpen(false);
       setArizaAciklama("");
       setArizaSeviyesi("Kritik");
@@ -370,7 +371,7 @@ export default function VehiclesPage() {
       fetchMaintenanceLogs();
     } catch (err: any) {
       console.error(err);
-      alert("Arıza bildirilirken hata oluştu: " + err.message);
+      toast("Arıza bildirilirken hata oluştu: " + err.message);
     } finally {
       setSavingAriza(false);
     }
@@ -436,7 +437,7 @@ export default function VehiclesPage() {
         }),
       }).catch(err => console.error('[AuditLog] Taburcu logu gönderilemedi:', err));
 
-      alert(`${vehicle.plaka} başarıyla taburcu edildi ve ${targetBranch} şubesine sevk edildi.`);
+      toast(`${vehicle.plaka} başarıyla taburcu edildi ve ${targetBranch} şubesine sevk edildi.`);
       setReturnModalOpen(false);
       setDischargeItem(null);
       setReturnNotes("");
@@ -445,7 +446,7 @@ export default function VehiclesPage() {
       fetchMaintenanceLogs();
     } catch (err: any) {
       console.error(err);
-      alert("Araç taburcu edilirken hata oluştu: " + err.message);
+      toast("Araç taburcu edilirken hata oluştu: " + err.message);
     } finally {
       setSavingReturn(false);
     }
@@ -464,7 +465,7 @@ export default function VehiclesPage() {
   const handleSaveLogEdit = async () => {
     if (!editingLog) return;
     if (!editAciklama.trim()) {
-      alert("Lütfen arıza açıklamasını girin.");
+      toast("Lütfen arıza açıklamasını girin.");
       return;
     }
     
@@ -514,14 +515,14 @@ export default function VehiclesPage() {
       );
       if (editSync.error) console.error('[Sync] vehicle_maintenances güncellenemedi:', editSync.error);
       
-      alert("Arıza kaydı başarıyla güncellendi.");
+      toast("Arıza kaydı başarıyla güncellendi.");
       setEditLogModalOpen(false);
       setEditingLog(null);
       fetchVehicles();
       fetchMaintenanceLogs();
     } catch (err: any) {
       console.error(err);
-      alert("Kayıt güncellenirken hata oluştu: " + err.message);
+      toast("Kayıt güncellenirken hata oluştu: " + err.message);
     } finally {
       setSavingLogEdit(false);
     }
@@ -554,12 +555,12 @@ export default function VehiclesPage() {
         if (resSyncDel.error) console.error('[Sync] vehicle_maintenances silinemedi:', resSyncDel.error);
       }
       
-      alert("Arıza kaydı başarıyla silindi.");
+      toast("Arıza kaydı başarıyla silindi.");
       fetchVehicles();
       fetchMaintenanceLogs();
     } catch (err: any) {
       console.error(err);
-      alert("Kayıt silinirken hata oluştu: " + err.message);
+      toast("Kayıt silinirken hata oluştu: " + err.message);
     }
   };
   // Faz 28.51: Şube Değiştir Handler
@@ -570,13 +571,13 @@ export default function VehiclesPage() {
       setSavingBranch(true);
       const targetVehicle = vehicles.find(v => v.plaka === branchChangePlaka);
       if (!targetVehicle) {
-        alert("Araç bulunamadı.");
+        toast("Araç bulunamadı.");
         return;
       }
 
       const oldBranch = targetVehicle.current_branch || 'Merkez';
       if (newBranch === oldBranch) {
-        alert("Araç zaten bu şubede kayıtlı.");
+        toast("Araç zaten bu şubede kayıtlı.");
         return;
       }
 
@@ -603,14 +604,14 @@ export default function VehiclesPage() {
         }),
       }).catch(err => console.error('[AuditLog] Şube değişiklik logu gönderilemedi:', err));
 
-      alert(`${branchChangePlaka} başarıyla "${newBranch}" şubesine atandı.`);
+      toast(`${branchChangePlaka} başarıyla "${newBranch}" şubesine atandı.`);
       setBranchModalOpen(false);
       setBranchChangePlaka(null);
       setNewBranch("Merkez");
       fetchVehicles();
     } catch (err: any) {
       console.error(err);
-      alert("Şube değiştirilirken hata oluştu: " + err.message);
+      toast("Şube değiştirilirken hata oluştu: " + err.message);
     } finally {
       setSavingBranch(false);
     }

@@ -10,6 +10,7 @@ import { useAuthStore } from "@/lib/authStore"
 import { ImageUpload } from "@/components/ui/ImageUpload"
 import PageGuard from "@/components/PageGuard"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/Dialog"
+import { toast } from "@/lib/toast"
 import {
   CheckSquare,
   ClipboardList,
@@ -236,7 +237,7 @@ export default function UnifiedGorevlerPage() {
       setNewNotlar("")
     } catch (err) {
       console.error("Görev oluşturma hatası:", err)
-      alert("Görev oluşturulurken bir hata meydana geldi.")
+      toast("Görev oluşturulurken bir hata meydana geldi.")
     } finally {
       setFormSaving(false)
     }
@@ -263,11 +264,11 @@ export default function UnifiedGorevlerPage() {
       for (const c of task.checklist) {
         if (c.zorunlu) {
           if (c.tip === 'boolean' && filledValues[c.id] === null) {
-            alert(`Zorunlu alan eksik: ${c.soru}`)
+            toast(`Zorunlu alan eksik: ${c.soru}`)
             return
           }
           if ((c.tip === 'text' || c.tip === 'numeric') && (filledValues[c.id] === undefined || filledValues[c.id] === "")) {
-            alert(`Zorunlu alan doldurulmalı: ${c.soru}`)
+            toast(`Zorunlu alan doldurulmalı: ${c.soru}`)
             return
           }
         }
@@ -291,7 +292,7 @@ export default function UnifiedGorevlerPage() {
       await fetchAllData()
     } catch (err) {
       console.error("Görev tamamlama hatası:", err)
-      alert("Görev kaydedilirken bir hata oluştu.")
+      toast("Görev kaydedilirken bir hata oluştu.")
     }
   }
 
@@ -310,7 +311,7 @@ export default function UnifiedGorevlerPage() {
 
   const handleSaveTemplate = async () => {
     if (!baslik.trim() || sorular.some(s => !s.soru.trim())) {
-      alert("Lütfen şablon başlığını ve tüm kontrol maddelerini doldurun.")
+      toast("Lütfen şablon başlığını ve tüm kontrol maddelerini doldurun.")
       return
     }
 
@@ -334,7 +335,7 @@ export default function UnifiedGorevlerPage() {
       await fetchAllData()
     } catch (err) {
       console.error("Şablon kayıt hatası:", err)
-      alert("Şablon kaydedilirken bir hata oluştu.")
+      toast("Şablon kaydedilirken bir hata oluştu.")
     } finally {
       setSavingTemplate(false)
     }
@@ -347,7 +348,7 @@ export default function UnifiedGorevlerPage() {
       await fetchAllData()
     } catch (err) {
       console.error("Şablon durum değiştirme hatası:", err)
-      alert("Şablon durumu değiştirilemedi.")
+      toast("Şablon durumu değiştirilemedi.")
     }
   }
 
@@ -355,11 +356,11 @@ export default function UnifiedGorevlerPage() {
   const handleCreateExternalMission = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!addMissionForm.baslik) {
-      alert("Lütfen bir başlık giriniz.")
+      toast("Lütfen bir başlık giriniz.")
       return
     }
     if (addMissionForm.sicil_nos.length === 0) {
-      alert("Lütfen en az bir personel seçiniz.")
+      toast("Lütfen en az bir personel seçiniz.")
       return
     }
     
@@ -403,7 +404,7 @@ export default function UnifiedGorevlerPage() {
         console.error("SMS Gönderim Hatası:", smsErr);
       }
 
-      alert("Dış görev başarıyla başlatıldı ve personele SMS gönderimi tetiklendi.")
+      toast("Dış görev başarıyla başlatıldı ve personele SMS gönderimi tetiklendi.")
       setShowAddMissionForm(false)
       setAddMissionForm({
         gorev_turu: "Sosyal Görev",
@@ -417,7 +418,7 @@ export default function UnifiedGorevlerPage() {
       await fetchAllData()
     } catch (err: any) {
       console.error(err)
-      alert("Dış görev oluşturulurken hata oluştu: " + err.message)
+      toast("Dış görev oluşturulurken hata oluştu: " + err.message)
     } finally {
       setAddMissionSaving(false)
     }
@@ -428,11 +429,11 @@ export default function UnifiedGorevlerPage() {
     try {
       const { error } = await api.update('external_missions', { durum: 'Tamamlandı' }, { id })
       if (error) throw error
-      alert("Dış görev başarıyla tamamlandı.")
+      toast("Dış görev başarıyla tamamlandı.")
       await fetchAllData()
     } catch (err: any) {
       console.error(err)
-      alert("Hata oluştu: " + err.message)
+      toast("Hata oluştu: " + err.message)
     }
   }
 
@@ -441,11 +442,11 @@ export default function UnifiedGorevlerPage() {
     try {
       const { error } = await api.remove('external_missions', { id })
       if (error) throw error
-      alert("Dış görev başarıyla silindi.")
+      toast("Dış görev başarıyla silindi.")
       await fetchAllData()
     } catch (err: any) {
       console.error(err)
-      alert("Silme hatası: " + err.message)
+      toast("Silme hatası: " + err.message)
     }
   }
 
@@ -471,11 +472,11 @@ export default function UnifiedGorevlerPage() {
   const handleSaveMissionEdit = async () => {
     if (!editingMission) return
     if (!editMissionForm.baslik) {
-      alert("Lütfen başlık giriniz.")
+      toast("Lütfen başlık giriniz.")
       return
     }
     if (editMissionForm.sicil_nos.length === 0) {
-      alert("Lütfen en az bir personel seçiniz.")
+      toast("Lütfen en az bir personel seçiniz.")
       return
     }
 
@@ -493,13 +494,13 @@ export default function UnifiedGorevlerPage() {
 
       if (error) throw error
 
-      alert("Dış görev başarıyla güncellendi.")
+      toast("Dış görev başarıyla güncellendi.")
       setEditMissionModalOpen(false)
       setEditingMission(null)
       await fetchAllData()
     } catch (err: any) {
       console.error(err)
-      alert("Güncelleme hatası: " + err.message)
+      toast("Güncelleme hatası: " + err.message)
     } finally {
       setEditMissionSaving(false)
     }

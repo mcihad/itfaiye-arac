@@ -36,6 +36,7 @@ import { useAuthStore } from "@/lib/authStore"
 import { COMPARTMENT_NAMES, APP_BASE_URL } from "@/lib/constants"
 import jsPDF from "jspdf"
 import { cn } from "@/lib/utils"
+import { toast } from "@/lib/toast"
 
 
 const normalizeTextForSearch = (str: string): string => {
@@ -165,7 +166,7 @@ function VehicleInventoryTab() {
     const matUpper = row.malzeme_adi.trim().toUpperCase();
     const malzemeId = inventoryCache[matUpper];
     if (!malzemeId) {
-      alert("Lütfen geçici zimmet işlemi yapmadan önce sayfa altındaki 'Kaydet' butonuna basarak envanter değişikliklerini veri tabanına işleyin.");
+      toast("Lütfen geçici zimmet işlemi yapmadan önce sayfa altındaki 'Kaydet' butonuna basarak envanter değişikliklerini veri tabanına işleyin.");
       return;
     }
     setAssignmentRow(row);
@@ -179,14 +180,14 @@ function VehicleInventoryTab() {
 
   const handleCreateAssignment = async () => {
     if (!assignmentRow || !recipientName || !estimatedReturnDate) {
-      alert("Lütfen tüm zorunlu alanları doldurun.");
+      toast("Lütfen tüm zorunlu alanları doldurun.");
       return;
     }
 
     const matUpper = assignmentRow.malzeme_adi.trim().toUpperCase();
     const malzemeId = inventoryCache[matUpper];
     if (!malzemeId) {
-      alert("Malzeme kimliği bulunamadı.");
+      toast("Malzeme kimliği bulunamadı.");
       return;
     }
 
@@ -220,7 +221,7 @@ function VehicleInventoryTab() {
       if (assignmentRow.id) {
         const invUpd = await api.update('vehicle_inventory', { durum: '🔄 GEÇİCİ ZİMMETTE' }, { id: assignmentRow.id });
         if (invUpd.error) {
-          alert(`Uyarı: Zimmet verildi ancak envanter durumu güncellenemedi: ${invUpd.error}`);
+          toast(`Uyarı: Zimmet verildi ancak envanter durumu güncellenemedi: ${invUpd.error}`);
         }
       }
 
@@ -247,7 +248,7 @@ function VehicleInventoryTab() {
 
       const bolmeUpd = await api.update('vehicles', { bolmeler: newBolmeler }, { plaka: selectedPlaka });
       if (bolmeUpd.error) {
-        alert(`Uyarı: Araç bölme listesi güncellenemedi: ${bolmeUpd.error}`);
+        toast(`Uyarı: Araç bölme listesi güncellenemedi: ${bolmeUpd.error}`);
       }
 
       // Save audit log
@@ -283,7 +284,7 @@ function VehicleInventoryTab() {
 
     } catch (err: any) {
       console.error(err);
-      alert("Zimmet oluşturulurken hata oluştu: " + err.message);
+      toast("Zimmet oluşturulurken hata oluştu: " + err.message);
     }
   };
   
@@ -327,10 +328,10 @@ function VehicleInventoryTab() {
         return v;
       }));
       
-      alert("Araç filo bilgileri başarıyla güncellendi.");
+      toast("Araç filo bilgileri başarıyla güncellendi.");
     } catch (err: any) {
       console.error(err);
-      alert("Hata oluştu: " + (err.message || err));
+      toast("Hata oluştu: " + (err.message || err));
     }
   }
   
@@ -613,7 +614,7 @@ function VehicleInventoryTab() {
   // Save changes to database
   const saveInventoryToDB = async () => {
     if (!canEdit) {
-      alert('Envanter düzenleme yetkiniz bulunmamaktadır. Bu işlem yalnızca Admin ve Editor rolleri tarafından yapılabilir.')
+      toast('Envanter düzenleme yetkiniz bulunmamaktadır. Bu işlem yalnızca Admin ve Editor rolleri tarafından yapılabilir.')
       return
     }
     setIsSaving(true)
@@ -714,7 +715,7 @@ function VehicleInventoryTab() {
       // Refresh local matrix and data cache
       loadAllData();
     } catch (err: any) {
-      alert("Hata oluştu: " + err.message)
+      toast("Hata oluştu: " + err.message)
     } finally {
       setIsSaving(false)
     }
@@ -2057,7 +2058,7 @@ export default function EnvanterPage() {
         // Update vehicle_inventory status back to Tam
         const iadeUpd = await api.update('vehicle_inventory', { durum: 'Tam' }, { id: targetItem.id })
         if (iadeUpd.error) {
-          alert(`Uyarı: İade alındı ancak envanter durumu 'Tam' yapılamadı: ${iadeUpd.error}`)
+          toast(`Uyarı: İade alındı ancak envanter durumu 'Tam' yapılamadı: ${iadeUpd.error}`)
         }
 
         // Fetch all items for this vehicle to rebuild bolmeler JSON cache
@@ -2091,7 +2092,7 @@ export default function EnvanterPage() {
 
           const iadeBolme = await api.update('vehicles', { bolmeler: newBolmeler }, { plaka: targetItem.plaka })
           if (iadeBolme.error) {
-            alert(`Uyarı: Araç bölme listesi güncellenemedi: ${iadeBolme.error}`)
+            toast(`Uyarı: Araç bölme listesi güncellenemedi: ${iadeBolme.error}`)
           }
         }
       }
@@ -2112,11 +2113,11 @@ export default function EnvanterPage() {
         }),
       }).catch(err => console.error('[AuditLog] İade logu gönderilemedi:', err))
 
-      alert("Malzeme başarıyla iade alındı ve araç envanter statüsü güncellendi.")
+      toast("Malzeme başarıyla iade alındı ve araç envanter statüsü güncellendi.")
       loadAssignments()
     } catch (err: any) {
       console.error(err)
-      alert("Hata oluştu: " + err.message)
+      toast("Hata oluştu: " + err.message)
     }
   }
 

@@ -6,6 +6,7 @@ import Link from "next/link"
 import { Vehicle, Personnel } from "@/types"
 import { api } from "@/lib/api"
 import { useAuthStore } from "@/lib/authStore"
+import { toast } from "@/lib/toast"
 
 interface VehicleCardProps {
   vehicle: Vehicle
@@ -213,7 +214,7 @@ export function VehicleCard({ vehicle, onPrintQR, onEdit, onReportFault, onChang
 
   const handleUpdateDate = async () => {
     if (!newDate) {
-      alert('Lütfen geçerli bir tarih seçin.');
+      toast('Lütfen geçerli bir tarih seçin.');
       return;
     }
     setIsUpdating(true);
@@ -228,7 +229,7 @@ export function VehicleCard({ vehicle, onPrintQR, onEdit, onReportFault, onChang
       setIsEditing(false);
     } catch (err: any) {
       console.error('Muayene tarihi güncellenirken hata oluştu:', err);
-      alert('Güncelleme başarısız: ' + (err.message || err));
+      toast('Güncelleme başarısız: ' + (err.message || err));
     } finally {
       setIsUpdating(false);
     }

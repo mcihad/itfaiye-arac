@@ -7,6 +7,7 @@ import { api } from "@/lib/api"
 import { RadioRecordingsPanel } from "@/components/radio/RadioRecordingsPanel"
 import PageGuard from "@/components/PageGuard"
 import { Badge } from "@/components/ui/Badge"
+import { toast } from "@/lib/toast"
 import { 
   Radio, 
   Send, 
@@ -282,7 +283,7 @@ export default function TelsizPage() {
     if (!user) return
 
     if (!personnelUuid) {
-      alert("Kimliğiniz doğrulanıyor, lütfen 1 saniye bekleyip tekrar deneyin.")
+      toast("Kimliğiniz doğrulanıyor, lütfen 1 saniye bekleyip tekrar deneyin.")
       return
     }
 
@@ -305,7 +306,7 @@ export default function TelsizPage() {
       const { data, error } = await api.insert('radio_logs', [payload])
       if (error) {
         console.error("Message insert error:", error)
-        alert("Muhabere hatası: Telsiz mandalı başarısız.")
+        toast("Muhabere hatası: Telsiz mandalı başarısız.")
       } else {
         setInputText("")
         // Play beep sound if unmuted

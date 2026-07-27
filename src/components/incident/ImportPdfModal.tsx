@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { Loader2, Upload, FileText, X, CheckCircle } from 'lucide-react'
 import { api, unwrap } from '@/lib/api'
+import { toast } from "@/lib/toast"
 
 interface ImportPdfModalProps {
   onClose: () => void
@@ -25,7 +26,7 @@ export function ImportPdfModal({ onClose, onSuccess }: ImportPdfModalProps) {
     if (e.target.files && e.target.files.length > 0) {
       const selected = e.target.files[0]
       if (selected.type !== 'application/pdf') {
-        alert("Lütfen sadece PDF dosyası yükleyin.")
+        toast("Lütfen sadece PDF dosyası yükleyin.")
         return
       }
       setFile(selected)
@@ -34,7 +35,7 @@ export function ImportPdfModal({ onClose, onSuccess }: ImportPdfModalProps) {
 
   const handleImport = async () => {
     if (!file || !tarih || !mahalle) {
-      alert("Lütfen tüm alanları doldurun ve bir PDF dosyası seçin.")
+      toast("Lütfen tüm alanları doldurun ve bir PDF dosyası seçin.")
       return
     }
 
@@ -84,7 +85,7 @@ export function ImportPdfModal({ onClose, onSuccess }: ImportPdfModalProps) {
       onSuccess()
     } catch (err: any) {
       console.error("İçe aktarma hatası:", err)
-      alert("Hata oluştu: " + (err.message || "Bilinmeyen hata"))
+      toast("Hata oluştu: " + (err.message || "Bilinmeyen hata"))
     } finally {
       setLoading(false)
     }

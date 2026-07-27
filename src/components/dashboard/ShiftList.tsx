@@ -9,6 +9,7 @@ import { STATION_SHIFT_TIMES, normalizeStationName } from "@/lib/shiftUtils"
 import { Personnel } from "@/types"
 import { useAuthStore } from "@/lib/authStore"
 import { api, unwrap, getAuthHeaders } from "@/lib/api"
+import { toast } from "@/lib/toast"
 
 // ─── Hiyerarşik Rütbe Sıralaması ───────────────────────────
 function getUnvanPriority(unvan: string): number {
@@ -154,7 +155,7 @@ export function ShiftList({ personnel, activePosta, onPersonnelUpdate, customTim
 
   const handleExportPDF = () => {
     if (!list || list.length === 0) {
-      alert("Kayıtlı aktif nöbetçi posta listesi bulunamadı");
+      toast("Kayıtlı aktif nöbetçi posta listesi bulunamadı");
       return;
     }
     exportShiftListToPDF(list, activePosta);
@@ -162,7 +163,7 @@ export function ShiftList({ personnel, activePosta, onPersonnelUpdate, customTim
 
   const handleExportExcel = () => {
     if (!list || list.length === 0) {
-      alert("Kayıtlı aktif nöbetçi posta listesi bulunamadı");
+      toast("Kayıtlı aktif nöbetçi posta listesi bulunamadı");
       return;
     }
     exportShiftListToExcel(list, activePosta);
@@ -207,7 +208,7 @@ export function ShiftList({ personnel, activePosta, onPersonnelUpdate, customTim
         if (fail) throw new Error(fail.error);
       } catch (e: any) {
         console.error("Failed to log leave movement:", e);
-        alert(`Uyarı: Personel durumu güncellendi ancak izin defterine kayıt YAZILAMADI:\n${e?.message || e}\n\nİzin listesi ile nöbet listesi tutarsız kalabilir.`);
+        toast(`Uyarı: Personel durumu güncellendi ancak izin defterine kayıt YAZILAMADI:\n${e?.message || e}\n\nİzin listesi ile nöbet listesi tutarsız kalabilir.`);
       }
       // Özlük kaydı ('İzin Kaydı') merkezi uçta yazıldı — ayrıca 'Nöbet Hareketi' yazılmaz.
       return;
@@ -232,7 +233,7 @@ export function ShiftList({ personnel, activePosta, onPersonnelUpdate, customTim
       }));
     } catch (e: any) {
       console.error("Failed to log personnel record movement:", e);
-      alert(`Uyarı: Personel durumu güncellendi ancak hizmet dökümüne hareket kaydı YAZILAMADI:\n${e?.message || e}`);
+      toast(`Uyarı: Personel durumu güncellendi ancak hizmet dökümüne hareket kaydı YAZILAMADI:\n${e?.message || e}`);
     }
   };
 
@@ -257,7 +258,7 @@ export function ShiftList({ personnel, activePosta, onPersonnelUpdate, customTim
       }
     } catch (err: any) {
       console.error("Status update error:", err)
-      alert(`Durum güncellenemedi: ${err.message || err}`)
+      toast(`Durum güncellenemedi: ${err.message || err}`)
     } finally {
       setUpdatingId(null)
     }

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { ServiceWorkerRegister } from "@/components/layout/ServiceWorkerRegister";
 import { AlarmOverlay } from "@/components/layout/AlarmOverlay";
+import { Toaster } from "@/components/ui/Toaster";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./globals.css";
 
@@ -37,6 +38,7 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           {children}
           <AlarmOverlay />
+          <Toaster />
         </ThemeProvider>
         <ServiceWorkerRegister />
       </body>

@@ -15,6 +15,7 @@ import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Responsi
 import { useAuthStore } from "@/lib/authStore"
 import { cn } from "@/lib/utils"
 import { CertificatesTab } from "@/components/personnel/CertificatesTab"
+import { toast } from "@/lib/toast"
 
 // Types
 type Personel = any; // TODO: Better typing
@@ -143,7 +144,7 @@ export default function PersonelProfilPage() {
       unwrap(await api.update("personnel", { foto_url: result.url }, { sicil_no }))
       setPersonel((prev: any) => (prev ? { ...prev, foto_url: result.url } : prev))
     } catch (err: any) {
-      alert("Fotoğraf yüklenemedi: " + (err?.message || err))
+      toast("Fotoğraf yüklenemedi: " + (err?.message || err))
     } finally {
       setUploadingPhoto(false)
       if (photoInputRef.current) photoInputRef.current.value = ""
@@ -176,7 +177,7 @@ export default function PersonelProfilPage() {
       setDetails((prev: any) => prev ? ({ ...prev, ...payload }) : payload)
       setIsEditing(false)
     } catch (err: any) {
-      alert("Bilgiler güncellenirken hata oluştu: " + err.message)
+      toast("Bilgiler güncellenirken hata oluştu: " + err.message)
     } finally {
       setSavingDetails(false)
     }
@@ -184,7 +185,7 @@ export default function PersonelProfilPage() {
   const handleSaveLeave = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!leaveStartDate || !leaveEndDate) {
-      alert("Lütfen tarihleri doldurun.")
+      toast("Lütfen tarihleri doldurun.")
       return
     }
     setSavingLeave(true)
@@ -232,7 +233,7 @@ export default function PersonelProfilPage() {
       setLeaveDescription("")
     } catch (err: any) {
       console.error("İzin ekleme hatası:", err)
-      alert(`İzin eklenemedi: ${err.message || err}`)
+      toast(`İzin eklenemedi: ${err.message || err}`)
     } finally {
       setSavingLeave(false)
     }
@@ -1062,7 +1063,7 @@ export default function PersonelProfilPage() {
                                   if (!res.ok) throw new Error(json.error || 'Silme işlemi başarısız oldu.');
                                   setLeaves(prev => prev.filter(l => l.id !== leave.id));
                                 } catch (e: any) {
-                                  alert(`Silme işlemi başarısız oldu: ${e?.message || e}`);
+                                  toast(`Silme işlemi başarısız oldu: ${e?.message || e}`);
                                 }
                               }
                             }}

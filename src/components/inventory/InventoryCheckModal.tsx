@@ -11,6 +11,7 @@ import { api } from "@/lib/api"
 import { useAuthStore } from "@/lib/authStore"
 import { cn } from "@/lib/utils"
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/Alert"
+import { toast } from "@/lib/toast"
 
 export interface InventoryCheckModalProps {
   isOpen: boolean
@@ -102,7 +103,7 @@ export function InventoryCheckModal({ isOpen, vehiclePlaka, compartmentKey, onCl
     // Validate if all items are checked
     const unchecked = items.filter(i => !i.checkStatus).length
     if (unchecked > 0) {
-      alert(`Lütfen tüm listeyi kontrol edin. İşaretlenmemiş ${unchecked} malzeme var.`)
+      toast(`Lütfen tüm listeyi kontrol edin. İşaretlenmemiş ${unchecked} malzeme var.`)
       return
     }
 

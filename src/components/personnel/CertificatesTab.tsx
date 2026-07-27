@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/Input"
 import { Badge } from "@/components/ui/Badge"
 import { FileText, Plus, Trash2, Edit2, Download, Upload, CheckCircle, Loader2, X, AlertCircle } from 'lucide-react'
 import { api } from '@/lib/api'
+import { toast } from "@/lib/toast"
 
 interface CertificatesTabProps {
   sicilNo: string
@@ -71,13 +72,13 @@ export function CertificatesTab({ sicilNo }: CertificatesTabProps) {
       if (error) throw error
       setCertificates(prev => prev.filter(c => c.id !== id))
     } catch (err: any) {
-      alert("Silme hatası: " + err.message)
+      toast("Silme hatası: " + err.message)
     }
   }
 
   const handleSave = async () => {
     if (!tip || !gecerlilikTarihi) {
-      alert("Sertifika Türü ve Geçerlilik Tarihi zorunludur.")
+      toast("Sertifika Türü ve Geçerlilik Tarihi zorunludur.")
       return
     }
 
@@ -125,7 +126,7 @@ export function CertificatesTab({ sicilNo }: CertificatesTabProps) {
       setIsModalOpen(false)
       fetchCertificates()
     } catch (err: any) {
-      alert("Kaydetme hatası: " + err.message)
+      toast("Kaydetme hatası: " + err.message)
     } finally {
       setSaving(false)
     }

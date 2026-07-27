@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button"
 import { Badge } from "@/components/ui/Badge"
 import { useAuthStore } from "@/lib/authStore"
 import PageGuard from "@/components/PageGuard"
+import { toast } from "@/lib/toast"
 import { 
   Loader2, 
   FileText, 
@@ -515,7 +516,7 @@ export default function EgitimlerPage() {
   const handleSaveMufredat = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!mufredatForm.tarih || !mufredatForm.egitim_konusu) {
-      alert("Tarih ve eğitim konusu zorunludur.")
+      toast("Tarih ve eğitim konusu zorunludur.")
       return
     }
     setIsSavingMufredat(true)
@@ -551,7 +552,7 @@ export default function EgitimlerPage() {
       await fetchMufredat(mufredatMonth, mufredatYear)
     } catch (err) {
       console.error(err)
-      alert("Kayıt sırasında hata oluştu.")
+      toast("Kayıt sırasında hata oluştu.")
     } finally {
       setIsSavingMufredat(false)
     }
@@ -564,7 +565,7 @@ export default function EgitimlerPage() {
       await fetchMufredat(mufredatMonth, mufredatYear)
     } catch (err: any) {
       console.error(err)
-      alert(`Müfredat kaydı silinemedi: ${err?.message || err}`)
+      toast(`Müfredat kaydı silinemedi: ${err?.message || err}`)
     }
   }
 
@@ -684,7 +685,7 @@ export default function EgitimlerPage() {
   const handlePrintSertifika = async () => {
     const p = personnelList.find((x: any) => x.id === sertifikaPersonelId || x.sicil_no === sertifikaPersonelId)
     if (!p) {
-      alert("Lütfen geçerli bir personel seçiniz.")
+      toast("Lütfen geçerli bir personel seçiniz.")
       return
     }
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
@@ -767,14 +768,14 @@ export default function EgitimlerPage() {
         id: editingPersonel.id 
       })
       if (res.error) {
-        alert("Eğitim saati güncellenirken hata oluştu: " + res.error)
+        toast("Eğitim saati güncellenirken hata oluştu: " + res.error)
       } else {
         setPersonnelList(prev => prev.map(p => p.id === editingPersonel.id ? { ...p, temel_egitim_saati: Number(newTrainingHours) } : p))
         setEditingPersonel(null)
       }
     } catch (err: any) {
       console.error(err)
-      alert("Hata: " + err.message)
+      toast("Hata: " + err.message)
     } finally {
       setIsUpdatingHours(false)
     }
@@ -899,11 +900,11 @@ export default function EgitimlerPage() {
         setTacticalMode('NONE');
         setRejectionReason('');
       } else {
-        alert('İşlem başarısız: ' + (data.error || 'Bilinmeyen Hata'));
+        toast('İşlem başarısız: ' + (data.error || 'Bilinmeyen Hata'));
       }
     } catch (err) {
       console.error('Tactical action error:', err)
-      alert('Sistem bağlantı hatası oluştu.')
+      toast('Sistem bağlantı hatası oluştu.')
     } finally {
       setUpdating(null)
     }
@@ -925,7 +926,7 @@ export default function EgitimlerPage() {
           setSelectedRequest(null)
         }
       } else {
-        alert('Silme işlemi başarısız: ' + (data.error || 'Bilinmeyen Hata'))
+        toast('Silme işlemi başarısız: ' + (data.error || 'Bilinmeyen Hata'))
       }
     } catch (err) {
       console.error('Delete request error:', err)
@@ -950,12 +951,12 @@ export default function EgitimlerPage() {
   const handleSaveEducation = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!eduForm.kurum_adi) {
-      alert("Lütfen Kurum adını giriniz.")
+      toast("Lütfen Kurum adını giriniz.")
       return
     }
 
     if (activeBlacklistedInst && !blacklistAcknowledged) {
-      alert("Kara listedeki uyarılı kurum onay kutusunu işaretlemeniz gerekmektedir.")
+      toast("Kara listedeki uyarılı kurum onay kutusunu işaretlemeniz gerekmektedir.")
       return
     }
 
@@ -1013,11 +1014,11 @@ export default function EgitimlerPage() {
         setIsProgramModalOpen(false)
         await fetchAll()
       } else {
-        alert("Kayıt başarısız: " + (res?.error || 'Bilinmeyen Hata'))
+        toast("Kayıt başarısız: " + (res?.error || 'Bilinmeyen Hata'))
       }
     } catch (err) {
       console.error(err)
-      alert("İşlem sırasında hata oluştu.")
+      toast("İşlem sırasında hata oluştu.")
     } finally {
       setIsSavingEdu(false)
     }
@@ -1031,7 +1032,7 @@ export default function EgitimlerPage() {
         setIsProgramModalOpen(false)
         await fetchAll()
       } else {
-        alert("Silme hatası: " + (res?.error || 'Hata'))
+        toast("Silme hatası: " + (res?.error || 'Hata'))
       }
     } catch (err) {
       console.error(err)
@@ -1042,7 +1043,7 @@ export default function EgitimlerPage() {
   const handleAddBlacklist = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!blacklistForm.kurum_adi || !blacklistForm.telefon) {
-      alert("Kurum Adı ve Vergi No/TC alanları zorunludur.")
+      toast("Kurum Adı ve Vergi No/TC alanları zorunludur.")
       return
     }
 
@@ -1059,9 +1060,9 @@ export default function EgitimlerPage() {
       if (res && !res.error) {
         setBlacklistForm({ kurum_adi: '', telefon: '', gerekce: '' })
         await fetchAll()
-        alert("Kurum başarıyla kırmızı bayraklı listeye eklendi.")
+        toast("Kurum başarıyla kırmızı bayraklı listeye eklendi.")
       } else {
-        alert("Kurum ekleme başarısız: " + (res?.error || 'Hata'))
+        toast("Kurum ekleme başarısız: " + (res?.error || 'Hata'))
       }
     } catch (err) {
       console.error(err)
@@ -1095,7 +1096,7 @@ export default function EgitimlerPage() {
 
   const handleQueryBlacklist = () => {
     if (!queryTelefon.trim()) {
-      alert("Lütfen arama terimi girin.")
+      toast("Lütfen arama terimi girin.")
       return
     }
     const term = queryTelefon.trim().toLowerCase();

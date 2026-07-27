@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
 import { ArrowLeft, Truck, ScanLine, CheckCircle2, AlertTriangle, X, Loader2 } from "lucide-react"
 import Link from "next/link"
+import { toast } from "@/lib/toast"
 
 export default function DeepLinkCompartmentPage() {
   const params = useParams()
@@ -77,13 +78,13 @@ export default function DeepLinkCompartmentPage() {
       if (data.success) {
         setIsArizaOpen(false);
         setArizaAciklama("");
-        alert("Arıza kaydı başarıyla garaj merkezine iletildi.");
+        toast("Arıza kaydı başarıyla garaj merkezine iletildi.");
       } else {
-        alert("Bildirim gönderilemedi: " + (data.error || "Bilinmeyen hata"));
+        toast("Bildirim gönderilemedi: " + (data.error || "Bilinmeyen hata"));
       }
     } catch (err) {
       console.error("Ariza submit error:", err);
-      alert("Bağlantı hatası oluştu.");
+      toast("Bağlantı hatası oluştu.");
     } finally {
       setIsSavingAriza(false);
     }

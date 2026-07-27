@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
 import { Calendar, Loader2, Users, AlertTriangle, Lock } from "lucide-react"
 import { useAuthStore } from "@/lib/authStore"
+import { toast } from "@/lib/toast"
 
 interface FutureShiftCalendarProps {
   personnelList: Personnel[]
@@ -95,8 +96,8 @@ export function FutureShiftCalendar({ personnelList, onLeaveUpdated }: FutureShi
   }
 
   const handleBulkAction = async () => {
-    if (selectedPersonnelIds.size === 0) return alert("Lütfen en az bir personel seçin.")
-    if (!bulkActionType) return alert("Lütfen bir izin/durum türü seçin.")
+    if (selectedPersonnelIds.size === 0) return toast("Lütfen en az bir personel seçin.")
+    if (!bulkActionType) return toast("Lütfen bir izin/durum türü seçin.")
 
     setSaving(true)
     try {
@@ -123,9 +124,9 @@ export function FutureShiftCalendar({ personnelList, onLeaveUpdated }: FutureShi
 
       const failures = (json.results || []).filter((r: any) => !r.ok)
       if (failures.length > 0) {
-        alert(`${json.okCount} personel kaydedildi, ${failures.length} personel için işlem BAŞARISIZ oldu.\n\nHata: ${failures[0].error}`)
+        toast(`${json.okCount} personel kaydedildi, ${failures.length} personel için işlem BAŞARISIZ oldu.\n\nHata: ${failures[0].error}`)
       } else {
-        alert("İşlemler başarıyla kaydedildi.")
+        toast("İşlemler başarıyla kaydedildi.")
       }
       if (onLeaveUpdated) {
         onLeaveUpdated()
@@ -154,7 +155,7 @@ export function FutureShiftCalendar({ personnelList, onLeaveUpdated }: FutureShi
 
     } catch (err) {
       console.error(err)
-      alert("Kayıt sırasında bir hata oluştu.")
+      toast("Kayıt sırasında bir hata oluştu.")
     } finally {
       setSaving(false)
     }

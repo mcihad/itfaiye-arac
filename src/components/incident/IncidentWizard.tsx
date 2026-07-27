@@ -12,6 +12,7 @@ import {
   HeartPulse, Shield, Crosshair, UploadCloud, FileText, Printer, MapPin, AlertTriangle
 } from "lucide-react"
 import dynamic from "next/dynamic"
+import { toast } from "@/lib/toast"
 
 const Map = dynamic(() => import("@/components/map/Map"), { ssr: false })
 
@@ -268,7 +269,7 @@ export function IncidentWizard({
       onSuccess()
     } catch (error) {
       console.error(error)
-      alert("Kayıt sırasında bir hata oluştu.")
+      toast("Kayıt sırasında bir hata oluştu.")
     } finally {
       setSubmitting(false)
     }

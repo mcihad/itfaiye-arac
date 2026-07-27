@@ -12,6 +12,7 @@ import { IncidentWizard } from "@/components/incident/IncidentWizard"
 import { ImportPdfModal } from "@/components/incident/ImportPdfModal"
 import { Incident, Personnel, Vehicle, IncidentMedia } from "@/types"
 import { getTriageInfo } from "@/lib/utils"
+import { toast } from "@/lib/toast"
 
 export default function OlaylarPage() {
   const [incidents, setIncidents] = useState<Incident[]>([])
@@ -87,7 +88,7 @@ export default function OlaylarPage() {
       setIncidents(prev => prev.filter(inc => inc.id !== id))
     } catch (error) {
       console.error(error)
-      alert("Silme işlemi sırasında bir hata oluştu.")
+      toast("Silme işlemi sırasında bir hata oluştu.")
     }
   }
 

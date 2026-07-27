@@ -7,6 +7,7 @@ import { isKarargah } from "@/lib/personnelUtils"
 import { useAuthStore } from "@/lib/authStore"
 import { Input } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
+import { toast } from "@/lib/toast"
 import {
   Calendar, X, Loader2, Search, AlertTriangle,
   CheckCircle2, Users, Lock, FileText
@@ -164,9 +165,9 @@ export function LeaveManagementModal({ isOpen, onClose, personnel, onLeaveUpdate
 
       const failures = (json.results || []).filter((r: any) => !r.ok)
       if (failures.length > 0) {
-        alert(`${json.okCount} personel kaydedildi, ${failures.length} personel için işlem BAŞARISIZ oldu.\n\nHata: ${failures[0].error}`)
+        toast(`${json.okCount} personel kaydedildi, ${failures.length} personel için işlem BAŞARISIZ oldu.\n\nHata: ${failures[0].error}`)
       } else {
-        alert("İzin işlemleri başarıyla kaydedildi.")
+        toast("İzin işlemleri başarıyla kaydedildi.")
       }
 
       // Refresh (başarısız olanlar seçili kalır, tekrar denenebilir)
@@ -183,7 +184,7 @@ export function LeaveManagementModal({ isOpen, onClose, personnel, onLeaveUpdate
       }
     } catch (err: any) {
       console.error("Leave save error:", err)
-      alert(`Kayıt sırasında bir hata oluştu: ${err?.message || err}`)
+      toast(`Kayıt sırasında bir hata oluştu: ${err?.message || err}`)
     } finally {
       setSaving(false)
     }

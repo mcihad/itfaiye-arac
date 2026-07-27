@@ -5,6 +5,7 @@ import { api } from "@/lib/api"
 import { useAuthStore } from "@/lib/authStore"
 import { Personnel } from "@/types"
 import { Loader2, ShieldCheck, Clock, MapPin, Building, ShieldAlert, Shield, Printer } from "lucide-react"
+import { toast } from "@/lib/toast"
 
 interface HourlyShiftsProps {
   personnel: Personnel[]
@@ -279,7 +280,7 @@ export function HourlyShifts({ personnel, allPersonnel, activePosta, sabitNizami
     const url = URL.createObjectURL(blob);
     const w = window.open(url, '_blank');
     if (!w) {
-      alert("Popup engelleyiciyi devre dışı bırakın.");
+      toast("Popup engelleyiciyi devre dışı bırakın.");
     }
     setTimeout(() => URL.revokeObjectURL(url), 5000);
   };
@@ -362,7 +363,7 @@ export function HourlyShifts({ personnel, allPersonnel, activePosta, sabitNizami
       })
     } catch (err: any) {
       console.error("Delete slot error:", err)
-      alert(`Nöbetçi silinemedi: ${err.message || err}`)
+      toast(`Nöbetçi silinemedi: ${err.message || err}`)
     } finally {
       setSavingCell(null)
     }
@@ -431,7 +432,7 @@ export function HourlyShifts({ personnel, allPersonnel, activePosta, sabitNizami
       }
     } catch (err: any) {
       console.error("Shift save error:", err)
-      alert(`Nöbet değişikliği kaydedilemedi: ${err.message || err}`)
+      toast(`Nöbet değişikliği kaydedilemedi: ${err.message || err}`)
     } finally {
       setSavingCell(null)
     }
