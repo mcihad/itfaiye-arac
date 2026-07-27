@@ -1,15 +1,16 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
 import jsPDF from "jspdf"
 import { QRCodeCanvas } from "qrcode.react"
-import { api } from "@/lib/api"
+import imageCompression from "browser-image-compression"
+import { api, unwrap, getAuthHeaders } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { Badge } from "@/components/ui/Badge"
 import { Input } from "@/components/ui/Input"
-import { ArrowLeft, User, Phone, MapPin, Calendar, Briefcase, FileText, Activity, Shield, ActivitySquare, LogOut, CheckCircle2, Clock, AlertTriangle, Pencil, X, Save, Loader2, Trash2 } from "lucide-react"
+import { ArrowLeft, User, Phone, MapPin, Calendar, Briefcase, FileText, Activity, Shield, ActivitySquare, LogOut, CheckCircle2, Clock, AlertTriangle, Pencil, X, Save, Loader2, Trash2, Camera } from "lucide-react"
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts"
 import { useAuthStore } from "@/lib/authStore"
 import { cn } from "@/lib/utils"
@@ -108,6 +109,44 @@ export default function PersonelProfilPage() {
   }, [leaves]);
 
   const canEdit = user && (user.sicilNo === sicil_no || user.rol === "Admin")
+
+  // Vesikalık fotoğraf yükleme (kişinin kendisi veya Admin)
+  const photoInputRef = useRef<HTMLInputElement>(null)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
+
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingPhoto(true)
+    try {
+      const compressed = await imageCompression(file, {
+        maxSizeMB: 0.5,
+        maxWidthOrHeight: 800,
+        useWebWorker: true,
+        fileType: "image/jpeg",
+      })
+
+      const formData = new FormData()
+      formData.append("file", compressed, `foto_${sicil_no}_${Date.now()}.jpg`)
+      formData.append("folder", "personel-foto")
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: formData,
+      })
+      const result = await res.json()
+      if (!res.ok || result.error) throw new Error(result.error || "Dosya yüklenemedi")
+
+      unwrap(await api.update("personnel", { foto_url: result.url }, { sicil_no }))
+      setPersonel((prev: any) => (prev ? { ...prev, foto_url: result.url } : prev))
+    } catch (err: any) {
+      alert("Fotoğraf yüklenemedi: " + (err?.message || err))
+    } finally {
+      setUploadingPhoto(false)
+      if (photoInputRef.current) photoInputRef.current.value = ""
+    }
+  }
 
   const handleStartEdit = () => {
     setEditPhone(details?.telefon || "")
@@ -544,8 +583,34 @@ export default function PersonelProfilPage() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           
-          <div className="w-12 h-12 rounded-[var(--fd-r-sm)] bg-[var(--fd-accent-soft)] border border-[var(--fd-accent-soft2)] flex items-center justify-center text-[var(--fd-accent)] text-lg font-bold shrink-0 shadow-sm">
-            {personel.ad.charAt(0)}{personel.soyad.charAt(0)}
+          <div className="relative shrink-0 group">
+            {canEdit && (
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePhotoSelect}
+              />
+            )}
+            <div
+              onClick={() => canEdit && !uploadingPhoto && photoInputRef.current?.click()}
+              title={canEdit ? "Fotoğraf yükle / değiştir" : undefined}
+              className={`w-12 h-12 rounded-[var(--fd-r-sm)] bg-[var(--fd-accent-soft)] border border-[var(--fd-accent-soft2)] flex items-center justify-center text-[var(--fd-accent)] text-lg font-bold shadow-sm overflow-hidden ${canEdit ? "cursor-pointer" : ""}`}
+            >
+              {uploadingPhoto ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : personel.foto_url ? (
+                <img src={personel.foto_url} alt={`${personel.ad} ${personel.soyad}`} className="w-full h-full object-cover" />
+              ) : (
+                <>{personel.ad.charAt(0)}{personel.soyad.charAt(0)}</>
+              )}
+            </div>
+            {canEdit && !uploadingPhoto && (
+              <div className="absolute -bottom-1 -right-1 bg-[var(--fd-accent)] text-white rounded-full p-0.5 shadow pointer-events-none group-hover:scale-110 transition-transform">
+                <Camera className="w-3 h-3" />
+              </div>
+            )}
           </div>
           
           <div>

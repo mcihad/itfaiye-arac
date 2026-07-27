@@ -58,6 +58,8 @@ CREATE TABLE IF NOT EXISTS public.personnel (
   posta_no INTEGER,
   -- birim: 'Posta' (vardiyalı) | 'Karargah' (gündüz mesaili idari kadro)
   birim VARCHAR(20) DEFAULT 'Posta',
+  -- Vesikalık fotoğraf (MinIO URL — itfaiye/personel-foto/)
+  foto_url TEXT,
   durum VARCHAR(50) DEFAULT 'Görevde',
   password_hash TEXT, -- bcrypt hash
   view_only BOOLEAN DEFAULT true,

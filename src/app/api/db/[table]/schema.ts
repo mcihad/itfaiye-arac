@@ -602,6 +602,9 @@ async function ensurePersonnelColumnsExist() {
     // artık tek gerçeklik kaynağı bu kolondur (bkz. src/lib/personnelUtils.ts).
     await query(`ALTER TABLE public.personnel ADD COLUMN IF NOT EXISTS birim VARCHAR(20);`);
 
+    // Personel vesikalık fotoğrafı (MinIO URL — itfaiye/personel-foto/)
+    await query(`ALTER TABLE public.personnel ADD COLUMN IF NOT EXISTS foto_url TEXT;`);
+
     // Geriye dönük sınıflandırma: bilinen karargah ünvanları (yalnızca birim boşsa)
     await query(`
       UPDATE public.personnel SET birim = 'Karargah'

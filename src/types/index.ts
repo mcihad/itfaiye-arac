@@ -53,6 +53,8 @@ export interface Personnel {
   posta_no?: number | null;
   /** 'Posta' (vardiyalı) | 'Karargah' (gündüz mesaili idari kadro) */
   birim?: string;
+  /** Vesikalık fotoğraf URL'i (MinIO — itfaiye/personel-foto/) */
+  foto_url?: string | null;
   istasyon?: string;
   durum?: "Görevde" | "İzinli" | "Raporlu" | string;
   ilkyardim_sertifika_tarihi?: string;
