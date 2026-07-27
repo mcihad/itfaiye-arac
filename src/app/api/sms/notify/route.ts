@@ -1,13 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Client } from "pg";
+import { query as dbQuery } from "@/lib/db";
 import { getActivePostaForStation } from "@/lib/shiftUtils";
 import { getSessionFromRequest } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    if (!getSessionFromRequest(req)) {
+    const session = getSessionFromRequest(req);
+    if (!session) {
       return NextResponse.json({ success: false, error: "Authentication required." }, { status: 401 });
+    }
+
+    // Toplu SMS tetikleme yetkisi: yöneticiler ve olay kaydı açan santral/ihbar
+    // personeli. En düşük yetkili oturumların (Er/Şoför) kurumun SMS hattından
+    // serbest metin toplu mesaj göndermesi engellenir.
+    const rol = session.rol || '';
+    const unvan = (session.unvan || '').toLowerCase();
+    const canSendSms =
+      ['Admin', 'Editor', 'Shift_Leader', 'Santral'].includes(rol) ||
+      /müdür|amir|çavuş|cavus|santral|ihbar|memur/.test(unvan);
+    if (!canSendSms) {
+      return NextResponse.json({ success: false, error: "SMS bildirimi göndermek için yetkiniz yok." }, { status: 403 });
     }
 
     const action = body.action || 'incident'; // 'incident', 'training', 'inventory'
@@ -17,10 +30,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "SMS API keys missing" }, { status: 500 });
     }
 
-    const client = new Client({ connectionString: process.env.DATABASE_URL });
-    await client.connect();
-
-    try {
+    {
       let query = "";
       let queryParams: any[] = [];
       let smsContent = "";
@@ -33,15 +43,16 @@ export async function POST(req: NextRequest) {
           FROM public.personnel p
           LEFT JOIN public.personnel_details pd ON p.sicil_no = pd.sicil_no
           WHERE (
-            p.posta_no = $1 
-            OR p.posta_no IS NULL 
-            OR p.posta_no = 0 
-            OR p.durum = 'Görevde' 
+            p.posta_no = $1
+            OR p.posta_no IS NULL
+            OR p.posta_no = 0
             OR p.unvan IN ('Müdür', 'Amir', 'Baş Şoför', 'Eğitim Çavuşu')
           )
             AND COALESCE(p.telefon, pd.telefon) IS NOT NULL
             AND COALESCE(p.telefon, pd.telefon) != ''
             AND p.aktif = true
+            AND COALESCE(p.durum, '') NOT ILIKE '%izin%'
+            AND COALESCE(p.durum, '') NOT ILIKE '%rapor%'
         `;
         queryParams = [activePosta];
         smsContent = `[YENİ OLAY - ${missionType}]\nKonu: ${missionTitle}\nAdres: ${missionAddress}\nDetay: ${detail || '-'}\nLütfen olay yerine intikal ediniz.`;
@@ -64,6 +75,8 @@ export async function POST(req: NextRequest) {
             AND COALESCE(p.telefon, pd.telefon) IS NOT NULL
             AND COALESCE(p.telefon, pd.telefon) != ''
             AND p.aktif = true
+            AND COALESCE(p.durum, '') NOT ILIKE '%izin%'
+            AND COALESCE(p.durum, '') NOT ILIKE '%rapor%'
         `;
         queryParams = [activePosta, personnelIds || []];
         smsContent = `[EĞİTİM PLANLAMASI]\nTarih: ${date}\nKonu: ${topic}\nİlgili posta ve idari kadroya duyurulur. Lütfen katılım sağlayınız.`;
@@ -74,7 +87,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, error: "Invalid action" }, { status: 400 });
       }
 
-      const { rows } = await client.query(query, queryParams);
+      const { rows } = await dbQuery(query, queryParams);
 
       if (rows.length === 0) {
         return NextResponse.json({ success: true, message: "No personnel to notify" });
@@ -108,9 +121,6 @@ export async function POST(req: NextRequest) {
 
       const result = await smsResponse.json();
       return NextResponse.json({ success: true, recipients: phoneNumbers.length, apiResponse: result });
-
-    } finally {
-      await client.end();
     }
 
   } catch (error: any) {
