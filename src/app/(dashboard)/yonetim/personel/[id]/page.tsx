@@ -189,23 +189,24 @@ export default function PersonelProfilPage() {
     }
     setSavingLeave(true)
     try {
-      const { data, error } = await api.insert('personnel_leaves', {
-        sicil_no: sicil_no,
-        izin_turu: leaveType,
-        baslangic_tarihi: leaveStartDate,
-        bitis_tarihi: leaveEndDate,
-        aciklama: leaveDescription || `${leaveType} kaydı oluşturuldu.`,
-        durum: 'Onaylandı'
+      // Merkezi izin ucu: izin kaydı + personel durumu + özlük kaydı sunucuda
+      // tek transaction içinde yazılır; çakışan izin aralıkları reddedilir.
+      const res = await fetch('/api/leaves', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        body: JSON.stringify({
+          sicil_nos: [sicil_no],
+          izin_turu: leaveType,
+          baslangic_tarihi: leaveStartDate,
+          bitis_tarihi: leaveEndDate,
+          aciklama: leaveDescription,
+          kaynak: 'Personel Özlük Sayfası'
+        })
       })
-      if (error) throw error
-
-      // Chronological record insert in personnel_records (Hizmet Dökümü)
-      await api.insert('personnel_records', {
-        sicil_no: sicil_no,
-        kayit_turu: 'Manuel Giriş',
-        tarih: new Date().toLocaleDateString('en-CA'),
-        aciklama: `${leaveType} kaydı el ile eklendi: ${leaveStartDate} - ${leaveEndDate}. Açıklama: ${leaveDescription || 'Belirtilmemiş'}`
-      }).catch(err => console.error("Records log failed:", err))
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'İşlem başarısız oldu.')
+      const fail = (json.results || []).find((r: any) => !r.ok)
+      if (fail) throw new Error(fail.error)
 
       // Refresh Leaves list
       const { data: lData } = await api.from('personnel_leaves').select('*').eq('sicil_no', sicil_no).order('created_at', { ascending: false })
@@ -1050,10 +1051,18 @@ export default function PersonelProfilPage() {
                             onClick={async () => {
                               if (confirm('Bu izni silmek istediğinize emin misiniz?')) {
                                 try {
-                                  await api.remove('personnel_leaves', { id: leave.id });
+                                  // Merkezi uç: kaydı siler, personel durumunu yeniden
+                                  // hesaplar ve özlüğe iptal kaydı düşer.
+                                  const res = await fetch('/api/leaves', {
+                                    method: 'DELETE',
+                                    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                                    body: JSON.stringify({ id: leave.id, kaynak: 'Personel Özlük Sayfası' })
+                                  });
+                                  const json = await res.json();
+                                  if (!res.ok) throw new Error(json.error || 'Silme işlemi başarısız oldu.');
                                   setLeaves(prev => prev.filter(l => l.id !== leave.id));
-                                } catch (e) {
-                                  alert('Silme işlemi başarısız oldu.');
+                                } catch (e: any) {
+                                  alert(`Silme işlemi başarısız oldu: ${e?.message || e}`);
                                 }
                               }
                             }}

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Personnel } from "@/types"
 import { getActivePostaForStation } from "@/lib/shiftUtils"
 import { isPostaHarici } from "@/lib/personnelUtils"
-import { api, unwrap, addDaysISO } from "@/lib/api"
+import { api, getAuthHeaders } from "@/lib/api"
 import { Card, CardContent } from "@/components/ui/Card"
 import { Input } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
@@ -100,46 +100,30 @@ export function FutureShiftCalendar({ personnelList, onLeaveUpdated }: FutureShi
 
     setSaving(true)
     try {
-      const promises = Array.from(selectedPersonnelIds).map(async (sicilNo) => {
-        const p = activePersonnel.find(x => x.sicil_no === sicilNo)
-        if (!p) return
-
-        const existingLeave = leaves[sicilNo]
-        
-        if (bulkActionType === "İptal") {
-          // Remove leave
-          if (existingLeave) {
-            unwrap(await api.remove('personnel_leaves', { id: existingLeave.id }))
-          }
-        } else {
-          const bitisStr = addDaysISO(selectedDate, leaveDays - 1)
-
-          // Add or update leave
-          if (existingLeave) {
-            unwrap(await api.update('personnel_leaves', {
-              izin_turu: bulkActionType,
-              bitis_tarihi: bitisStr,
-              aciklama: bulkActionNote || `${bulkActionType} eklendi.`
-            }, { id: existingLeave.id }))
-          } else {
-            unwrap(await api.insert('personnel_leaves', {
-              sicil_no: sicilNo,
+      // Merkezi izin ucu: izin kaydı + personel durumu + özlük kaydı sunucuda
+      // tek transaction içinde yazılır. (Eskiden bu ekran yalnızca izin kaydı
+      // yazıyor, durum ve özlük dökümü eksik kalıyordu.)
+      const isCancel = bulkActionType === "İptal"
+      const res = await fetch('/api/leaves', {
+        method: isCancel ? 'DELETE' : 'POST',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        body: JSON.stringify(isCancel
+          ? { sicil_nos: Array.from(selectedPersonnelIds), tarih: selectedDate, kaynak: 'Vardiya Takvimi' }
+          : {
+              sicil_nos: Array.from(selectedPersonnelIds),
               izin_turu: bulkActionType,
               baslangic_tarihi: selectedDate,
-              bitis_tarihi: bitisStr,
-              aciklama: bulkActionNote || `${bulkActionType} eklendi.`,
-              durum: 'Onaylandı'
-            }))
-          }
-        }
+              gun: leaveDays,
+              aciklama: bulkActionNote,
+              kaynak: 'Vardiya Takvimi'
+            })
       })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'İşlem başarısız oldu.')
 
-      const results = await Promise.allSettled(promises)
-      const failures = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected')
-
+      const failures = (json.results || []).filter((r: any) => !r.ok)
       if (failures.length > 0) {
-        const firstMsg = failures[0].reason?.message || String(failures[0].reason)
-        alert(`${results.length - failures.length} personel kaydedildi, ${failures.length} personel için işlem BAŞARISIZ oldu.\n\nHata: ${firstMsg}`)
+        alert(`${json.okCount} personel kaydedildi, ${failures.length} personel için işlem BAŞARISIZ oldu.\n\nHata: ${failures[0].error}`)
       } else {
         alert("İşlemler başarıyla kaydedildi.")
       }

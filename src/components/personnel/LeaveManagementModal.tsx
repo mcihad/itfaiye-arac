@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { Personnel } from "@/types"
-import { api, unwrap, addDaysISO } from "@/lib/api"
+import { api, getAuthHeaders } from "@/lib/api"
 import { isKarargah } from "@/lib/personnelUtils"
 import { useAuthStore } from "@/lib/authStore"
 import { Input } from "@/components/ui/Input"
@@ -142,69 +142,29 @@ export function LeaveManagementModal({ isOpen, onClose, personnel, onLeaveUpdate
     setSaving(true)
 
     try {
-      const promises = Array.from(selectedIds).map(async (sicilNo) => {
-        const person = personnel.find(p => p.sicil_no === sicilNo)
-        if (!person) return
-
-        const existingLeave = activeLeaves[sicilNo]
-
-        if (leaveType === "İptal") {
-          // Remove leave
-          if (existingLeave) {
-            unwrap(await api.remove('personnel_leaves', { id: existingLeave.id }))
-          }
-          // Reset personnel durum to Hazır
-          unwrap(await api.update('personnel', { durum: 'Hazır' }, { sicil_no: sicilNo }))
-          // Log the cancellation
-          unwrap(await api.insert('personnel_records', {
-            sicil_no: sicilNo,
-            kayit_turu: 'İzin İptali',
-            tarih: leaveDate,
-            aciklama: `İzin iptal edildi. (Personel Yönetimi Modülü)`
-          }))
-        } else {
-          const bitisStr = addDaysISO(leaveDate, leaveDays - 1)
-
-          if (existingLeave) {
-            unwrap(await api.update('personnel_leaves', {
-              izin_turu: leaveType,
-              bitis_tarihi: bitisStr,
-              aciklama: leaveNote || `${leaveType} eklendi.`
-            }, { id: existingLeave.id }))
-          } else {
-            unwrap(await api.insert('personnel_leaves', {
-              sicil_no: sicilNo,
+      // Tüm izin işlemleri merkezi uçtan yapılır: izin kaydı + personel durumu +
+      // özlük kaydı sunucuda tek transaction içinde, her ekranda aynı şekilde yazılır.
+      const isCancel = leaveType === "İptal"
+      const res = await fetch('/api/leaves', {
+        method: isCancel ? 'DELETE' : 'POST',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        body: JSON.stringify(isCancel
+          ? { sicil_nos: Array.from(selectedIds), tarih: leaveDate, kaynak: 'Personel Yönetimi Modülü' }
+          : {
+              sicil_nos: Array.from(selectedIds),
               izin_turu: leaveType,
               baslangic_tarihi: leaveDate,
-              bitis_tarihi: bitisStr,
-              aciklama: leaveNote || `${leaveType} eklendi.`,
-              durum: 'Onaylandı'
-            }))
-          }
-
-          // Update personnel durum for today
-          const today = new Date().toLocaleDateString('en-CA')
-          if (leaveDate <= today && bitisStr >= today) {
-            const newDurum = leaveNote ? `${leaveType} - ${leaveNote}` : leaveType
-            unwrap(await api.update('personnel', { durum: newDurum }, { sicil_no: sicilNo }))
-          }
-
-          // Log to personnel_records (hizmet dökümü / özlük bilgileri)
-          unwrap(await api.insert('personnel_records', {
-            sicil_no: sicilNo,
-            kayit_turu: 'İzin Kaydı',
-            tarih: leaveDate,
-            aciklama: `${leaveType} (${leaveDays} gün: ${leaveDate} - ${bitisStr}). ${leaveNote || ''} (Personel Yönetimi Modülü)`
-          }))
-        }
+              gun: leaveDays,
+              aciklama: leaveNote,
+              kaynak: 'Personel Yönetimi Modülü'
+            })
       })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'İşlem başarısız oldu.')
 
-      const results = await Promise.allSettled(promises)
-      const failures = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected')
-
+      const failures = (json.results || []).filter((r: any) => !r.ok)
       if (failures.length > 0) {
-        const firstMsg = failures[0].reason?.message || String(failures[0].reason)
-        alert(`${results.length - failures.length} personel kaydedildi, ${failures.length} personel için işlem BAŞARISIZ oldu.\n\nHata: ${firstMsg}`)
+        alert(`${json.okCount} personel kaydedildi, ${failures.length} personel için işlem BAŞARISIZ oldu.\n\nHata: ${failures[0].error}`)
       } else {
         alert("İzin işlemleri başarıyla kaydedildi.")
       }

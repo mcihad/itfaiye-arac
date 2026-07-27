@@ -8,7 +8,7 @@ import { exportShiftListToPDF, exportShiftListToExcel } from "@/lib/exportUtils"
 import { STATION_SHIFT_TIMES, normalizeStationName } from "@/lib/shiftUtils"
 import { Personnel } from "@/types"
 import { useAuthStore } from "@/lib/authStore"
-import { api, unwrap } from "@/lib/api"
+import { api, unwrap, getAuthHeaders } from "@/lib/api"
 
 // ─── Hiyerarşik Rütbe Sıralaması ───────────────────────────
 function getUnvanPriority(unvan: string): number {
@@ -181,38 +181,36 @@ export function ShiftList({ personnel, activePosta, onPersonnelUpdate, customTim
     }
     const todayStr = shiftDate.toLocaleDateString("en-CA");
     
-    // 1. Log in personnel_leaves if the status is leave, sick, temporary duty, or external duty
-    const isTrackableStatus = statusBase === 'İzinli' || statusBase === 'Raporlu' || 
+    // 1. İzinli/raporlu/görev durumları merkezi izin ucundan yazılır: izin kaydı +
+    //    personel durumu + özlük kaydı sunucuda tek transaction içinde oluşur.
+    const isTrackableStatus = statusBase === 'İzinli' || statusBase === 'Raporlu' ||
       statusBase === 'Geçici Şube Görevi' || statusBase.startsWith('Dış Görev');
-    
+
     if (isTrackableStatus) {
       try {
         const izinTuru = statusBase.startsWith('Dış Görev') ? 'Dış Görev' : statusBase;
-        const { data: existingLeaves } = await api.from('personnel_leaves')
-          .select('id')
-          .eq('sicil_no', sicilNo)
-          .lte('baslangic_tarihi', todayStr)
-          .gte('bitis_tarihi', todayStr)
-          .eq('izin_turu', izinTuru);
-
-        if (!existingLeaves || existingLeaves.length === 0) {
-          unwrap(await api.insert('personnel_leaves', {
-            sicil_no: sicilNo,
+        const res = await fetch('/api/leaves', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+          body: JSON.stringify({
+            sicil_nos: [sicilNo],
             izin_turu: izinTuru,
             baslangic_tarihi: todayStr,
-            bitis_tarihi: todayStr,
-            aciklama: explanation || `${statusBase} durumu seçildi.`,
-            durum: 'Onaylandı'
-          }));
-        } else {
-          unwrap(await api.update('personnel_leaves', {
-            aciklama: explanation || `${statusBase} durumu seçildi.`
-          }, { id: existingLeaves[0].id }));
-        }
+            gun: 1,
+            aciklama: explanation,
+            kaynak: 'Nöbet Listesi'
+          })
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'İzin kaydı yazılamadı');
+        const fail = (json.results || []).find((r: any) => !r.ok);
+        if (fail) throw new Error(fail.error);
       } catch (e: any) {
         console.error("Failed to log leave movement:", e);
         alert(`Uyarı: Personel durumu güncellendi ancak izin defterine kayıt YAZILAMADI:\n${e?.message || e}\n\nİzin listesi ile nöbet listesi tutarsız kalabilir.`);
       }
+      // Özlük kaydı ('İzin Kaydı') merkezi uçta yazıldı — ayrıca 'Nöbet Hareketi' yazılmaz.
+      return;
     }
 
     // 2. Chronological movement log in personnel_records (Hizmet Dökümü)
