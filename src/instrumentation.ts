@@ -7,9 +7,40 @@
  * fonksiyonun kendisi belirler ve yalnızca zamanı gelen şubeye SMS gönderir.
  * Idempotency (istasyon+gün) sayesinde aynı vardiyada tekrar gönderilmez.
  */
+/**
+ * Açılışta ortam değişkeni doğrulaması. Eksik yapılandırma eskiden ilk
+ * kullanım anında anlaşılmaz hatalarla ortaya çıkıyordu; artık sunucu
+ * açılır açılmaz net bir mesajla raporlanır.
+ */
+function validateEnv() {
+  const eksikler: string[] = [];
+
+  if (!process.env.DATABASE_URL) eksikler.push("DATABASE_URL (veritabanı bağlantısı — sistem çalışamaz)");
+  if (!process.env.MINIO_ACCESS_KEY || !process.env.MINIO_SECRET_KEY) {
+    eksikler.push("MINIO_ACCESS_KEY / MINIO_SECRET_KEY (dosya yüklemeleri başarısız olur)");
+  }
+  if (!process.env.SMS_API_KEY || !process.env.SMS_API_SECRET) {
+    eksikler.push("SMS_API_KEY / SMS_API_SECRET (SMS bildirimleri ve sayım uyarıları gönderilemez)");
+  }
+
+  if (eksikler.length > 0) {
+    const mesaj = `[env] Eksik ortam değişkenleri:\n  - ${eksikler.join("\n  - ")}`;
+    if (process.env.NODE_ENV === "production" && !process.env.DATABASE_URL) {
+      // DATABASE_URL olmadan uygulama tümüyle işlevsiz: ilk sorguda kriptik
+      // hata vermek yerine açılışta net mesajla durdur.
+      throw new Error(mesaj);
+    }
+    console.warn(mesaj);
+  }
+}
+
 export async function register() {
-  // Yalnızca Node.js runtime'da (edge/build değil) ve üretimde çalışsın.
+  // Yalnızca Node.js runtime'da (edge/build değil) çalışsın.
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
+
+  validateEnv();
+
+  // Zamanlayıcı yalnızca üretimde kurulur.
   if (process.env.NODE_ENV !== "production") return;
 
   const g = globalThis as unknown as { __sayimUyariTimer?: ReturnType<typeof setInterval> };

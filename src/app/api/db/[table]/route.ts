@@ -106,6 +106,21 @@ function authorizeRead(session: JWTPayload, table: string): { error: string; sta
   return null;
 }
 
+/**
+ * Sunucu iç hata mesajlarını (SQL/şema detayı içerebilir) istemciye sızdırmadan
+ * anlaşılır bir Türkçe mesaja çevirir. Ayrıntı her zaman sunucu loguna yazılır.
+ */
+function toClientErrorMessage(error: unknown): string {
+  const code = (error as any)?.code;
+  switch (code) {
+    case '23505': return 'Bu kayıt zaten mevcut (benzersiz alan çakışması).';
+    case '23503': return 'İşlem, ilişkili başka bir kayıt tarafından engelleniyor.';
+    case '23502': return 'Zorunlu bir alan boş bırakılamaz.';
+    case '22P02': return 'Geçersiz veri biçimi gönderildi.';
+    default: return 'Sunucuda bir hata oluştu. Ayrıntılar sistem loguna kaydedildi.';
+  }
+}
+
 // Hassas kolonları yanıt satırlarından siler (rows dizisini yerinde değiştirir).
 function stripSensitiveColumns(table: string, rows: any[]): any[] {
   const cols = RESPONSE_STRIPPED_COLUMNS[table];
@@ -293,7 +308,7 @@ export async function GET(
     return NextResponse.json({ data: stripSensitiveColumns(table, result.rows), count: result.rowCount });
   } catch (error: any) {
     console.error(`[db/GET] Hata:`, error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: toClientErrorMessage(error) }, { status: 500 });
   }
 }
 
@@ -525,8 +540,7 @@ export async function POST(
     return NextResponse.json({ data: stripSensitiveColumns(table, insertedRows), error: null });
   } catch (error: unknown) {
     console.error(`[db/POST] Hata:`, error);
-    const errMsg = error instanceof Error ? error.message : String(error);
-    return NextResponse.json({ error: errMsg }, { status: 500 });
+    return NextResponse.json({ error: toClientErrorMessage(error) }, { status: 500 });
   }
 }
 
@@ -703,7 +717,7 @@ export async function PATCH(
     return NextResponse.json({ data: stripSensitiveColumns(table, result.rows), error: null });
   } catch (error: any) {
     console.error(`[db/PATCH] Hata:`, error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: toClientErrorMessage(error) }, { status: 500 });
   }
 }
 
@@ -764,6 +778,6 @@ export async function DELETE(
     return NextResponse.json({ data: stripSensitiveColumns(table, result.rows), error: null });
   } catch (error: any) {
     console.error(`[db/DELETE] Hata:`, error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: toClientErrorMessage(error) }, { status: 500 });
   }
 }

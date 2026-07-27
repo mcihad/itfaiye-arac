@@ -104,11 +104,18 @@ function toTurkishUpperCase(str: string): string {
 }
 
 // Test/demo kimlik bypass'ı ve NVİ servis kesintisinde fail-open davranışı yalnızca
-// üretim DIŞI ortamlarda (veya açıkça ALLOW_TEST_IDENTITY=true ile) izinlidir.
-// Üretimde bu kalkanlar kapalıdır: sahte/test TC'ler reddedilir ve servis erişilemezse
-// başvuru fail-closed olarak reddedilir.
-const ALLOW_TEST_IDENTITY =
-  process.env.NODE_ENV !== 'production' || process.env.ALLOW_TEST_IDENTITY === 'true';
+// üretim DIŞI ortamlarda izinlidir. Üretimde bu kalkanlar KOŞULSUZ kapalıdır:
+// sahte/test TC'ler reddedilir, servis erişilemezse başvuru fail-closed reddedilir
+// ve OTP asla HTTP yanıtında dönmez. ALLOW_TEST_IDENTITY env değişkeni üretimde
+// YOK SAYILIR — yanlışlıkla (veya kötü niyetle) set edilmesi vatandaş kimlik
+// doğrulamasını baypas edemesin diye.
+const ALLOW_TEST_IDENTITY = process.env.NODE_ENV !== 'production';
+if (process.env.NODE_ENV === 'production' && process.env.ALLOW_TEST_IDENTITY === 'true') {
+  console.warn(
+    '[citizen-requests] UYARI: ALLOW_TEST_IDENTITY=true üretim ortamında YOK SAYILDI. ' +
+    'Kimlik doğrulama kalkanları etkin kalıyor. Bu değişkeni üretim env\'inden kaldırın.'
+  );
+}
 
 /**
  * OTP kodunu Sivas Belediyesi SMS API'si üzerinden gönderir.

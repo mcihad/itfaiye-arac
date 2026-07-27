@@ -216,9 +216,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, message: 'Başvuru durumu başarıyla güncellendi.' });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error('[hizmet-onay/POST] Hata:', msg);
-    return NextResponse.json({ success: false, error: 'Sunucu hatası oluştu: ' + msg }, { status: 500 });
+    console.error('[hizmet-onay/POST] Hata:', err);
+    // Bilinçli fırlatılan iş kuralı mesajları istemciye gider; pg/SQL hataları
+    // (code alanı taşır) şema detayı sızdırmamak için genelleştirilir.
+    const isPgError = typeof (err as any)?.code === 'string';
+    const msg = !isPgError && err instanceof Error ? err.message : 'İşlem tamamlanamadı. Ayrıntılar sistem loguna kaydedildi.';
+    return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
 }
 
@@ -301,8 +304,9 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true, message: 'Başvuru başarıyla silindi.' });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error('[hizmet-onay/DELETE] Hata:', msg);
-    return NextResponse.json({ success: false, error: 'Sunucu hatası oluştu: ' + msg }, { status: 500 });
+    console.error('[hizmet-onay/DELETE] Hata:', err);
+    const isPgError = typeof (err as any)?.code === 'string';
+    const msg = !isPgError && err instanceof Error ? err.message : 'İşlem tamamlanamadı. Ayrıntılar sistem loguna kaydedildi.';
+    return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
 }
