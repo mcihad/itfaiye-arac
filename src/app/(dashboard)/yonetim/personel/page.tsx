@@ -253,6 +253,7 @@ export default function PersonelYonetimPage() {
             posta: p.posta || '',
             posta_no: p.posta_no ?? null,
             birim: p.birim,
+            foto_url: p.foto_url || null,
             istasyon: p.istasyon || '',
             durum: p.durum || 'Görevde',
             ehliyet_gecerlilik_tarihi: ehliyet?.gecerlilik_tarihi || undefined,
@@ -1376,12 +1377,16 @@ export default function PersonelYonetimPage() {
                       className="flex items-center gap-3 flex-1 min-w-0 group cursor-pointer"
                     >
                       <div className={cn(
-                        "w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 border-2 transition-transform group-hover:scale-105",
-                        isAdmin ? "bg-primary/10 text-primary border-primary/20" : 
-                        isLeader ? "bg-warning/10 text-warning border-warning/20" : 
+                        "w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 border-2 transition-transform group-hover:scale-105 overflow-hidden",
+                        isAdmin ? "bg-primary/10 text-primary border-primary/20" :
+                        isLeader ? "bg-warning/10 text-warning border-warning/20" :
                         "bg-muted border-border"
                       )}>
-                        {person.ad.charAt(0)}{person.soyad.charAt(0)}
+                        {person.foto_url ? (
+                          <img src={person.foto_url} alt={`${person.ad} ${person.soyad}`} className="w-full h-full object-cover" />
+                        ) : (
+                          <>{person.ad.charAt(0)}{person.soyad.charAt(0)}</>
+                        )}
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
@@ -1542,8 +1547,12 @@ export default function PersonelYonetimPage() {
           {selectedPerson && (
             <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5">
               <div className="bg-[var(--fd-surface2)] p-3 rounded-[var(--fd-r)] border border-[var(--fd-border)] flex flex-col items-center justify-center text-center">
-                <div className="w-12 h-12 rounded-full bg-primary/10 text-primary border-2 border-primary/20 flex items-center justify-center font-bold text-lg mb-2">
-                  {selectedPerson.ad.charAt(0)}{selectedPerson.soyad.charAt(0)}
+                <div className="w-12 h-12 rounded-full bg-primary/10 text-primary border-2 border-primary/20 flex items-center justify-center font-bold text-lg mb-2 overflow-hidden">
+                  {selectedPerson.foto_url ? (
+                    <img src={selectedPerson.foto_url} alt={`${selectedPerson.ad} ${selectedPerson.soyad}`} className="w-full h-full object-cover" />
+                  ) : (
+                    <>{selectedPerson.ad.charAt(0)}{selectedPerson.soyad.charAt(0)}</>
+                  )}
                 </div>
                 <p className="text-base font-bold">{selectedPerson.ad} {selectedPerson.soyad}</p>
                 <p className="text-xs font-mono text-muted-foreground mt-0.5">{selectedPerson.sicil_no} • {selectedPerson.unvan}</p>
@@ -1935,17 +1944,21 @@ export default function PersonelYonetimPage() {
                     {/* Driver info */}
                     <div className="flex items-center gap-3">
                       <div className={cn(
-                        "w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs shrink-0 border",
+                        "w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs shrink-0 border overflow-hidden",
                         status === 'missing' || status === 'expired' ? "bg-red-500/10 text-red-500 border-red-500/20" :
                         status === 'critical' ? "bg-amber-500/10 text-amber-500 border-amber-500/20" :
                         "bg-[var(--fd-surface2)] text-[var(--fd-text2)] border-[var(--fd-border)]"
                       )}>
-                        {person.ad.charAt(0)}{person.soyad.charAt(0)}
+                        {person.foto_url ? (
+                          <img src={person.foto_url} alt={`${person.ad} ${person.soyad}`} className="w-full h-full object-cover" />
+                        ) : (
+                          <>{person.ad.charAt(0)}{person.soyad.charAt(0)}</>
+                        )}
                       </div>
                       <div>
                         <p className="text-xs font-bold text-[var(--fd-text)]">{person.ad} {person.soyad}</p>
                         <p className="text-[10px] text-muted-foreground mt-0.5 font-mono">
-                          {person.sicil_no} • {person.unvan} • Posta {person.posta_no || 1}
+                          {person.sicil_no} • {person.unvan} • {person.posta_no ? `Posta ${person.posta_no}` : 'Karargah'}
                         </p>
                       </div>
                     </div>

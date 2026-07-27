@@ -113,6 +113,8 @@ export default function PersonelProfilPage() {
   // Vesikalık fotoğraf yükleme (kişinin kendisi veya Admin)
   const photoInputRef = useRef<HTMLInputElement>(null)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  // Fotoğrafa tıklayınca büyük önizleme
+  const [photoPreviewOpen, setPhotoPreviewOpen] = useState(false)
 
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -594,9 +596,13 @@ export default function PersonelProfilPage() {
               />
             )}
             <div
-              onClick={() => canEdit && !uploadingPhoto && photoInputRef.current?.click()}
-              title={canEdit ? "Fotoğraf yükle / değiştir" : undefined}
-              className={`w-12 h-12 rounded-[var(--fd-r-sm)] bg-[var(--fd-accent-soft)] border border-[var(--fd-accent-soft2)] flex items-center justify-center text-[var(--fd-accent)] text-lg font-bold shadow-sm overflow-hidden ${canEdit ? "cursor-pointer" : ""}`}
+              onClick={() => {
+                if (uploadingPhoto) return
+                if (personel.foto_url) setPhotoPreviewOpen(true)
+                else if (canEdit) photoInputRef.current?.click()
+              }}
+              title={personel.foto_url ? "Büyütmek için tıklayın" : canEdit ? "Fotoğraf yükle" : undefined}
+              className={`w-12 h-12 rounded-[var(--fd-r-sm)] bg-[var(--fd-accent-soft)] border border-[var(--fd-accent-soft2)] flex items-center justify-center text-[var(--fd-accent)] text-lg font-bold shadow-sm overflow-hidden ${personel.foto_url || canEdit ? "cursor-pointer" : ""}`}
             >
               {uploadingPhoto ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -607,11 +613,56 @@ export default function PersonelProfilPage() {
               )}
             </div>
             {canEdit && !uploadingPhoto && (
-              <div className="absolute -bottom-1 -right-1 bg-[var(--fd-accent)] text-white rounded-full p-0.5 shadow pointer-events-none group-hover:scale-110 transition-transform">
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); photoInputRef.current?.click() }}
+                title="Fotoğraf yükle / değiştir"
+                className="absolute -bottom-1 -right-1 bg-[var(--fd-accent)] text-white rounded-full p-0.5 shadow border-none cursor-pointer group-hover:scale-110 transition-transform"
+              >
                 <Camera className="w-3 h-3" />
-              </div>
+              </button>
             )}
           </div>
+
+          {/* Fotoğraf büyük önizleme */}
+          {photoPreviewOpen && personel.foto_url && (
+            <div
+              className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+              onClick={() => setPhotoPreviewOpen(false)}
+            >
+              <div className="relative max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
+                <img
+                  src={personel.foto_url}
+                  alt={`${personel.ad} ${personel.soyad}`}
+                  className="w-full max-h-[80vh] object-contain rounded-[var(--fd-r)] shadow-2xl bg-[var(--fd-surface)]"
+                />
+                <div className="absolute top-2 right-2 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPhotoPreviewOpen(false)}
+                    className="bg-black/60 hover:bg-black/80 text-white rounded-full p-2 border-none cursor-pointer transition-colors"
+                    title="Kapat"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="mt-3 flex items-center justify-between gap-2">
+                  <div className="text-white text-sm font-semibold drop-shadow">
+                    {personel.ad} {personel.soyad} <span className="opacity-70 font-mono text-xs">• {personel.sicil_no}</span>
+                  </div>
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={() => { setPhotoPreviewOpen(false); photoInputRef.current?.click() }}
+                      className="flex items-center gap-1.5 bg-[var(--fd-accent)] hover:opacity-90 text-white text-xs font-bold px-3 py-1.5 rounded-[var(--fd-r-sm)] border-none cursor-pointer transition-opacity"
+                    >
+                      <Camera className="w-3.5 h-3.5" /> Fotoğrafı Değiştir
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
           
           <div>
             <div className="flex items-center gap-2 flex-wrap">
