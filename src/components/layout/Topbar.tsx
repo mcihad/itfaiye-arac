@@ -412,7 +412,7 @@ export function Topbar() {
                     type: 'warning',
                     time: diffDays < 0 ? 'Gecikti' : `${diffDays} Gün Kaldı`,
                     read: storedRead.includes(itemId),
-                    actionUrl: '/yonetim/araclar'
+                    actionUrl: '/araclar'
                   })
                 }
               }
@@ -432,7 +432,7 @@ export function Topbar() {
                     type: 'warning',
                     time: diffDays < 0 ? 'Gecikti' : `${diffDays} Gün Kaldı`,
                     read: storedRead.includes(itemId),
-                    actionUrl: '/yonetim/araclar'
+                    actionUrl: '/araclar'
                   })
                 }
               }
