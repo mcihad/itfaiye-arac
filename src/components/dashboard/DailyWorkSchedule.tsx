@@ -2,6 +2,7 @@
 
 import { useMemo } from "react"
 import { Personnel } from "@/types"
+import { trLower } from "@/lib/personnelUtils"
 import { Printer, Users } from "lucide-react"
 
 interface DailyWorkScheduleProps {
@@ -69,11 +70,14 @@ export function DailyWorkSchedule({ personnel, allPersonnel, sabitNizamiyeSicil 
 
     activePersonnel.forEach(p => {
       const role = getRoleKey(p.unvan);
-      const durum = (p.durum || '').toLowerCase();
+      // trLower: 'İzinli'.toLowerCase() Türkçe İ yüzünden 'izin' ile eşleşmiyordu;
+      // izinli personel yanlışlıkla şube mevcuduna sayılıyordu.
+      const durum = trLower(p.durum);
       
       let targetRow = "";
       
-      if (durum.includes('izin') || durum.includes('yıllık')) {
+      // 'izni' kalıbı 'Mazeret İzni' için gerekli ('izin' ile eşleşmez)
+      if (durum.includes('izin') || durum.includes('izni') || durum.includes('mazeret') || durum.includes('yıllık')) {
         targetRow = "İzinli";
       } else if (durum.includes('rapor')) {
         targetRow = "Raporlu";

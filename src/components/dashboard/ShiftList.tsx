@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
 import { exportShiftListToPDF, exportShiftListToExcel } from "@/lib/exportUtils"
 import { STATION_SHIFT_TIMES, normalizeStationName } from "@/lib/shiftUtils"
+import { trLower } from "@/lib/personnelUtils"
 import { Personnel } from "@/types"
 import { useAuthStore } from "@/lib/authStore"
 import { api, unwrap, getAuthHeaders } from "@/lib/api"
@@ -29,8 +30,8 @@ function getUnvanPriority(unvan: string): number {
 function sortByHierarchy(list: Personnel[]): Personnel[] {
   return [...list].sort((a, b) => {
     // Raporlu, İzinli veya Dış Görev olanları listenin en altına grupla
-    const durumA = (a.durum || '').toLowerCase();
-    const durumB = (b.durum || '').toLowerCase();
+    const durumA = trLower(a.durum);
+    const durumB = trLower(b.durum);
     const isAbsentA = durumA.includes('izinli') || durumA.includes('raporlu') || durumA.includes('dış görev');
     const isAbsentB = durumB.includes('izinli') || durumB.includes('raporlu') || durumB.includes('dış görev');
     
@@ -339,7 +340,7 @@ export function ShiftList({ personnel, activePosta, onPersonnelUpdate, customTim
                 </thead>
                 <tbody className="divide-y divide-[var(--fd-border)]/40">
                   {station.personnel.map((p) => {
-                    const durumLower = (p.durum || '').toLowerCase()
+                    const durumLower = trLower(p.durum)
                     const isAbsent = durumLower.includes('izinli') || durumLower.includes('raporlu') || durumLower.includes('dış görev')
                     const isLeader = p.unvan?.toLowerCase().includes('başçavuş') || 
                                      p.unvan?.toLowerCase().includes('çavuş') || 

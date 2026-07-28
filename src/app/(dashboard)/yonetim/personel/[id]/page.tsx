@@ -681,7 +681,7 @@ export default function PersonelProfilPage() {
               <span className="flex items-center gap-1.5">
                 <span>Günlük Durum:</span>
                 {(() => {
-                  const durumLower = (personel.durum || '').toLowerCase();
+                  const durumLower = (personel.durum || '').toLocaleLowerCase('tr-TR');
                   let variant: 'success' | 'danger' | 'warning' | 'outline' = 'success';
                   if (durumLower.includes('izinli') || durumLower.includes('raporlu')) {
                     variant = 'danger';

@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react"
 import { api } from "@/lib/api"
 import { useAuthStore } from "@/lib/authStore"
 import { Personnel } from "@/types"
+import { trLower } from "@/lib/personnelUtils"
 import { Loader2, ShieldCheck, Clock, MapPin, Building, ShieldAlert, Shield, Printer } from "lucide-react"
 import { toast } from "@/lib/toast"
 
@@ -121,7 +122,7 @@ export function HourlyShifts({ personnel, allPersonnel, activePosta, sabitNizami
       const sabitGorevli = sabitNizamiyeSicil
         ? sourcePersonnel.find(p => p.sicil_no === sabitNizamiyeSicil)
         : sourcePersonnel.find(p => p.ad?.trim().toLowerCase() === 'sercan' && p.soyad?.trim().toLowerCase() === 'karaca');
-      const isSabitGorevliMusait = sabitGorevli && !sabitGorevli.durum?.toLowerCase().includes('izin') && !sabitGorevli.durum?.toLowerCase().includes('rapor');
+      const isSabitGorevliMusait = sabitGorevli && !trLower(sabitGorevli.durum).includes('izin') && !trLower(sabitGorevli.durum).includes('rapor');
 
       if (!newMatrix["TÜM GÜN"]["SABIT_NIZAMIYE"]) {
         newMatrix["TÜM GÜN"]["SABIT_NIZAMIYE"] = { sicil: "" };

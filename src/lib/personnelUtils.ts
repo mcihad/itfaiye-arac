@@ -11,6 +11,17 @@
  */
 import { Personnel } from "@/types";
 
+/**
+ * Türkçe'ye duyarlı küçük harf çevirici.
+ * DİKKAT: JS'in standart toLowerCase()'i Türkçe 'İ'yi 'i̇' (i + ayrık nokta,
+ * U+0069 U+0307) yapar; bu yüzden 'İzinli'.toLowerCase().includes('izin')
+ * FALSE döner ve izinli personel mevcut sayılır. Durum/ünvan gibi Türkçe
+ * metin karşılaştırmalarında her zaman bu fonksiyon kullanılmalıdır.
+ */
+export function trLower(s: string | null | undefined): string {
+  return String(s ?? "").toLocaleLowerCase("tr-TR");
+}
+
 /** Posta nöbetine girmeyen idari yönetici ünvanları (gündüz mesaisi). */
 export const IDARI_UNVANLAR = ["Müdür", "Amir", "Baş Şoför", "Eğitim Çavuşu"];
 
@@ -22,7 +33,7 @@ export function isIdariUnvan(unvan?: string): boolean {
 }
 
 export function isKarargahUnvan(unvan?: string): boolean {
-  const u = (unvan || "").toLocaleLowerCase("tr-TR");
+  const u = trLower(unvan);
   return KARARGAH_UNVAN_KELIMELERI.some((k) => u.includes(k));
 }
 
