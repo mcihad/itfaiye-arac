@@ -69,7 +69,14 @@ export async function sendIncidentPushNotifications(incidentId: string, assigned
         const payload = JSON.stringify({
           title,
           body,
-          url: mapsUrl
+          url: mapsUrl,
+          // Saha Modu alarm katmanı için: "Yola Çıktım" kaydının olaya
+          // bağlanabilmesi olay kimliğine ihtiyaç duyar (service worker
+          // payload'ı olduğu gibi iletir).
+          incidentId,
+          olay_turu: olayTuru,
+          mahalle,
+          adres
         });
         await webpush.sendNotification(subscription, payload);
       } catch (err) {
