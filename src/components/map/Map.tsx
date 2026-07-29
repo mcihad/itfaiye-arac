@@ -1328,7 +1328,9 @@ export default function Map({
           name: "Organize Sanayi (OSB) Şubesi Yerleşkesi",
           desc: "Sivas Belediyesi İtfaiye OSB Şubesi",
           addr: "1. OSB, Kılavuz, Merkez",
-          coords: [37.085315, 39.786707] as [number, number]
+          // 29.07.2026: eski koordinat gerçek yerleşkeden 1.2 km uzaktaydı
+          // (GeofenceButton ile aynı düzeltme — personel GPS kümesinin merkezi)
+          coords: [37.091510, 39.796105] as [number, number]
         }
       ]
 
@@ -1710,7 +1712,7 @@ export default function Map({
         if (branchStr.includes('esentepe')) {
           defaultCenter = [36.988576, 39.748762]; // Esentepe coordinates
         } else if (branchStr.includes('osb') || branchStr.includes('organize')) {
-          defaultCenter = [37.085315, 39.786707]; // OSB coordinates
+          defaultCenter = [37.091510, 39.796105]; // OSB coordinates (29.07.2026 düzeltmesi)
         }
 
         let coords: [number, number] = [defaultCenter[0] + lngOffset, defaultCenter[1] + latOffset]

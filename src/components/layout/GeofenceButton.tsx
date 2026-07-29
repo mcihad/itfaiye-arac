@@ -9,10 +9,13 @@ import { DutyLog } from '@/types'
 import { cn } from '@/lib/utils'
 
 // Sivas İtfaiyesi Resmi İstasyon Koordinatları (Geofence Matrix)
+// OSB koordinatı 29.07.2026'da düzeltildi: eski nokta (39.786707, 37.085315)
+// gerçek yerleşkeden 1.2 km uzaktaydı ve OSB personeli görev başlatamıyordu.
+// Yeni nokta, OSB personelinin vardiya saatlerindeki GPS kayıtlarının merkezidir.
 const STATIONS = [
   { name: "Merkez İstasyon Yerleşkesi", lat: 39.7339522, lng: 37.0209312 },
   { name: "Esentepe Şubesi Yerleşkesi", lat: 39.748762, lng: 36.988576 },
-  { name: "Organize Sanayi (OSB) Şubesi Yerleşkesi", lat: 39.786707, lng: 37.085315 }
+  { name: "Organize Sanayi (OSB) Şubesi Yerleşkesi", lat: 39.796105, lng: 37.091510 }
 ]
 const MAX_DISTANCE_METERS = 150
 
