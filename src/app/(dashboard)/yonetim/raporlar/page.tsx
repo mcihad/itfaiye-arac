@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
 import { Badge } from "@/components/ui/Badge"
-import { Search, Loader2, Filter, AlertTriangle, CheckCircle2, History, X, ChevronDown, ChevronUp, ListChecks, Package, HelpCircle, Flame, ShieldAlert, GraduationCap, Truck, Clock } from "lucide-react"
+import { Search, Loader2, Filter, AlertTriangle, CheckCircle2, History, X, ChevronDown, ChevronUp, ListChecks, Package, HelpCircle, Flame, ShieldAlert, GraduationCap, Truck, Clock, CalendarDays } from "lucide-react"
 import { api } from "@/lib/api"
 import { useAuthStore } from "@/lib/authStore"
 import { cn } from "@/lib/utils"
@@ -861,9 +861,9 @@ export default function LogsReportsPage() {
     // Nöbet loglarını Kontrol Geçmişinden gizle (Aşağıdaki Nöbet Çizelgesinde listeleniyor)
     const vehicleLogs = logs.filter(log => !log.islem_tipi?.toLowerCase().includes("nöbet") && !log.islem_tipi?.toLowerCase().includes("nobet"))
     const grouped = groupInventoryLogs(vehicleLogs)
-    
+
     if (statusFilter === "all") return grouped
-    
+
     return grouped.filter(item => {
       const durum = isGroupedLog(item) ? item.durum : item.durum
       if (statusFilter === "sorunlu") return durum === "Sorunlu"
@@ -871,6 +871,37 @@ export default function LogsReportsPage() {
       return true
     })
   }, [logs, statusFilter])
+
+  // ── Gün bazlı katlanabilir gruplar ──────────────────────────────────
+  // Uzun listede kaydırmayı azaltmak için kayıtlar günlere bölünür; her gün
+  // tek satırlık katlanabilir bir başlıktır (varsayılan: yalnızca en yeni gün
+  // açık, filtre aktifken tüm günler açık).
+  const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>({})
+  const hasActiveFilter = !!plakaFilter.trim() || !!personnelFilter.trim() || statusFilter !== "all"
+
+  const dayGroups = useMemo(() => {
+    const groups: { key: string; label: string; items: typeof displayItems; sorunlu: number }[] = []
+    const indexByKey = new Map<string, number>()
+    const todayKey = new Date().toLocaleDateString("en-CA")
+    const yesterdayKey = new Date(Date.now() - 86400000).toLocaleDateString("en-CA")
+
+    for (const item of displayItems) {
+      const d = new Date(item.tarih)
+      const key = d.toLocaleDateString("en-CA")
+      let gi = indexByKey.get(key)
+      if (gi === undefined) {
+        const base = d.toLocaleDateString("tr-TR", { day: "numeric", month: "long", weekday: "long" })
+        const label = key === todayKey ? `Bugün — ${base}` : key === yesterdayKey ? `Dün — ${base}` : base
+        gi = groups.length
+        indexByKey.set(key, gi)
+        groups.push({ key, label, items: [], sorunlu: 0 })
+      }
+      groups[gi].items.push(item)
+      const durum = isGroupedLog(item) ? item.durum : item.durum
+      if (durum === "Sorunlu") groups[gi].sorunlu++
+    }
+    return groups
+  }, [displayItems])
 
   // Stats
   const totalCount = displayItems.length
@@ -1184,9 +1215,12 @@ export default function LogsReportsPage() {
             <CardDescription className="mt-1 text-[var(--fd-text3)]">
               {displayItems.length} kayıt gösteriliyor (gruplandırılmış)
               {logsTruncated && (
-                <span className="block mt-1 text-[11px] font-semibold text-[var(--fd-amber)]">
-                  ⚠️ Kayıt sayısı görüntüleme sınırına ulaştı — yalnızca en yeni kayıtlar listeleniyor.
-                  Daha eski kayıtlar için tarih aralığını daraltın veya plaka/personel filtresi kullanın.
+                <span className="mt-1 flex items-start gap-1.5 text-[11px] font-semibold text-[var(--fd-amber)]">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-[1px]" />
+                  <span>
+                    Kayıt sayısı görüntüleme sınırına ulaştı — yalnızca en yeni kayıtlar listeleniyor.
+                    Daha eski kayıtlar için tarih aralığını daraltın veya plaka/personel filtresi kullanın.
+                  </span>
                 </span>
               )}
             </CardDescription>
@@ -1209,8 +1243,36 @@ export default function LogsReportsPage() {
               <p>Bu filtrelere uygun kayıt bulunamadı.</p>
             </div>
           ) : (
-            <div className="divide-y divide-[var(--fd-border)]/30">
-              {displayItems.map((item, idx) => {
+            <div>
+              {dayGroups.map((day, dayIdx) => {
+                const isDayOpen = expandedDays[day.key] ?? (dayIdx === 0 || hasActiveFilter)
+                return (
+                  <div key={day.key} className="border-b border-[var(--fd-border)]/40 last:border-b-0">
+                    {/* Gün başlığı — katlanabilir */}
+                    <button
+                      type="button"
+                      onClick={() => setExpandedDays(prev => ({ ...prev, [day.key]: !isDayOpen }))}
+                      className="w-full flex items-center gap-3 px-4 sm:px-6 py-3 bg-[var(--fd-surface2)]/60 hover:bg-[var(--fd-surface2)] transition-colors text-left cursor-pointer"
+                    >
+                      <ChevronDown className={cn("w-4 h-4 text-[var(--fd-text3)] transition-transform duration-150 shrink-0", !isDayOpen && "-rotate-90")} />
+                      <CalendarDays className="w-4 h-4 text-[var(--fd-accent)] shrink-0" />
+                      <span className="font-bold text-sm text-[var(--fd-text)]">{day.label}</span>
+                      <span className="font-[var(--fd-fontmono)] text-xs text-[var(--fd-text3)]">{day.items.length} kayıt</span>
+                      <span className="flex-1" />
+                      {day.sorunlu > 0 ? (
+                        <Badge variant="danger" className="gap-1 px-2 py-0.5 shrink-0">
+                          <AlertTriangle className="w-3 h-3" /> {day.sorunlu} Sorunlu
+                        </Badge>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--fd-success)] shrink-0">
+                          <CheckCircle2 className="w-3 h-3" /> Sorunsuz
+                        </span>
+                      )}
+                    </button>
+
+                    {!isDayOpen ? null : (
+                    <div className="divide-y divide-[var(--fd-border)]/30">
+              {day.items.map((item, idx) => {
                 if (isGroupedLog(item)) {
                   // Grouped inventory accordion row
                   const isOpen = expandedKeys.has(item.key)
@@ -1358,6 +1420,11 @@ export default function LogsReportsPage() {
                         </Badge>
                       )}
                     </div>
+                  </div>
+                )
+              })}
+                    </div>
+                    )}
                   </div>
                 )
               })}
