@@ -543,6 +543,7 @@ export default function LogsReportsPage() {
   }
 
   const [logs, setLogs] = useState<UnifiedLog[]>([])
+  const [logsTruncated, setLogsTruncated] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
@@ -632,14 +633,21 @@ export default function LogsReportsPage() {
         query = query.gte("tarih", lastWeek.toISOString())
       }
 
-      // Server-Side Limit & Order
-      query = query.order("tarih", { ascending: false }).limit(500)
+      // Server-Side Limit & Order.
+      // Envanter sayımı malzeme başına ayrı satır yazdığı için eski 500 satırlık
+      // sabit limit yalnızca son ~1-2 günü kapsıyordu; daha eski kayıtlar filtre ne
+      // olursa olsun listeye hiç gelmiyor ve 'silinmiş' gibi görünüyordu.
+      const fetchLimit = dateFilter === "today" ? 3000 : dateFilter === "7days" ? 8000 : 15000
+      query = query.order("tarih", { ascending: false }).limit(fetchLimit)
 
       const { data, error } = await query
 
       if (error) throw error
 
-      setLogs((data || []) as UnifiedLog[])
+      const rows = (data || []) as UnifiedLog[]
+      setLogs(rows)
+      // Limit dolduysa kullanıcıyı bilgilendir (sessiz kesme yok)
+      setLogsTruncated(rows.length >= fetchLimit)
     } catch (err: any) {
       console.error("[Logs] Fetch error:", err)
       setError(err.message || "Kayıtlar yüklenirken bir hata oluştu.")
@@ -1175,6 +1183,12 @@ export default function LogsReportsPage() {
             </CardTitle>
             <CardDescription className="mt-1 text-[var(--fd-text3)]">
               {displayItems.length} kayıt gösteriliyor (gruplandırılmış)
+              {logsTruncated && (
+                <span className="block mt-1 text-[11px] font-semibold text-[var(--fd-amber)]">
+                  ⚠️ Kayıt sayısı görüntüleme sınırına ulaştı — yalnızca en yeni kayıtlar listeleniyor.
+                  Daha eski kayıtlar için tarih aralığını daraltın veya plaka/personel filtresi kullanın.
+                </span>
+              )}
             </CardDescription>
           </div>
         </CardHeader>
